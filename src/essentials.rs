@@ -6,7 +6,7 @@ use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 
 #[derive(Debug)]
-pub struct Despero {
+pub struct Despero {	
 	pub window: winit::window::Window,
 	pub entry: ash::Entry,
 	pub instance: ash::Instance,
@@ -26,7 +26,7 @@ impl Despero {
 		let entry = unsafe { ash::Entry::load()? };
 		
 		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
-		let instance = init_instance(&entry, &layer_names)?;    
+		let instance = init_instance(&entry, &layer_names)?;	
 		let debug = Debug::init(&entry, &instance)?;
 		let surfaces = Surface::init(&window, &entry, &instance)?;
 		
@@ -48,7 +48,7 @@ impl Despero {
 			entry,
 			instance,
 			debug: std::mem::ManuallyDrop::new(debug),
-            surfaces: std::mem::ManuallyDrop::new(surfaces),
+			surfaces: std::mem::ManuallyDrop::new(surfaces),
 			physical_device,
 			physical_device_properties,
 			queue_families,
@@ -60,15 +60,15 @@ impl Despero {
 }
 
 impl Drop for Despero {
-    fn drop(&mut self) {
-        unsafe {
-            self.swapchain.cleanup(&self.device);
-            self.device.destroy_device(None);
-            std::mem::ManuallyDrop::drop(&mut self.surfaces);
-            std::mem::ManuallyDrop::drop(&mut self.debug);
-            self.instance.destroy_instance(None)
-        };
-    }
+	fn drop(&mut self) {
+		unsafe {
+			self.swapchain.cleanup(&self.device);
+			self.device.destroy_device(None);
+			std::mem::ManuallyDrop::drop(&mut self.surfaces);
+			std::mem::ManuallyDrop::drop(&mut self.debug);
+			self.instance.destroy_instance(None)
+		};
+	}
 }
 
 //Debug
@@ -95,7 +95,7 @@ impl Debug {
 					| vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
 			)
 			.pfn_user_callback(Some(vulkan_debug_utils_callback));
-        
+		
 		let loader = ash::extensions::ext::DebugUtils::new(&entry, &instance);
 		let messenger = unsafe { loader.create_debug_utils_messenger(&debugcreateinfo, None)? };
 		
@@ -104,22 +104,22 @@ impl Debug {
 }
 
 impl Drop for Debug {
-    fn drop(&mut self) {
-        unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None) };
-    }
+	fn drop(&mut self) {
+		unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None) };
+	}
 }
 
 //Surface
 pub struct Surface {
 	pub surface: vk::SurfaceKHR,
-    pub surface_loader: ash::extensions::khr::Surface,
+	pub surface_loader: ash::extensions::khr::Surface,
 }
 
 impl Surface {
 	pub fn init(
 		window: &winit::window::Window,
-        entry: &ash::Entry,
-        instance: &ash::Instance,
+		entry: &ash::Entry,
+		instance: &ash::Instance,
 	) -> Result<Surface, vk::Result> {
 		let surface = unsafe { ash_window::create_surface(
 			&entry, 
@@ -137,69 +137,69 @@ impl Surface {
 	}
 	
 	pub fn get_capabilities(
-        &self,
-        physical_device: vk::PhysicalDevice,
-    ) -> Result<vk::SurfaceCapabilitiesKHR, vk::Result> {
-        unsafe {
-            self.surface_loader.get_physical_device_surface_capabilities(physical_device, self.surface)
-        }
-    }
-    
-    pub fn get_present_modes(
-        &self,
-        physical_device: vk::PhysicalDevice,
-    ) -> Result<Vec<vk::PresentModeKHR>, vk::Result> {
-        unsafe {
-            self.surface_loader
-                .get_physical_device_surface_present_modes(physical_device, self.surface)
-        }
-    }
-    
-    pub fn get_formats(
-        &self,
-        physical_device: vk::PhysicalDevice,
-    ) -> Result<Vec<vk::SurfaceFormatKHR>, vk::Result> {
-        unsafe {
-            self.surface_loader
-                .get_physical_device_surface_formats(physical_device, self.surface)
-        }
-    }
-    
-    pub fn get_physical_device_surface_support(
-        &self,
-        physical_device: vk::PhysicalDevice,
-        queuefamilyindex: usize,
-    ) -> Result<bool, vk::Result> {
-        unsafe {
-            self.surface_loader.get_physical_device_surface_support(
-                physical_device,
-                queuefamilyindex as u32,
-                self.surface,
-            )
-        }
-    }
+		&self,
+		physical_device: vk::PhysicalDevice,
+	) -> Result<vk::SurfaceCapabilitiesKHR, vk::Result> {
+		unsafe {
+			self.surface_loader.get_physical_device_surface_capabilities(physical_device, self.surface)
+		}
+	}
+	
+	pub fn get_present_modes(
+		&self,
+		physical_device: vk::PhysicalDevice,
+	) -> Result<Vec<vk::PresentModeKHR>, vk::Result> {
+		unsafe {
+			self.surface_loader
+				.get_physical_device_surface_present_modes(physical_device, self.surface)
+		}
+	}
+	
+	pub fn get_formats(
+		&self,
+		physical_device: vk::PhysicalDevice,
+	) -> Result<Vec<vk::SurfaceFormatKHR>, vk::Result> {
+		unsafe {
+			self.surface_loader
+				.get_physical_device_surface_formats(physical_device, self.surface)
+		}
+	}
+	
+	pub fn get_physical_device_surface_support(
+		&self,
+		physical_device: vk::PhysicalDevice,
+		queuefamilyindex: usize,
+	) -> Result<bool, vk::Result> {
+		unsafe {
+			self.surface_loader.get_physical_device_surface_support(
+				physical_device,
+				queuefamilyindex as u32,
+				self.surface,
+			)
+		}
+	}
 
 }
 
 impl Drop for Surface {
-    fn drop(&mut self) {
-        unsafe {
-            self.surface_loader.destroy_surface(self.surface, None);
-        }
-    }
+	fn drop(&mut self) {
+		unsafe {
+			self.surface_loader.destroy_surface(self.surface, None);
+		}
+	}
 }
 
 //QueueFamilies
 pub struct QueueFamilies {
-    graphics_q_index: Option<u32>,
-    transfer_q_index: Option<u32>,
+	graphics_q_index: Option<u32>,
+	transfer_q_index: Option<u32>,
 }
 
 impl QueueFamilies {
 	pub fn init(
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
-        surfaces: &Surface,
+		surfaces: &Surface,
 	) -> Result<QueueFamilies, vk::Result>{
 		let queuefamilyproperties = unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
 		let mut found_graphics_q_index = None;
@@ -227,24 +227,24 @@ impl QueueFamilies {
 }
 
 pub struct Queues {
-    graphics_queue: vk::Queue,
-    transfer_queue: vk::Queue,
+	graphics_queue: vk::Queue,
+	transfer_queue: vk::Queue,
 }
 
 pub struct Swapchain {
 	swapchain_loader: ash::extensions::khr::Swapchain,
-    swapchain: vk::SwapchainKHR,
-    images: Vec<vk::Image>,
-    imageviews: Vec<vk::ImageView>,
+	swapchain: vk::SwapchainKHR,
+	images: Vec<vk::Image>,
+	imageviews: Vec<vk::ImageView>,
 }
 
 impl Swapchain {
 	pub fn init(
 		instance: &ash::Instance,
-        physical_device: vk::PhysicalDevice,
-        logical_device: &ash::Device,
-        surfaces: &Surface,
-        queue_families: &QueueFamilies,
+		physical_device: vk::PhysicalDevice,
+		logical_device: &ash::Device,
+		surfaces: &Surface,
+		queue_families: &QueueFamilies,
 	) -> Result<Swapchain, vk::Result> {
 		let surface_capabilities 	= surfaces.get_capabilities(physical_device)?;
 		let surface_present_modes 	= surfaces.get_present_modes(physical_device)?;
@@ -299,11 +299,11 @@ impl Swapchain {
 	}
 	
 	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device) {
-        for iv in &self.imageviews {
-            logical_device.destroy_image_view(*iv, None);
-        }
-        self.swapchain_loader.destroy_swapchain(self.swapchain, None)
-    }
+		for iv in &self.imageviews {
+			logical_device.destroy_image_view(*iv, None);
+		}
+		self.swapchain_loader.destroy_swapchain(self.swapchain, None)
+	}
 }
 
 pub fn init_instance(
@@ -311,93 +311,93 @@ pub fn init_instance(
 	layer_names: &[&str],
 ) -> Result<ash::Instance, vk::Result> {
 	let enginename = std::ffi::CString::new("DesperØ").unwrap();
-    let appname = std::ffi::CString::new("Ash Application").unwrap();
-    let app_info = vk::ApplicationInfo::builder()
-        .application_name(&appname)
-        .application_version(vk::make_api_version(0, 0, 0, 1))
-        .engine_name(&enginename)
-        .engine_version(vk::make_api_version(0, 0, 0, 1))
-        .api_version(vk::make_api_version(0, 1, 0, 106));
-    
-    let layer_names_c: Vec<std::ffi::CString> = layer_names
-        .iter()
-        .map(|&ln| std::ffi::CString::new(ln).unwrap())
-        .collect();
-    let layer_name_pointers: Vec<*const i8> = layer_names_c
-        .iter()
-        .map(|layer_name| layer_name.as_ptr())
-        .collect();
-    let extension_name_pointers: Vec<*const i8> = vec![
-        ash::extensions::ext::DebugUtils::name().as_ptr(),
-        ash::extensions::khr::Surface::name().as_ptr(),
-        ash::extensions::khr::XlibSurface::name().as_ptr(),
-    ];
-    let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
-        .message_severity(
+	let appname = std::ffi::CString::new("Ash Application").unwrap();
+	let app_info = vk::ApplicationInfo::builder()
+		.application_name(&appname)
+		.application_version(vk::make_api_version(0, 0, 0, 1))
+		.engine_name(&enginename)
+		.engine_version(vk::make_api_version(0, 0, 0, 1))
+		.api_version(vk::make_api_version(0, 1, 0, 106));
+	
+	let layer_names_c: Vec<std::ffi::CString> = layer_names
+		.iter()
+		.map(|&ln| std::ffi::CString::new(ln).unwrap())
+		.collect();
+	let layer_name_pointers: Vec<*const i8> = layer_names_c
+		.iter()
+		.map(|layer_name| layer_name.as_ptr())
+		.collect();
+	let extension_name_pointers: Vec<*const i8> = vec![
+		ash::extensions::ext::DebugUtils::name().as_ptr(),
+		ash::extensions::khr::Surface::name().as_ptr(),
+		ash::extensions::khr::XlibSurface::name().as_ptr(),
+	];
+	let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
+		.message_severity(
 			//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
-                | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
-        )
-        .message_type(
-            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
-                | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
-        )
-        .pfn_user_callback(Some(vulkan_debug_utils_callback));
+				//| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+				| vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
+		)
+		.message_type(
+			vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+				| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
+				| vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
+		)
+		.pfn_user_callback(Some(vulkan_debug_utils_callback));
 
-    let instance_create_info = vk::InstanceCreateInfo::builder()
-        .push_next(&mut debugcreateinfo)
-        .application_info(&app_info)
-        .enabled_layer_names(&layer_name_pointers)
-        .enabled_extension_names(&extension_name_pointers);
-    unsafe { entry.create_instance(&instance_create_info, None) }
+	let instance_create_info = vk::InstanceCreateInfo::builder()
+		.push_next(&mut debugcreateinfo)
+		.application_info(&app_info)
+		.enabled_layer_names(&layer_name_pointers)
+		.enabled_extension_names(&extension_name_pointers);
+	unsafe { entry.create_instance(&instance_create_info, None) }
 }
 
 pub fn init_device_and_queues(
-    instance: &ash::Instance,
-    physical_device: vk::PhysicalDevice,
-    queue_families: &QueueFamilies,
-    layer_names: &[&str],
+	instance: &ash::Instance,
+	physical_device: vk::PhysicalDevice,
+	queue_families: &QueueFamilies,
+	layer_names: &[&str],
 ) -> Result<(ash::Device, Queues), vk::Result> {
-    let layer_names_c: Vec<std::ffi::CString> = layer_names
-        .iter()
-        .map(|&ln| std::ffi::CString::new(ln).unwrap())
-        .collect();
-    let layer_name_pointers: Vec<*const i8> = layer_names_c
-        .iter()
-        .map(|layer_name| layer_name.as_ptr())
-        .collect();
+	let layer_names_c: Vec<std::ffi::CString> = layer_names
+		.iter()
+		.map(|&ln| std::ffi::CString::new(ln).unwrap())
+		.collect();
+	let layer_name_pointers: Vec<*const i8> = layer_names_c
+		.iter()
+		.map(|layer_name| layer_name.as_ptr())
+		.collect();
 
-    let priorities = [1.0f32];
-    let queue_infos = [
-        vk::DeviceQueueCreateInfo::builder()
-            .queue_family_index(queue_families.graphics_q_index.unwrap())
-            .queue_priorities(&priorities)
-            .build(),
-        vk::DeviceQueueCreateInfo::builder()
-            .queue_family_index(queue_families.transfer_q_index.unwrap())
-            .queue_priorities(&priorities)
-            .build(),
-    ];
-    let device_extension_name_pointers: Vec<*const i8> =
-        vec![ash::extensions::khr::Swapchain::name().as_ptr()];
-    let device_create_info = vk::DeviceCreateInfo::builder()
-        .queue_create_infos(&queue_infos)
-        .enabled_extension_names(&device_extension_name_pointers)
-        .enabled_layer_names(&layer_name_pointers);
-    let logical_device =
-        unsafe { instance.create_device(physical_device, &device_create_info, None)? };
-    let graphics_queue =
-        unsafe { logical_device.get_device_queue(queue_families.graphics_q_index.unwrap(), 0) };
-    let transfer_queue =
-        unsafe { logical_device.get_device_queue(queue_families.transfer_q_index.unwrap(), 0) };
-    Ok((
-        logical_device,
-        Queues {
-            graphics_queue,
-            transfer_queue,
-        },
-    ))
+	let priorities = [1.0f32];
+	let queue_infos = [
+		vk::DeviceQueueCreateInfo::builder()
+			.queue_family_index(queue_families.graphics_q_index.unwrap())
+			.queue_priorities(&priorities)
+			.build(),
+		vk::DeviceQueueCreateInfo::builder()
+			.queue_family_index(queue_families.transfer_q_index.unwrap())
+			.queue_priorities(&priorities)
+			.build(),
+	];
+	let device_extension_name_pointers: Vec<*const i8> =
+		vec![ash::extensions::khr::Swapchain::name().as_ptr()];
+	let device_create_info = vk::DeviceCreateInfo::builder()
+		.queue_create_infos(&queue_infos)
+		.enabled_extension_names(&device_extension_name_pointers)
+		.enabled_layer_names(&layer_name_pointers);
+	let logical_device =
+		unsafe { instance.create_device(physical_device, &device_create_info, None)? };
+	let graphics_queue =
+		unsafe { logical_device.get_device_queue(queue_families.graphics_q_index.unwrap(), 0) };
+	let transfer_queue =
+		unsafe { logical_device.get_device_queue(queue_families.transfer_q_index.unwrap(), 0) };
+	Ok((
+		logical_device,
+		Queues {
+			graphics_queue,
+			transfer_queue,
+		},
+	))
 }
 
 pub fn init_physical_device_and_properties(
@@ -416,9 +416,9 @@ pub fn init_physical_device_and_properties(
 		} else {
 			panic!("Neniu aparato ekzistas");
 		}
-    };
-    
-    return Ok((physical_device, physical_device_properties));
+	};
+	
+	return Ok((physical_device, physical_device_properties));
 }
 
 pub unsafe extern "system" fn vulkan_debug_utils_callback(
