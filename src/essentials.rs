@@ -5,6 +5,7 @@ compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same t
 use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 
+#[derive(Debug)]
 pub struct Despero {
 	pub window: winit::window::Window,
 	pub entry: ash::Entry,
@@ -333,8 +334,8 @@ pub fn init_instance(
     ];
     let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
         .message_severity(
-            vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+			//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
                 | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
         )
         .message_type(
