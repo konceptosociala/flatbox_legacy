@@ -5,7 +5,7 @@ compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same t
 use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 
-#[derive(Debug)]
+//Root
 pub struct Despero {	
 	pub window: winit::window::Window,
 	pub entry: ash::Entry,
@@ -18,6 +18,7 @@ pub struct Despero {
 	pub queues: Queues,
 	pub device: ash::Device,
 	pub swapchain: Swapchain,
+	pub renderpass: vk::RenderPass,
 }
 
 impl Despero {
@@ -35,13 +36,16 @@ impl Despero {
 		let queue_families = QueueFamilies::init(&instance, physical_device, &surfaces)?;
 		let (logical_device, queues) = init_device_and_queues(&instance, physical_device, &queue_families, &layer_names)?;
 		  
-		let swapchain = Swapchain::init(
+		let mut swapchain = Swapchain::init(
 			&instance, 
 			physical_device, 
 			&logical_device, 
 			&surfaces, 
 			&queue_families,
 		)?;
+		
+		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
+		swapchain.create_framebuffers(&logical_device, renderpass)?;
 		 
 		Ok(Despero {
 			window,
@@ -55,6 +59,7 @@ impl Despero {
 			queues,
 			device: logical_device,
 			swapchain,
+			renderpass,
 		})
 	}
 }
@@ -62,6 +67,7 @@ impl Despero {
 impl Drop for Despero {
 	fn drop(&mut self) {
 		unsafe {
+			self.device.destroy_render_pass(self.renderpass, None);
 			self.swapchain.cleanup(&self.device);
 			self.device.destroy_device(None);
 			std::mem::ManuallyDrop::drop(&mut self.surfaces);
@@ -226,16 +232,21 @@ impl QueueFamilies {
 	}
 }
 
+//Queues
 pub struct Queues {
 	graphics_queue: vk::Queue,
 	transfer_queue: vk::Queue,
 }
 
+//Swapchain
 pub struct Swapchain {
 	swapchain_loader: ash::extensions::khr::Swapchain,
 	swapchain: vk::SwapchainKHR,
 	images: Vec<vk::Image>,
 	imageviews: Vec<vk::ImageView>,
+	framebuffers: Vec<vk::Framebuffer>,
+	surface_format: vk::SurfaceFormatKHR,
+	extent: vk::Extent2D,
 }
 
 impl Swapchain {
@@ -246,9 +257,10 @@ impl Swapchain {
 		surfaces: &Surface,
 		queue_families: &QueueFamilies,
 	) -> Result<Swapchain, vk::Result> {
-		let surface_capabilities 	= surfaces.get_capabilities(physical_device)?;
-		let surface_present_modes 	= surfaces.get_present_modes(physical_device)?;
-		let surface_formats 		= surfaces.get_formats(physical_device)?;
+		let surface_capabilities = surfaces.get_capabilities(physical_device)?;
+		let extent = surface_capabilities.current_extent;
+		let surface_present_modes = surfaces.get_present_modes(physical_device)?;
+		let surface_format = *surfaces.get_formats(physical_device)?.first().unwrap();
 		
 		let queuefamilies = [queue_families.graphics_q_index.unwrap()];
 		let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
@@ -257,8 +269,8 @@ impl Swapchain {
 				3.max(surface_capabilities.max_image_count)
 					.min(surface_capabilities.min_image_count),
 			)
-			.image_format(surface_formats.first().unwrap().format)
-			.image_color_space(surface_formats.first().unwrap().color_space)
+			.image_format(surface_format.format)
+			.image_color_space(surface_format.color_space)
 			.image_extent(surface_capabilities.current_extent)
 			.image_array_layers(1)
 			.image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
@@ -295,17 +307,43 @@ impl Swapchain {
 			swapchain,
 			images: swapchain_images,
 			imageviews: swapchain_imageviews,
+			framebuffers: vec![],
+			surface_format,
+			extent,
 		})
+	}
+	
+	fn create_framebuffers(
+		&mut self,
+		logical_device: &ash::Device,
+		renderpass: vk::RenderPass,
+	) -> Result<(), vk::Result> {
+		for iv in &self.imageviews {
+			let iview = [*iv];
+			let framebuffer_info = vk::FramebufferCreateInfo::builder()
+				.render_pass(renderpass)
+				.attachments(&iview)
+				.width(self.extent.width)
+				.height(self.extent.height)
+				.layers(1);
+			let fb = unsafe { logical_device.create_framebuffer(&framebuffer_info, None) }?;
+			self.framebuffers.push(fb);
+		}
+		Ok(())
 	}
 	
 	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device) {
 		for iv in &self.imageviews {
 			logical_device.destroy_image_view(*iv, None);
 		}
+		for fb in &self.framebuffers {
+			logical_device.destroy_framebuffer(*fb, None);
+		}
 		self.swapchain_loader.destroy_swapchain(self.swapchain, None)
 	}
 }
 
+//Initialization functions
 pub fn init_instance(
 	entry: &ash::Entry,
 	layer_names: &[&str],
@@ -334,8 +372,8 @@ pub fn init_instance(
 	];
 	let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
 		.message_severity(
-			//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-				//| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+			vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+				| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
 				| vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
 		)
 		.message_type(
@@ -414,11 +452,63 @@ pub fn init_physical_device_and_properties(
 		} else if let Some((physical_device, physical_device_properties)) = select_device_of_type(&instance, &phys_devs, vk::PhysicalDeviceType::CPU) {
 			(physical_device, physical_device_properties) 
 		} else {
-			panic!("Neniu aparato ekzistas");
+			panic!("No device detected!");
 		}
 	};
 	
 	return Ok((physical_device, physical_device_properties));
+}
+
+fn init_renderpass(
+	logical_device: &ash::Device,
+	physical_device: vk::PhysicalDevice,
+	surfaces: &Surface
+) -> Result<vk::RenderPass, vk::Result> {
+	let attachments = [vk::AttachmentDescription::builder()
+		.format(
+			surfaces
+				.get_formats(physical_device)?
+				.first()
+				.unwrap()
+				.format,
+		)
+		.load_op(vk::AttachmentLoadOp::CLEAR)
+		.store_op(vk::AttachmentStoreOp::STORE)
+		.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+		.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+		.initial_layout(vk::ImageLayout::UNDEFINED)
+		.final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
+		.samples(vk::SampleCountFlags::TYPE_1)
+		.build()
+	];
+	
+	let color_attachment_references = [vk::AttachmentReference {
+		attachment: 0,
+		layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+	}];
+
+	let subpasses = [vk::SubpassDescription::builder()
+		.color_attachments(&color_attachment_references)
+		.pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS).build()
+	];
+	
+	let subpass_dependencies = [vk::SubpassDependency::builder()
+		.src_subpass(vk::SUBPASS_EXTERNAL)
+		.src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+		.dst_subpass(0)
+		.dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+		.dst_access_mask(
+			vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+		)
+		.build()
+	];
+	
+	let renderpass_info = vk::RenderPassCreateInfo::builder()
+		.attachments(&attachments)
+		.subpasses(&subpasses)
+		.dependencies(&subpass_dependencies);
+	let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
+	Ok(renderpass)
 }
 
 pub unsafe extern "system" fn vulkan_debug_utils_callback(

@@ -268,6 +268,7 @@ dependencies = [
  "ash",
  "ash-window",
  "raw-window-handle 0.5.0",
+ "vk-shader-macros",
  "winit",
 ]
 
@@ -833,6 +834,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "shaderc"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6e2c757b804157350d8d79d718c756899226016486aab07a11dddf8741111a0"
+dependencies = [
+ "libc",
+ "shaderc-sys",
+]
+
+[[package]]
+name = "shaderc-sys"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a36f3465fce5830d33a58846b9c924f510a1e92bac181834c13b38405efe983b"
+dependencies = [
+ "cmake",
+ "libc",
+]
+
+[[package]]
 name = "slotmap"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -954,6 +975,18 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "vk-shader-macros"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ad93fbaed5e683907b3ebcac278334d4cd98be7d7478fa04ca6758fc5b68cad"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "shaderc",
+ "syn",
+]
 
 [[package]]
 name = "wasi"
