@@ -1,12 +1,14 @@
-//===Features===
+// ===Features===
 #[cfg(all(feature = "x11", feature = "windows"))]
 compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same time");
 
 use colored::Colorize;
 use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
+use gpu_allocator::vulkan::*;
+use gpu_allocator::MemoryLocation;
 
-//Main struct
+// Main struct
 pub struct Despero {	
 	pub window: winit::window::Window,
 	pub entry: ash::Entry,
@@ -23,25 +25,29 @@ pub struct Despero {
 	pub pipeline: GraphicsPipeline,
 	pub commandbuffer_pools: CommandBufferPools,
 	pub commandbuffers: Vec<vk::CommandBuffer>,
+	pub allocator: gpu_allocator::vulkan::Allocator,
+	pub buffer: vk::Buffer,
+	pub allocation: gpu_allocator::vulkan::Allocation,
+	//pub allocation_info: vk_mem::AllocationInfo,
 }
 
 impl Despero {
 	pub fn init(window: winit::window::Window)
 	-> Result<Despero, Box<dyn std::error::Error>> {
 		let entry = unsafe { ash::Entry::load()? };
-		//Instance, Debug, Surface
+		// Instance, Debug, Surface
 		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
 		let instance = init_instance(&entry, &layer_names)?;	
 		let debug = Debug::init(&entry, &instance)?;
 		let surfaces = Surface::init(&window, &entry, &instance)?;
 		
-		//PhysicalDevice and PhysicalDeviceProperties
+		// PhysicalDevice and PhysicalDeviceProperties
 		let (physical_device, physical_device_properties) = init_physical_device_and_properties(&instance)?;
-		//QueueFamilies, (Logical) Device, Queues
+		// QueueFamilies, (Logical) Device, Queues
 		let queue_families = QueueFamilies::init(&instance, physical_device, &surfaces)?;
 		let (logical_device, queues) = init_device_and_queues(&instance, physical_device, &queue_families, &layer_names)?;
 		
-		//Swapchain
+		// Swapchain
 		let mut swapchain = Swapchain::init(
 			&instance, 
 			physical_device, 
@@ -50,12 +56,54 @@ impl Despero {
 			&queue_families,
 		)?;
 		
-		//RenderPass, Pipeline
+		// RenderPass, Pipeline
 		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
 		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
 		
-		//CommandBufferPools and CommandBuffers
+		// Create memory allocator
+		let mut allocator = Allocator::new(&AllocatorCreateDesc {
+			instance: instance.clone(),
+			device: logical_device.clone(),
+			physical_device,
+			debug_settings: Default::default(),
+			buffer_device_address: true,
+		}).expect("Cannot create allocator");
+		
+		// Create vertex buffer
+		let buffer_create_info = vk::BufferCreateInfo::builder()
+			.size(36)
+			.usage(vk::BufferUsageFlags::VERTEX_BUFFER);
+		let buffer = unsafe { logical_device.create_buffer(&buffer_create_info, None) }.unwrap();
+		let requirements = unsafe { logical_device.get_buffer_memory_requirements(buffer) };
+		// Create memory allocation
+		let allocation = allocator
+			.allocate(&AllocationCreateDesc {
+				name: "Color info allocation",
+				requirements,
+				location: MemoryLocation::CpuToGpu,
+				linear: true,
+			}).unwrap();
+		// Bind memory allocation to the buffer
+		unsafe { logical_device.bind_buffer_memory(
+			buffer, 
+			allocation.memory(), 
+			allocation.offset()).unwrap() 
+		};
+		
+		// Fill buffer with data
+		//
+		// Get pointer to buffer
+		let data_ptr = allocation.mapped_ptr().unwrap().as_ptr() as *mut f32;
+		let data = [
+            0.8f32, 0.8f32, 0.8f32, 1.0f32,
+            10.0f32,
+            1.0f32, 1.0f32, 1.0f32, 1.0f32,
+        ];
+		// Write to buffer
+		unsafe { data_ptr.copy_from_nonoverlapping(data.as_ptr(), 9) };
+		
+		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
 		let commandbuffers = create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
 		fill_commandbuffers(
@@ -64,6 +112,7 @@ impl Despero {
 			&renderpass,
 			&swapchain,
 			&pipeline,
+			&buffer,
 		)?;
 		 
 		Ok(Despero {
@@ -82,6 +131,9 @@ impl Despero {
 			pipeline,
 			commandbuffer_pools,
 			commandbuffers,
+			allocator,
+			buffer,
+			allocation,
 		})
 	}
 }
@@ -90,8 +142,13 @@ impl Drop for Despero {
 	fn drop(&mut self) {
 		unsafe {
 			self.device
-                .device_wait_idle()
-                .expect("Error halting device");
+				.device_wait_idle()
+				.expect("Error halting device");
+			// Reassign Allocation to delete
+			let mut alloc = Allocation::default();
+			std::mem::swap(&mut alloc, &mut self.allocation);
+			self.allocator.free(alloc).unwrap();
+			self.device.destroy_buffer(self.buffer, None);
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);
@@ -99,12 +156,12 @@ impl Drop for Despero {
 			self.device.destroy_device(None);
 			std::mem::ManuallyDrop::drop(&mut self.surfaces);
 			std::mem::ManuallyDrop::drop(&mut self.debug);
-			self.instance.destroy_instance(None)
+			self.instance.destroy_instance(None);
 		};
 	}
 }
 
-//Debug
+// Debug
 pub struct Debug {
 	loader: ash::extensions::ext::DebugUtils,
 	messenger: vk::DebugUtilsMessengerEXT
@@ -142,7 +199,7 @@ impl Drop for Debug {
 	}
 }
 
-//Surface
+// Surface
 pub struct Surface {
 	pub surface: vk::SurfaceKHR,
 	pub surface_loader: ash::extensions::khr::Surface,
@@ -154,7 +211,7 @@ impl Surface {
 		entry: &ash::Entry,
 		instance: &ash::Instance,
 	) -> Result<Surface, vk::Result> {
-		//Creating surface from `raw` handles with `ash-window` crate
+		// Creating surface from `raw` handles with `ash-window` crate
 		let surface = unsafe { ash_window::create_surface(
 			&entry, 
 			&instance, 
@@ -223,7 +280,7 @@ impl Drop for Surface {
 	}
 }
 
-//QueueFamilies
+// QueueFamilies
 pub struct QueueFamilies {
 	graphics_q_index: Option<u32>,
 	transfer_q_index: Option<u32>,
@@ -235,11 +292,11 @@ impl QueueFamilies {
 		physical_device: vk::PhysicalDevice,
 		surfaces: &Surface,
 	) -> Result<QueueFamilies, vk::Result>{
-		//Get queue families
+		// Get queue families
 		let queuefamilyproperties = unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
 		let mut found_graphics_q_index = None;
 		let mut found_transfer_q_index = None;
-		//Get indices of queue families
+		// Get indices of queue families
 		for (index, qfam) in queuefamilyproperties.iter().enumerate() {
 			if qfam.queue_count > 0 && qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS) && 
 				surfaces.get_physical_device_surface_support(physical_device, index)?
@@ -262,13 +319,13 @@ impl QueueFamilies {
 	}
 }
 
-//Queues
+// Queues
 pub struct Queues {
 	pub graphics_queue: vk::Queue,
 	pub transfer_queue: vk::Queue,
 }
 
-//Swapchain
+// Swapchain
 pub struct Swapchain {
 	pub swapchain_loader: ash::extensions::khr::Swapchain,
 	pub swapchain: vk::SwapchainKHR,
@@ -277,9 +334,9 @@ pub struct Swapchain {
 	pub framebuffers: Vec<vk::Framebuffer>,
 	pub surface_format: vk::SurfaceFormatKHR,
 	pub extent: vk::Extent2D,
-	//Fence
+	// Fence
 	pub may_begin_drawing: Vec<vk::Fence>,
-	//Semaphores
+	// Semaphores
 	pub image_available: Vec<vk::Semaphore>,
 	pub rendering_finished: Vec<vk::Semaphore>,
 	pub amount_of_images: u32,
@@ -298,9 +355,9 @@ impl Swapchain {
 		let extent = surface_capabilities.current_extent;
 		let surface_format = *surfaces.get_formats(physical_device)?.first().unwrap();
 		
-		//Get graphics queue family
+		// Get graphics queue family
 		let queuefamilies = [queue_families.graphics_q_index.unwrap()];
-		//Swapchain creation
+		// Swapchain creation
 		let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
 			.surface(surfaces.surface)
 			.min_image_count(
@@ -325,7 +382,7 @@ impl Swapchain {
 		let swapchain_images = unsafe { swapchain_loader.get_swapchain_images(swapchain)? };
 		let amount_of_images = swapchain_images.len() as u32;
 		let mut swapchain_imageviews = Vec::with_capacity(swapchain_images.len());
-		//Push swapchain images to ImageViews
+		// Push swapchain images to ImageViews
 		for image in &swapchain_images {
 			let subresource_range = vk::ImageSubresourceRange::builder()
 				.aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -342,23 +399,23 @@ impl Swapchain {
 			swapchain_imageviews.push(imageview);
 		}
 		
-		//Creating Semaphores and Fences
-		//
-		//Available images
+		// Creating Semaphores and Fences
+		// 
+		// Available images
 		let mut image_available = vec![];
-		//Is rendering finished
+		// Is rendering finished
 		let mut rendering_finished = vec![];
-		//May begin drawing 
+		// May begin drawing 
 		let mut may_begin_drawing = vec![];
 		let semaphoreinfo = vk::SemaphoreCreateInfo::builder();
 		let fenceinfo = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
 		for _ in 0..amount_of_images {
-			//semaphores
+			// semaphores
 			let semaphore_available = unsafe { logical_device.create_semaphore(&semaphoreinfo, None) }?;
 			let semaphore_finished = unsafe { logical_device.create_semaphore(&semaphoreinfo, None) }?;
 			image_available.push(semaphore_available);
 			rendering_finished.push(semaphore_finished);
-			//fences
+			// fences
 			let fence = unsafe { logical_device.create_fence(&fenceinfo, None) }?;
 			may_begin_drawing.push(fence);
 		}
@@ -379,7 +436,7 @@ impl Swapchain {
 		})
 	}
 	
-	//Create FBs for the swapchain
+	// Create FBs for the swapchain
 	fn create_framebuffers(
 		&mut self,
 		logical_device: &ash::Device,
@@ -400,18 +457,18 @@ impl Swapchain {
 	}
 	
 	unsafe fn cleanup(&mut self, logical_device: &ash::Device) {
-		//Remove Fences
+		// Remove Fences
 		for fence in &self.may_begin_drawing {
 			logical_device.destroy_fence(*fence, None);
 		}
-		//Remove Semaphores
+		// Remove Semaphores
 		for semaphore in &self.image_available {
 			logical_device.destroy_semaphore(*semaphore, None);
 		}
 		for semaphore in &self.rendering_finished {
 			logical_device.destroy_semaphore(*semaphore, None);
 		}
-		//Remove ImageViews and FrameBuffers
+		// Remove ImageViews and FrameBuffers
 		for iv in &self.imageviews {
 			logical_device.destroy_image_view(*iv, None);
 		}
@@ -422,7 +479,7 @@ impl Swapchain {
 	}
 }
 
-//Pipeline
+// Pipeline
 pub struct GraphicsPipeline {
 	pipeline: vk::Pipeline,
 	layout: vk::PipelineLayout,
@@ -434,7 +491,7 @@ impl GraphicsPipeline {
 		swapchain: &Swapchain,
 		renderpass: &vk::RenderPass,
 	) -> Result<GraphicsPipeline, vk::Result>{
-		//Include shaders
+		// Include shaders
 		let vertexshader_createinfo = vk::ShaderModuleCreateInfo::builder().code(vk_shader_macros::include_glsl!(
 			"./shaders/vertex.glsl", 
 			kind: vert,
@@ -446,7 +503,7 @@ impl GraphicsPipeline {
 		let vertexshader_module = unsafe { logical_device.create_shader_module(&vertexshader_createinfo, None)? };
 		let fragmentshader_module = unsafe { logical_device.create_shader_module(&fragmentshader_createinfo, None)? };
 		
-		//Set main function's name to `main`
+		// Set main function's name to `main`
 		let main_function = std::ffi::CString::new("main").unwrap();
 		
 		let vertexshader_stage = vk::PipelineShaderStageCreateInfo::builder()
@@ -459,10 +516,46 @@ impl GraphicsPipeline {
 			.name(&main_function);
 			
 		let shader_stages = vec![vertexshader_stage.build(), fragmentshader_stage.build()];
-		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder();
+		
+		// Vertex Input Info
+		// 
+		// Attribute description
+		let vertex_attrib_descs = [
+			vk::VertexInputAttributeDescription {
+				binding: 0,
+				location: 0,
+				offset: 0,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+                binding: 0,
+                location: 1,
+                offset: 16,
+                format: vk::Format::R32_SFLOAT,
+            },
+            vk::VertexInputAttributeDescription {
+                binding: 0,
+                location: 2,
+                offset: 20,
+                format: vk::Format::R32_SFLOAT,
+            },
+		];
+		// Input Bindings' description
+		let vertex_binding_descs = [vk::VertexInputBindingDescription {
+			binding: 0,
+			// Binding variables' size
+			stride: 16,
+			// Data is being changed from vertex to the next one
+			input_rate: vk::VertexInputRate::VERTEX,
+		}];
+		// Bind vertex inputs
+		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
+			.vertex_attribute_descriptions(&vertex_attrib_descs)
+			.vertex_binding_descriptions(&vertex_binding_descs);
+			
 		let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder().topology(vk::PrimitiveTopology::POINT_LIST);
 		
-		//Viewports
+		// Viewports
 		let viewports = [vk::Viewport {
 			x: 0.,
 			y: 0.,
@@ -481,18 +574,18 @@ impl GraphicsPipeline {
 			.viewports(&viewports)
 			.scissors(&scissors);
 			
-		//Rasterizer
+		// Rasterizer
 		let rasterizer_info = vk::PipelineRasterizationStateCreateInfo::builder()
 			.line_width(1.0)
 			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
 			.cull_mode(vk::CullModeFlags::NONE)
 			.polygon_mode(vk::PolygonMode::FILL);
 			
-		//Multisampler	
+		// Multisampler	
 		let multisampler_info = vk::PipelineMultisampleStateCreateInfo::builder()
 			.rasterization_samples(vk::SampleCountFlags::TYPE_1);
 			
-		//Color blend
+		// Color blend
 		let colorblend_attachments = [vk::PipelineColorBlendAttachmentState::builder()
 			.blend_enable(true)
 			.src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
@@ -510,11 +603,11 @@ impl GraphicsPipeline {
 			.build()];
 		let colourblend_info = vk::PipelineColorBlendStateCreateInfo::builder().attachments(&colorblend_attachments);
 		
-		//Pipeline layout
+		// Pipeline layout
 		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder();
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
 		
-		//Graphics Pipeline
+		// Graphics Pipeline
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
 			.stages(&shader_stages)
 			.vertex_input_state(&vertex_input_info)
@@ -535,7 +628,7 @@ impl GraphicsPipeline {
 				).expect("Cannot create pipeline")				
 		}[0];
 		
-		//Destroy useless shader modules
+		// Destroy useless shader modules
 		unsafe {
 			logical_device.destroy_shader_module(fragmentshader_module, None);
 			logical_device.destroy_shader_module(vertexshader_module, None);
@@ -565,16 +658,16 @@ impl CommandBufferPools {
 		logical_device: &ash::Device,
 		queue_families: &QueueFamilies,
 	) -> Result<CommandBufferPools, vk::Result> {
-		//Creating Graphics CommandPool
+		// Creating Graphics CommandPool
 		let graphics_commandpool_info = vk::CommandPoolCreateInfo::builder()
-			//Select QueueFamily
+			// Select QueueFamily
 			.queue_family_index(queue_families.graphics_q_index.unwrap())
 			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 		let commandpool_graphics = unsafe { logical_device.create_command_pool(&graphics_commandpool_info, None) }?;
 		
-		//Creating Transfer CommandPool
+		// Creating Transfer CommandPool
 		let transfer_commandpool_info = vk::CommandPoolCreateInfo::builder()
-			//Select QueueFamily
+			// Select QueueFamily
 			.queue_family_index(queue_families.transfer_q_index.unwrap())
 			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 		let commandpool_transfer = unsafe { logical_device.create_command_pool(&transfer_commandpool_info, None) }?;
@@ -593,9 +686,9 @@ impl CommandBufferPools {
 	}
 }
 
-//===Initialization functions===
+// ===Initialization functions===
 
-//Create Instance
+// Create Instance
 pub fn init_instance(
 	entry: &ash::Entry,
 	layer_names: &[&str],
@@ -620,7 +713,10 @@ pub fn init_instance(
 	let extension_name_pointers: Vec<*const i8> = vec![
 		ash::extensions::ext::DebugUtils::name().as_ptr(),
 		ash::extensions::khr::Surface::name().as_ptr(),
+		#[cfg(feature = "x11")]
 		ash::extensions::khr::XlibSurface::name().as_ptr(),
+		#[cfg(feature = "windows")]
+		ash::extensions::khr::Win32Surface::name().as_ptr(),
 	];
 	let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
 		.message_severity(
@@ -643,7 +739,7 @@ pub fn init_instance(
 	unsafe { entry.create_instance(&instance_create_info, None) }
 }
 
-//Create LogicalDevice and Queues
+// Create LogicalDevice and Queues
 pub fn init_device_and_queues(
 	instance: &ash::Instance,
 	physical_device: vk::PhysicalDevice,
@@ -691,7 +787,7 @@ pub fn init_device_and_queues(
 	))
 }
 
-//Create PhysicalDevice and PhysicalDeviceProperties
+// Create PhysicalDevice and PhysicalDeviceProperties
 pub fn init_physical_device_and_properties(
 	instance: &ash::Instance
 ) -> Result<(vk::PhysicalDevice, vk::PhysicalDeviceProperties), vk::Result> {
@@ -713,7 +809,7 @@ pub fn init_physical_device_and_properties(
 	return Ok((physical_device, physical_device_properties));
 }
 
-//Create RenderPass
+// Create RenderPass
 fn init_renderpass(
 	logical_device: &ash::Device,
 	physical_device: vk::PhysicalDevice,
@@ -766,7 +862,7 @@ fn init_renderpass(
 	Ok(renderpass)
 }
 
-//Create CommandBuffers
+// Create CommandBuffers
 fn create_commandbuffers(
 	logical_device: &ash::Device,
 	pools: &CommandBufferPools,
@@ -778,28 +874,29 @@ fn create_commandbuffers(
 	unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
 }
 
-//Fill CommandBuffers' processing
+// Fill CommandBuffers' processing
 fn fill_commandbuffers(
 	commandbuffers: &[vk::CommandBuffer],
 	logical_device: &ash::Device,
 	renderpass: &vk::RenderPass,
 	swapchain: &Swapchain,
 	pipeline: &GraphicsPipeline,
+	vb: &vk::Buffer,
 ) -> Result<(), vk::Result> {
 	for (i, &commandbuffer) in commandbuffers.iter().enumerate() {
-		//Beginning of CommandBuffer
+		// Beginning of CommandBuffer
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
 		unsafe {
 			logical_device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		}
-		//Color of clearing window
+		// Color of clearing window
 		let clearvalues = [vk::ClearValue {
 			color: vk::ClearColorValue {
 				float32: [0.08, 0.08, 0.08, 1.0],
 			},
 		}];
 		
-		//Beginning of RenderPass
+		// Beginning of RenderPass
 		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
 			.render_pass(*renderpass)
 			.framebuffer(swapchain.framebuffers[i])
@@ -810,23 +907,24 @@ fn fill_commandbuffers(
 			.clear_values(&clearvalues);
 			
 		unsafe {
-			//Apply RenderPass beginning
+			// Apply RenderPass beginning
 			logical_device.cmd_begin_render_pass(
 				commandbuffer,
 				&renderpass_begininfo,
 				vk::SubpassContents::INLINE,
 			);
-			//Apply GraphicsPipeline
+			// Apply GraphicsPipeline
 			logical_device.cmd_bind_pipeline(
 				commandbuffer,
 				vk::PipelineBindPoint::GRAPHICS,
 				pipeline.pipeline,
 			);
-			//Apply `draw` command
+			logical_device.cmd_bind_vertex_buffers(commandbuffer, 0, &[*vb], &[0]);
+			// Apply `draw` command
 			logical_device.cmd_draw(commandbuffer, 1, 1, 0, 0);
-			//Finish RenderPass
+			// Finish RenderPass
 			logical_device.cmd_end_render_pass(commandbuffer);
-			//Finish CommandBuffer
+			// Finish CommandBuffer
 			logical_device.end_command_buffer(commandbuffer)?;
 		}
 	}
@@ -844,10 +942,10 @@ pub unsafe extern "system" fn vulkan_debug_utils_callback(
 	let ty = format!("{:?}", message_type).to_lowercase();
 	
 	let severity = match severity.as_str() {
-		"info" => format!("{}", severity).green(),
-		"warning" => format!("{}", severity).yellow(),
-		"error" => format!("{}", severity).red(),
-		"verbose" => format!("{}", severity).blue(),
+		"info" 		=> format!("{}", severity).green(),
+		"warning" 	=> format!("{}", severity).yellow(),
+		"error" 	=> format!("{}", severity).red(),
+		"verbose" 	=> format!("{}", severity).blue(),
 		&_ => format!("{}", severity).normal(),
 	};
 	
