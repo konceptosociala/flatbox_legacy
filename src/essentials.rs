@@ -79,25 +79,32 @@ impl Despero {
 		)?;
 		// Fill Buffer 1
 		buffer1.fill(&[
-			 0.4f32, -0.2f32, 0.0f32, 1.0f32,
-			 0.2f32,  0.0f32, 0.0f32, 1.0f32,
-			-0.4f32,  0.2f32, 0.0f32, 1.0f32,
-			 0.5f32,  0.0f32, 0.0f32, 1.0f32,
-			 0.0f32,  0.2f32, 0.0f32, 1.0f32,
-			-0.5f32,  0.0f32, 0.0f32, 1.0f32,
+			0.5f32,   0.0f32, 0.0f32, 1.0f32, 
+			0.0f32,   0.2f32, 0.0f32, 1.0f32, 
+			-0.5f32,  0.0f32, 0.0f32, 1.0f32, 
+			-0.9f32, -0.9f32, 0.0f32, 1.0f32, 
+			0.3f32,  -0.8f32, 0.0f32, 1.0f32,
+			0.0f32,  -0.6f32, 0.0f32, 1.0f32,
 		])?;
 		
 		// Create Buffer 2
 		let buffer2 = Buffer::new(
 			&logical_device,
 			&mut allocator,
-			40,
+			120,
 			vk::BufferUsageFlags::VERTEX_BUFFER,
 			MemoryLocation::CpuToGpu,
 			"Vertex size and colour buffer"
 		)?;
 		// Fill Buffer 2
-		buffer2.fill(&[15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32, 5.0f32, 0.1f32, 0.1f32, 0.1f32, 1.0f32])?;
+		buffer2.fill(&[
+			15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32, 
+			15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32,
+			15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32, 
+			1.0f32, 0.8f32, 0.7f32, 0.0f32, 1.0f32,
+			1.0f32, 0.8f32, 0.7f32, 0.0f32, 1.0f32, 
+			1.0f32, 0.8f32, 0.7f32, 0.0f32, 1.0f32,
+		])?;
 
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -546,7 +553,7 @@ impl GraphicsPipeline {
 			vk::VertexInputBindingDescription {
 				binding: 0,
 				stride: 16,
-				input_rate: vk::VertexInputRate::INSTANCE,
+				input_rate: vk::VertexInputRate::VERTEX,
 			},
 			vk::VertexInputBindingDescription {
 				binding: 1,
@@ -559,7 +566,8 @@ impl GraphicsPipeline {
 			.vertex_attribute_descriptions(&vertex_attrib_descs)
 			.vertex_binding_descriptions(&vertex_binding_descs);
 			
-		let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder().topology(vk::PrimitiveTopology::POINT_LIST);
+		let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
+			.topology(vk::PrimitiveTopology::TRIANGLE_LIST);
 		
 		// Viewports
 		let viewports = [vk::Viewport {
@@ -586,6 +594,7 @@ impl GraphicsPipeline {
 			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
 			.cull_mode(vk::CullModeFlags::NONE)
 			.polygon_mode(vk::PolygonMode::FILL);
+			
 			
 		// Multisampler	
 		let multisampler_info = vk::PipelineMultisampleStateCreateInfo::builder()
@@ -988,7 +997,7 @@ fn fill_commandbuffers(
 			logical_device.cmd_bind_vertex_buffers(commandbuffer, 0, &[*vb1], &[0]);
 			logical_device.cmd_bind_vertex_buffers(commandbuffer, 1, &[*vb2], &[0]);
 			// Apply `draw` command
-			logical_device.cmd_draw(commandbuffer, 2, 6, 0, 0);
+			logical_device.cmd_draw(commandbuffer, 6, 1, 0, 0);
 			// Finish RenderPass
 			logical_device.cmd_end_render_pass(commandbuffer);
 			// Finish CommandBuffer
