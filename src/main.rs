@@ -20,6 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			despero.window.request_redraw();
 		}
 		Event::RedrawRequested(_) => {
+			// Get image of swapchain
 			let (image_index, _) = unsafe {
 				despero
 					.swapchain
@@ -30,8 +31,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						despero.swapchain.image_available[despero.swapchain.current_image],
 						vk::Fence::null(),
 					)
-					.expect("image acquisition trouble")
+					.expect("Error image acquisition")
 			};
+			// Control fences
 			unsafe {
 				despero
 					.device
@@ -48,6 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					])
 					.expect("resetting fences");
 			}
+			// Submit commandbuffers
 			let semaphores_available =
 				[despero.swapchain.image_available[despero.swapchain.current_image]];
 			let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -83,11 +86,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					.queue_present(despero.queues.graphics_queue, &present_info)
 					.expect("queue presentation");
 			};
+			// Set swapchain image
 			despero.swapchain.current_image =
 				(despero.swapchain.current_image + 1) % despero.swapchain.amount_of_images as usize;
 		}
 		_ => {}
 	});
-	   
-	//Ok(())
 }

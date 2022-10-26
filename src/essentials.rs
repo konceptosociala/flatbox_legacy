@@ -27,7 +27,6 @@ pub struct Despero {
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
 	pub buffers: Vec<Buffer>,
-	//pub allocation_info: vk_mem::AllocationInfo,
 }
 
 impl Despero {
@@ -73,25 +72,32 @@ impl Despero {
 		let buffer1 = Buffer::new(
 			&logical_device,
 			&mut allocator,
-			16,
+			96,
 			vk::BufferUsageFlags::VERTEX_BUFFER,
-            MemoryLocation::CpuToGpu,
-            "Vertex position buffer"
-        )?;
-        // Fill Buffer 1
-        buffer1.fill(&[0.4f32, -0.2f32, 0.0f32, 1.0f32])?;
-        
-        // Create Buffer 2
+			MemoryLocation::CpuToGpu,
+			"Vertex position buffer"
+		)?;
+		// Fill Buffer 1
+		buffer1.fill(&[
+			 0.4f32, -0.2f32, 0.0f32, 1.0f32,
+			 0.2f32,  0.0f32, 0.0f32, 1.0f32,
+			-0.4f32,  0.2f32, 0.0f32, 1.0f32,
+			 0.5f32,  0.0f32, 0.0f32, 1.0f32,
+			 0.0f32,  0.2f32, 0.0f32, 1.0f32,
+			-0.5f32,  0.0f32, 0.0f32, 1.0f32,
+		])?;
+		
+		// Create Buffer 2
 		let buffer2 = Buffer::new(
 			&logical_device,
 			&mut allocator,
-			20,
+			40,
 			vk::BufferUsageFlags::VERTEX_BUFFER,
-            MemoryLocation::CpuToGpu,
-            "Vertex size and colour buffer"
-        )?;
-        // Fill Buffer 2
-        buffer2.fill(&[15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32])?;
+			MemoryLocation::CpuToGpu,
+			"Vertex size and colour buffer"
+		)?;
+		// Fill Buffer 2
+		buffer2.fill(&[15.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32, 5.0f32, 0.1f32, 0.1f32, 0.1f32, 1.0f32])?;
 
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -103,7 +109,7 @@ impl Despero {
 			&swapchain,
 			&pipeline,
 			&buffer1.buffer,
-            &buffer2.buffer,
+			&buffer2.buffer,
 		)?;
 		 
 		Ok(Despero {
@@ -135,12 +141,12 @@ impl Drop for Despero {
 				.device_wait_idle()
 				.expect("Error halting device");			
 			for b in &mut self.buffers {
-                // Reassign Allocation to delete
+				// Reassign Allocation to delete
 				let mut alloc = Allocation::default();
 				std::mem::swap(&mut alloc, &mut b.allocation);
 				self.allocator.free(alloc).unwrap();
 				self.device.destroy_buffer(b.buffer, None);
-            }
+			}
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);
@@ -520,31 +526,31 @@ impl GraphicsPipeline {
 				format: vk::Format::R32G32B32A32_SFLOAT,
 			},
 			vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 1,
-                offset: 0,
-                format: vk::Format::R32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 2,
-                offset: 4,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
+				binding: 1,
+				location: 1,
+				offset: 0,
+				format: vk::Format::R32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 2,
+				offset: 4,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
 		];
 		// Input Bindings' description
 		//
-		// stride     - binding variables' size
+		// stride	  - binding variables' size
 		// input_rate - frequency, when the data is changed (per vertex/ per instance)
 		let vertex_binding_descs = [
 			vk::VertexInputBindingDescription {
 				binding: 0,
 				stride: 16,
-				input_rate: vk::VertexInputRate::VERTEX,
+				input_rate: vk::VertexInputRate::INSTANCE,
 			},
 			vk::VertexInputBindingDescription {
 				binding: 1,
-				stride: 16,
+				stride: 20,
 				input_rate: vk::VertexInputRate::VERTEX,
 			}
 		];
@@ -650,8 +656,8 @@ impl GraphicsPipeline {
 
 // Buffer
 pub struct Buffer {
-    buffer: vk::Buffer,
-    allocation: gpu_allocator::vulkan::Allocation,
+	buffer: vk::Buffer,
+	allocation: gpu_allocator::vulkan::Allocation,
 }
 
 impl Buffer {
@@ -659,9 +665,9 @@ impl Buffer {
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,
 		size_in_bytes: u64,
-        usage: vk::BufferUsageFlags,
-        memory_location: MemoryLocation,
-        alloc_name: &str,
+		usage: vk::BufferUsageFlags,
+		memory_location: MemoryLocation,
+		alloc_name: &str,
 	) -> Result<Buffer, vk::Result> {
 		//Buffer creating
 		let buffer = unsafe { logical_device.create_buffer(
@@ -694,15 +700,15 @@ impl Buffer {
 	}
 	
 	pub fn fill<T: Sized>(
-        &self,
-        data: &[T],
-    ) -> Result<(), vk::Result> {
-        // Get memory pointer
-        let data_ptr = self.allocation.mapped_ptr().unwrap().as_ptr() as *mut T;
+		&self,
+		data: &[T],
+	) -> Result<(), vk::Result> {
+		// Get memory pointer
+		let data_ptr = self.allocation.mapped_ptr().unwrap().as_ptr() as *mut T;
 		// Write to the buffer
 		unsafe { data_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len()) };
-        Ok(())
-    }
+		Ok(())
+	}
 }
 
 
@@ -932,7 +938,7 @@ fn create_commandbuffers(
 	unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
 }
 
-// Fill CommandBuffers' processing
+// Fill CommandBuffers
 fn fill_commandbuffers(
 	commandbuffers: &[vk::CommandBuffer],
 	logical_device: &ash::Device,
@@ -982,7 +988,7 @@ fn fill_commandbuffers(
 			logical_device.cmd_bind_vertex_buffers(commandbuffer, 0, &[*vb1], &[0]);
 			logical_device.cmd_bind_vertex_buffers(commandbuffer, 1, &[*vb2], &[0]);
 			// Apply `draw` command
-			logical_device.cmd_draw(commandbuffer, 1, 1, 0, 0);
+			logical_device.cmd_draw(commandbuffer, 2, 6, 0, 0);
 			// Finish RenderPass
 			logical_device.cmd_end_render_pass(commandbuffer);
 			// Finish CommandBuffer
