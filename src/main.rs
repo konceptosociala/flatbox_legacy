@@ -1,8 +1,8 @@
-pub mod essentials;
+pub mod despero;
 
 use ash::vk;
 use winit::event::{Event, WindowEvent};
-use essentials::*;
+use despero::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let eventloop = winit::event_loop::EventLoop::new();
