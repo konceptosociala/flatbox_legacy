@@ -4,6 +4,7 @@ compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same t
 
 pub mod graphics;
 
+use nalgebra as na;
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
@@ -75,26 +76,41 @@ impl Despero {
 		}).expect("Cannot create allocator");
 		
 		let mut cube = Model::cube();
-        
-        cube.insert_visibly(InstanceData {
-            position: [0.0, 0.0, 0.0],
-            colour: [1.0, 0.0, 0.0],
-        });
-        
-        cube.insert_visibly(InstanceData {
-            position: [0.0, 0.25, 0.0],
-            colour: [0.6, 0.5, 0.0],
-        });
-        
-        cube.insert_visibly(InstanceData {
-            position: [0.0, 0.5, 0.0],
-            colour: [0.0, 0.5, 0.0],
-        });
-        
-        cube.update_vertexbuffer(&logical_device, &mut allocator)?;
-        cube.update_instancebuffer(&logical_device, &mut allocator)?;
-        
-        let models = vec![cube];
+		
+		cube.insert_visibly(InstanceData {
+			modelmatrix: [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+			colour: [1.0, 0.0, 0.0],
+		});
+		
+		cube.insert_visibly(InstanceData {
+			modelmatrix: [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[0.0, 0.25, 0.0, 1.0],
+			],
+			colour: [0.6, 0.5, 0.0],
+		});
+		
+		cube.insert_visibly(InstanceData {
+			modelmatrix: [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[0.0, 0.5, 0.0, 1.0],
+			],
+			colour: [0.0, 0.5, 0.0],
+		});
+		
+		cube.update_vertexbuffer(&logical_device, &mut allocator)?;
+		cube.update_instancebuffer(&logical_device, &mut allocator)?;
+		
+		let models = vec![cube];
 
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -137,23 +153,23 @@ impl Drop for Despero {
 				.device_wait_idle()
 				.expect("Error halting device");			
 			for m in &mut self.models {
-                if let Some(vb) = &mut m.vertexbuffer {
+				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
-                    let mut alloc: Option<Allocation> = None;
+					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut vb.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(vb.buffer, None);
-                }
-                if let Some(ib) = &mut m.instancebuffer {
-                    // Reassign InstanceBuffer allocation to remove
-                    let mut alloc: Option<Allocation> = None;
+				}
+				if let Some(ib) = &mut m.instancebuffer {
+					// Reassign InstanceBuffer allocation to remove
+					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut ib.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(ib.buffer, None);
-                }
-            }
+				}
+			}
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);

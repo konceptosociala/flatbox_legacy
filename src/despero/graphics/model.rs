@@ -27,8 +27,8 @@ impl std::error::Error for InvalidHandle {
 
 #[repr(C)]
 pub struct InstanceData {
-    pub position: [f32; 3],
-    pub colour: [f32; 3],
+	pub modelmatrix: [[f32; 4]; 4],
+	pub colour: [f32; 3],
 }
 
 // Model struct
@@ -231,7 +231,7 @@ impl<V, I> Model<V, I> {
 			)?;
 			
 			buffer.fill(
-				&logical_device,
+				logical_device,
 				allocator,
 				&self.instances[0..self.first_invisible]
 			)?;
@@ -277,32 +277,32 @@ impl<V, I> Model<V, I> {
 
 //Implement cubic model
 impl Model<[f32; 3], InstanceData> {
-    pub fn cube() -> Model<[f32; 3], InstanceData> {
-		let LBF = [-0.1,0.1,0.0]; // Left-bottom-front
-        let LBB = [-0.1,0.1,0.1]; // Left-bottom-back
-        let LTF = [-0.1,-0.1,0.0];// Left-top-front
-        let LTB = [-0.1,-0.1,0.1];// Left-top-back
-        let RBF = [0.1,0.1,0.0];  // Right-bottom-front
-        let RBB = [0.1,0.1,0.1];  // Right-bottom-back
-        let RTF = [0.1,-0.1,0.0]; // Right-top-front
-        let RTB = [0.1,-0.1,0.1]; // Right-top-back
+	pub fn cube() -> Model<[f32; 3], InstanceData> {
+		let lbf = [-0.1,0.1,0.0]; // Left-bottom-front
+		let lbb = [-0.1,0.1,0.1]; // Left-bottom-back
+		let ltf = [-0.1,-0.1,0.0];// Left-top-front
+		let ltb = [-0.1,-0.1,0.1];// Left-top-back
+		let rbf = [0.1,0.1,0.0];  // Right-bottom-front
+		let rbb = [0.1,0.1,0.1];  // Right-bottom-back
+		let rtf = [0.1,-0.1,0.0]; // Right-top-front
+		let rtb = [0.1,-0.1,0.1]; // Right-top-back
 
-        Model {
-            vertexdata: vec![
-				LBF, LBB, RBB, LBF, RBB, RBF, // Bottom
-                LTF, RTB, LTB, LTF, RTF, RTB, // Top
-                LBF, RTF, LTF, LBF, RBF, RTF, // Front
-                LBB, LTB, RTB, LBB, RTB, RBB, // Back
-                LBF, LTF, LBB, LBB, LTF, LTB, // Left
-                RBF, RBB, RTF, RBB, RTB, RTF, // Right
-            ],
-            handle_to_index: HashMap::new(),
-            handles: Vec::new(),
-            instances: Vec::new(),
-            first_invisible: 0,
-            next_handle: 0,
-            vertexbuffer: None,
-            instancebuffer: None,
-        }
-    }
+		Model {
+			vertexdata: vec![
+				lbf, lbb, rbb, lbf, rbb, rbf, // Bottom
+				ltf, rtb, ltb, ltf, rtf, rtb, // Top
+				lbf, rtf, ltf, lbf, rbf, rtf, // Front
+				lbb, ltb, rtb, lbb, rtb, rbb, // Back
+				lbf, ltf, lbb, lbb, ltf, ltb, // Left
+				rbf, rbb, rtf, rbb, rtb, rtf, // Right
+			],
+			handle_to_index: HashMap::new(),
+			handles: Vec::new(),
+			instances: Vec::new(),
+			first_invisible: 0,
+			next_handle: 0,
+			vertexbuffer: None,
+			instancebuffer: None,
+		}
+	}
 }

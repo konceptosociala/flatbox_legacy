@@ -7,6 +7,7 @@ edition = "2021"
 colored = "2.0.0"
 
 ash = "0.37.0"
+nalgebra = "0.31.2"
 vk-shader-macros = "0.2.8"
 gpu-allocator = "0.20.0"
 
