@@ -1,3 +1,3 @@
 pub mod inits;
 pub mod vulkanish;
-pub mod models;
+pub mod model;

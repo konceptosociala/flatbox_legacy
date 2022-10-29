@@ -1,9 +1,13 @@
+use std::mem::size_of;
 use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 
-use crate::graphics::inits::*;
+use crate::graphics::{
+	inits::*,
+	model::*,
+};
 
 // Debug
 pub struct Debug {
@@ -369,19 +373,19 @@ impl GraphicsPipeline {
 				binding: 0,
 				location: 0,
 				offset: 0,
-				format: vk::Format::R32G32B32A32_SFLOAT,
+				format: vk::Format::R32G32B32_SFLOAT,
 			},
 			vk::VertexInputAttributeDescription {
 				binding: 1,
 				location: 1,
 				offset: 0,
-				format: vk::Format::R32_SFLOAT,
+				format: vk::Format::R32G32B32_SFLOAT,
 			},
 			vk::VertexInputAttributeDescription {
 				binding: 1,
 				location: 2,
-				offset: 4,
-				format: vk::Format::R32G32B32A32_SFLOAT,
+				offset: 12,
+				format: vk::Format::R32G32B32_SFLOAT,
 			},
 		];
 		// Input Bindings' description
@@ -391,13 +395,13 @@ impl GraphicsPipeline {
 		let vertex_binding_descs = [
 			vk::VertexInputBindingDescription {
 				binding: 0,
-				stride: 16,
+				stride: 12,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
 			vk::VertexInputBindingDescription {
 				binding: 1,
-				stride: 20,
-				input_rate: vk::VertexInputRate::VERTEX,
+				stride: 24,
+				input_rate: vk::VertexInputRate::INSTANCE,
 			}
 		];
 		// Bind vertex inputs
@@ -433,7 +437,6 @@ impl GraphicsPipeline {
 			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
 			.cull_mode(vk::CullModeFlags::NONE)
 			.polygon_mode(vk::PolygonMode::FILL);
-			
 			
 		// Multisampler	
 		let multisampler_info = vk::PipelineMultisampleStateCreateInfo::builder()
@@ -503,9 +506,14 @@ impl GraphicsPipeline {
 }
 
 // Buffer
+#[derive(Debug)]
 pub struct Buffer {
 	pub buffer: vk::Buffer,
-	pub allocation: gpu_allocator::vulkan::Allocation,
+	pub allocation: Option<Allocation>,
+	pub allocation_name: String,
+	pub size_in_bytes: u64,
+	pub buffer_usage: vk::BufferUsageFlags,
+	pub memory_location: MemoryLocation,
 }
 
 impl Buffer {
@@ -513,7 +521,7 @@ impl Buffer {
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,
 		size_in_bytes: u64,
-		usage: vk::BufferUsageFlags,
+		buffer_usage: vk::BufferUsageFlags,
 		memory_location: MemoryLocation,
 		alloc_name: &str,
 	) -> Result<Buffer, vk::Result> {
@@ -521,19 +529,20 @@ impl Buffer {
 		let buffer = unsafe { logical_device.create_buffer(
 			&vk::BufferCreateInfo::builder()
 				.size(size_in_bytes)
-				.usage(usage),
+				.usage(buffer_usage),
 			None
 		) }?;
 		// Buffer memory requirements
 		let requirements = unsafe { logical_device.get_buffer_memory_requirements(buffer) };
+		// Allocation info
+		let allocation_info = &AllocationCreateDesc {
+			name: alloc_name,
+			requirements,
+			location: memory_location,
+			linear: true,
+		};
 		// Create memory allocation
-		let allocation = allocator
-			.allocate(&AllocationCreateDesc {
-				name: alloc_name,
-				requirements,
-				location: memory_location,
-				linear: true,
-			}).unwrap();
+		let allocation = allocator.allocate(allocation_info).unwrap();
 		// Bind memory allocation to the buffer
 		unsafe { logical_device.bind_buffer_memory(
 			buffer, 
@@ -543,16 +552,42 @@ impl Buffer {
 		
 		Ok(Buffer {
 			buffer,
-			allocation,
+			allocation: Some(allocation),
+			allocation_name: String::from(alloc_name),
+			size_in_bytes,
+			buffer_usage,
+			memory_location,
 		})
 	}
 	
 	pub fn fill<T: Sized>(
-		&self,
+		&mut self,
+		logical_device: &ash::Device,
+		allocator: &mut gpu_allocator::vulkan::Allocator,
 		data: &[T],
 	) -> Result<(), vk::Result> {
+		let bytes_to_write = (data.len() * size_of::<T>()) as u64;
+		if bytes_to_write > self.size_in_bytes {			
+			let mut alloc: Option<Allocation> = None;
+			std::mem::swap(&mut alloc, &mut self.allocation);
+			let alloc = alloc.unwrap();
+			allocator.free(alloc).unwrap();
+			unsafe { logical_device.destroy_buffer(self.buffer, None); }
+			
+			let newbuffer = Buffer::new(
+				logical_device,
+				allocator,
+				bytes_to_write,
+				self.buffer_usage,
+				self.memory_location,
+				self.allocation_name.as_str(),
+			)?;
+			dbg!(&newbuffer);
+			*self = newbuffer;
+		}
+		
 		// Get memory pointer
-		let data_ptr = self.allocation.mapped_ptr().unwrap().as_ptr() as *mut T;
+		let data_ptr = self.allocation.as_ref().unwrap().mapped_ptr().unwrap().as_ptr() as *mut T;
 		// Write to the buffer
 		unsafe { data_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len()) };
 		Ok(())

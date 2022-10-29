@@ -11,7 +11,7 @@ use gpu_allocator::MemoryLocation;
 use graphics::{
 	vulkanish::*,
 	inits::*,
-	models::*,
+	model::*,
 };
 
 // Main struct
@@ -32,7 +32,7 @@ pub struct Despero {
 	pub commandbuffer_pools: CommandBufferPools,
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
-	pub buffers: Vec<Buffer>,
+	pub models: Vec<Model<[f32; 3], InstanceData>>,
 }
 
 impl Despero {
@@ -74,43 +74,27 @@ impl Despero {
 			buffer_device_address: true,
 		}).expect("Cannot create allocator");
 		
-		// Create Buffer 1
-		let buffer1 = Buffer::new(
-			&logical_device,
-			&mut allocator,
-			96,
-			vk::BufferUsageFlags::VERTEX_BUFFER,
-			MemoryLocation::CpuToGpu,
-			"Vertex position buffer"
-		)?;
-		// Fill Buffer 1
-		buffer1.fill(&[
-			0.5f32,   0.0f32, 0.0f32, 1.0f32, 
-			0.0f32,   0.2f32, 0.0f32, 1.0f32, 
-			-0.5f32,  0.0f32, 0.0f32, 1.0f32, 
-			-0.9f32, -0.9f32, 0.0f32, 1.0f32, 
-			0.3f32,  -0.8f32, 0.0f32, 1.0f32,
-			0.0f32,  -0.6f32, 0.0f32, 1.0f32,
-		])?;
-		
-		// Create Buffer 2
-		let buffer2 = Buffer::new(
-			&logical_device,
-			&mut allocator,
-			120,
-			vk::BufferUsageFlags::VERTEX_BUFFER,
-			MemoryLocation::CpuToGpu,
-			"Vertex size and colour buffer"
-		)?;
-		// Fill Buffer 2
-		buffer2.fill(&[
-			1.0f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 
-			1.0f32, 0.0f32, 1.0f32, 0.0f32, 1.0f32,
-			1.0f32, 0.0f32, 0.0f32, 1.0f32, 1.0f32, 
-			1.0f32, 1.0f32, 1.0f32, 0.0f32, 1.0f32,
-			1.0f32, 0.0f32, 1.0f32, 1.0f32, 1.0f32, 
-			1.0f32, 1.0f32, 0.0f32, 1.0f32, 1.0f32,
-		])?;
+		let mut cube = Model::cube();
+        
+        cube.insert_visibly(InstanceData {
+            position: [0.0, 0.0, 0.0],
+            colour: [1.0, 0.0, 0.0],
+        });
+        
+        cube.insert_visibly(InstanceData {
+            position: [0.0, 0.25, 0.0],
+            colour: [0.6, 0.5, 0.0],
+        });
+        
+        cube.insert_visibly(InstanceData {
+            position: [0.0, 0.5, 0.0],
+            colour: [0.0, 0.5, 0.0],
+        });
+        
+        cube.update_vertexbuffer(&logical_device, &mut allocator)?;
+        cube.update_instancebuffer(&logical_device, &mut allocator)?;
+        
+        let models = vec![cube];
 
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -121,8 +105,7 @@ impl Despero {
 			&renderpass,
 			&swapchain,
 			&pipeline,
-			&buffer1.buffer,
-			&buffer2.buffer,
+			&models
 		)?;
 		 
 		Ok(Despero {
@@ -142,7 +125,7 @@ impl Despero {
 			commandbuffer_pools,
 			commandbuffers,
 			allocator,
-			buffers: vec![buffer1, buffer2],
+			models,
 		})
 	}
 }
@@ -153,13 +136,24 @@ impl Drop for Despero {
 			self.device
 				.device_wait_idle()
 				.expect("Error halting device");			
-			for b in &mut self.buffers {
-				// Reassign Allocation to delete
-				let mut alloc = Allocation::default();
-				std::mem::swap(&mut alloc, &mut b.allocation);
-				self.allocator.free(alloc).unwrap();
-				self.device.destroy_buffer(b.buffer, None);
-			}
+			for m in &mut self.models {
+                if let Some(vb) = &mut m.vertexbuffer {
+					// Reassign VertexBuffer allocation to remove
+                    let mut alloc: Option<Allocation> = None;
+					std::mem::swap(&mut alloc, &mut vb.allocation);
+					let alloc = alloc.unwrap();
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(vb.buffer, None);
+                }
+                if let Some(ib) = &mut m.instancebuffer {
+                    // Reassign InstanceBuffer allocation to remove
+                    let mut alloc: Option<Allocation> = None;
+					std::mem::swap(&mut alloc, &mut ib.allocation);
+					let alloc = alloc.unwrap();
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(ib.buffer, None);
+                }
+            }
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);

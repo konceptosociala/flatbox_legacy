@@ -1,7 +1,10 @@
 use colored::Colorize;
 use ash::vk;
 
-use crate::graphics::vulkanish::*;
+use crate::graphics::{
+	vulkanish::*,
+	model::*,
+};
 
 // Create Instance
 pub fn init_instance(
@@ -205,8 +208,7 @@ pub fn fill_commandbuffers(
 	renderpass: &vk::RenderPass,
 	swapchain: &Swapchain,
 	pipeline: &GraphicsPipeline,
-	vb1: &vk::Buffer,
-	vb2: &vk::Buffer,
+	models: &Vec<Model<[f32; 3], InstanceData>>,
 ) -> Result<(), vk::Result> {
 	for (i, &commandbuffer) in commandbuffers.iter().enumerate() {
 		// Beginning of CommandBuffer
@@ -244,11 +246,10 @@ pub fn fill_commandbuffers(
 				vk::PipelineBindPoint::GRAPHICS,
 				pipeline.pipeline,
 			);
-			// Bind vertex buffers
-			logical_device.cmd_bind_vertex_buffers(commandbuffer, 0, &[*vb1], &[0]);
-			logical_device.cmd_bind_vertex_buffers(commandbuffer, 1, &[*vb2], &[0]);
-			// Apply `draw` command
-			logical_device.cmd_draw(commandbuffer, 6, 1, 0, 0);
+			// Draw models
+			for m in models {
+				m.draw(logical_device, commandbuffer);
+			}
 			// Finish RenderPass
 			logical_device.cmd_end_render_pass(commandbuffer);
 			// Finish CommandBuffer
