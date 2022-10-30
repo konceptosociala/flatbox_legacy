@@ -278,14 +278,14 @@ impl<V, I> Model<V, I> {
 //Implement cubic model
 impl Model<[f32; 3], InstanceData> {
 	pub fn cube() -> Model<[f32; 3], InstanceData> {
-		let lbf = [-0.1,0.1,0.0]; // Left-bottom-front
-		let lbb = [-0.1,0.1,0.1]; // Left-bottom-back
-		let ltf = [-0.1,-0.1,0.0];// Left-top-front
-		let ltb = [-0.1,-0.1,0.1];// Left-top-back
-		let rbf = [0.1,0.1,0.0];  // Right-bottom-front
-		let rbb = [0.1,0.1,0.1];  // Right-bottom-back
-		let rtf = [0.1,-0.1,0.0]; // Right-top-front
-		let rtb = [0.1,-0.1,0.1]; // Right-top-back
+		let lbf = [-1.0,1.0,0.0]; // Left-bottom-front
+		let lbb = [-1.0,1.0,1.0]; // Left-bottom-back
+		let ltf = [-1.0,-1.0,0.0];// Left-top-front
+		let ltb = [-1.0,-1.0,1.0];// Left-top-back
+		let rbf = [1.0,1.0,0.0];  // Right-bottom-front
+		let rbb = [1.0,1.0,1.0];  // Right-bottom-back
+		let rtf = [1.0,-1.0,0.0]; // Right-top-front
+		let rtb = [1.0,-1.0,1.0]; // Right-top-back
 
 		Model {
 			vertexdata: vec![

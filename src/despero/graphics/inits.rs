@@ -142,32 +142,52 @@ pub fn init_renderpass(
 	physical_device: vk::PhysicalDevice,
 	surfaces: &Surface
 ) -> Result<vk::RenderPass, vk::Result> {
-	let attachments = [vk::AttachmentDescription::builder()
-		.format(
-			surfaces
-				.get_formats(physical_device)?
-				.first()
-				.unwrap()
-				.format,
-		)
-		.load_op(vk::AttachmentLoadOp::CLEAR)
-		.store_op(vk::AttachmentStoreOp::STORE)
-		.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-		.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-		.initial_layout(vk::ImageLayout::UNDEFINED)
-		.final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-		.samples(vk::SampleCountFlags::TYPE_1)
-		.build()
+	let attachments = [
+		vk::AttachmentDescription::builder()
+			.format(
+				surfaces
+					.get_formats(physical_device)?
+					.first()
+					.unwrap()
+					.format,
+			)
+			.load_op(vk::AttachmentLoadOp::CLEAR)
+			.store_op(vk::AttachmentStoreOp::STORE)
+			.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+			.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+			.initial_layout(vk::ImageLayout::UNDEFINED)
+			.final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
+			.samples(vk::SampleCountFlags::TYPE_1)
+			.build(),
+		vk::AttachmentDescription::builder()
+			.format(vk::Format::D32_SFLOAT)
+			.load_op(vk::AttachmentLoadOp::CLEAR)
+			.store_op(vk::AttachmentStoreOp::DONT_CARE)
+			.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+			.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+			.initial_layout(vk::ImageLayout::UNDEFINED)
+			.final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+			.samples(vk::SampleCountFlags::TYPE_1)
+			.build(),
 	];
 	
+	// Color attachment reference
 	let color_attachment_references = [vk::AttachmentReference {
 		attachment: 0,
 		layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
 	}];
+	
+	// Depth attachment
+	let depth_attachment_references = vk::AttachmentReference {
+		attachment: 1,
+		layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+	};
 
 	let subpasses = [vk::SubpassDescription::builder()
 		.color_attachments(&color_attachment_references)
-		.pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS).build()
+		.depth_stencil_attachment(&depth_attachment_references)
+		.pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
+		.build()
 	];
 	
 	let subpass_dependencies = [vk::SubpassDependency::builder()
@@ -217,11 +237,19 @@ pub fn fill_commandbuffers(
 			logical_device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		}
 		// Color of clearing window
-		let clearvalues = [vk::ClearValue {
-			color: vk::ClearColorValue {
-				float32: [0.08, 0.08, 0.08, 1.0],
+		let clearvalues = [
+			vk::ClearValue {
+				color: vk::ClearColorValue {
+					float32: [0.08, 0.08, 0.08, 1.0],
+				},
 			},
-		}];
+			vk::ClearValue {
+				depth_stencil: vk::ClearDepthStencilValue {
+					depth: 1.0,
+					stencil: 0,
+				},
+			}
+		];
 		
 		// Beginning of RenderPass
 		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()

@@ -52,20 +52,6 @@ impl Despero {
 		let queue_families = QueueFamilies::init(&instance, physical_device, &surfaces)?;
 		let (logical_device, queues) = init_device_and_queues(&instance, physical_device, &queue_families, &layer_names)?;
 		
-		// Swapchain
-		let mut swapchain = Swapchain::init(
-			&instance, 
-			physical_device, 
-			&logical_device, 
-			&surfaces, 
-			&queue_families,
-		)?;
-		
-		// RenderPass, Pipeline
-		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
-		swapchain.create_framebuffers(&logical_device, renderpass)?;
-		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
-		
 		// Create memory allocator
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
 			instance: instance.clone(),
@@ -75,36 +61,35 @@ impl Despero {
 			buffer_device_address: true,
 		}).expect("Cannot create allocator");
 		
+		// Swapchain
+		let mut swapchain = Swapchain::init(
+			&instance, 
+			physical_device, 
+			&logical_device, 
+			&surfaces, 
+			&queue_families,
+			&mut allocator
+		)?;
+		
+		// RenderPass, Pipeline
+		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
+		swapchain.create_framebuffers(&logical_device, renderpass)?;
+		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
+		
 		let mut cube = Model::cube();
 		
 		cube.insert_visibly(InstanceData {
-			modelmatrix: [
-				[1.0, 0.0, 0.0, 0.0],
-				[0.0, 1.0, 0.0, 0.0],
-				[0.0, 0.0, 1.0, 0.0],
-				[0.0, 0.0, 0.0, 1.0],
-			],
-			colour: [1.0, 0.0, 0.0],
+			modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.05, 0.05, 0.0))
+				* na::Matrix4::new_scaling(0.1))
+			.into(),
+			colour: [1.0, 1.0, 0.2],
 		});
 		
 		cube.insert_visibly(InstanceData {
-			modelmatrix: [
-				[1.0, 0.0, 0.0, 0.0],
-				[0.0, 1.0, 0.0, 0.0],
-				[0.0, 0.0, 1.0, 0.0],
-				[0.0, 0.25, 0.0, 1.0],
-			],
-			colour: [0.6, 0.5, 0.0],
-		});
-		
-		cube.insert_visibly(InstanceData {
-			modelmatrix: [
-				[1.0, 0.0, 0.0, 0.0],
-				[0.0, 1.0, 0.0, 0.0],
-				[0.0, 0.0, 1.0, 0.0],
-				[0.0, 0.5, 0.0, 1.0],
-			],
-			colour: [0.0, 0.5, 0.0],
+			modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.1))
+				* na::Matrix4::new_scaling(0.1))
+			.into(),
+			colour: [0.2, 0.4, 1.0],
 		});
 		
 		cube.update_vertexbuffer(&logical_device, &mut allocator)?;
@@ -159,6 +144,7 @@ impl Drop for Despero {
 					std::mem::swap(&mut alloc, &mut vb.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
+					//self.device.free_memory(vb.allocation.as_ref().unwrap().memory(), None);
 					self.device.destroy_buffer(vb.buffer, None);
 				}
 				if let Some(ib) = &mut m.instancebuffer {
@@ -167,6 +153,7 @@ impl Drop for Despero {
 					std::mem::swap(&mut alloc, &mut ib.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
+					//self.device.free_memory(ib.allocation.as_ref().unwrap().memory(), None);
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}
