@@ -4,10 +4,8 @@ compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same t
 
 pub mod graphics;
 
-use nalgebra as na;
 use ash::vk;
 use gpu_allocator::vulkan::*;
-use gpu_allocator::MemoryLocation;
 
 use graphics::{
 	vulkanish::*,
@@ -75,39 +73,10 @@ impl Despero {
 		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
 		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
-		
-		let mut cube = Model::cube();
-		
-		cube.insert_visibly(InstanceData {
-			modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.05, 0.05, 0.0))
-				* na::Matrix4::new_scaling(0.1))
-			.into(),
-			colour: [1.0, 1.0, 0.2],
-		});
-		
-		cube.insert_visibly(InstanceData {
-			modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.1))
-				* na::Matrix4::new_scaling(0.1))
-			.into(),
-			colour: [0.2, 0.4, 1.0],
-		});
-		
-		cube.update_vertexbuffer(&logical_device, &mut allocator)?;
-		cube.update_instancebuffer(&logical_device, &mut allocator)?;
-		
-		let models = vec![cube];
 
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
 		let commandbuffers = create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
-		fill_commandbuffers(
-			&commandbuffers,
-			&logical_device,
-			&renderpass,
-			&swapchain,
-			&pipeline,
-			&models
-		)?;
 		 
 		Ok(Despero {
 			window,
@@ -126,9 +95,59 @@ impl Despero {
 			commandbuffer_pools,
 			commandbuffers,
 			allocator,
-			models,
+			models: vec![],
 		})
 	}
+	
+	pub fn update_commandbuffer(&mut self, index: usize) -> Result<(), vk::Result> {
+		let commandbuffer = self.commandbuffers[index];
+		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
+		unsafe {
+			self.device
+				.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
+		}
+		let clearvalues = [
+			vk::ClearValue {
+				color: vk::ClearColorValue {
+					float32: [0.0, 0.0, 0.08, 1.0],
+				},
+			},
+			vk::ClearValue {
+				depth_stencil: vk::ClearDepthStencilValue {
+					depth: 1.0,
+					stencil: 0,
+				},
+			},
+		];
+		
+		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
+			.render_pass(self.renderpass)
+			.framebuffer(self.swapchain.framebuffers[index])
+			.render_area(vk::Rect2D {
+				offset: vk::Offset2D { x: 0, y: 0 },
+				extent: self.swapchain.extent,
+			})
+			.clear_values(&clearvalues);
+		unsafe {
+			self.device.cmd_begin_render_pass(
+				commandbuffer,
+				&renderpass_begininfo,
+				vk::SubpassContents::INLINE,
+			);
+			self.device.cmd_bind_pipeline(
+				commandbuffer,
+				vk::PipelineBindPoint::GRAPHICS,
+				self.pipeline.pipeline,
+			);
+			for m in &self.models {
+				m.draw(&self.device, commandbuffer);
+			}
+			self.device.cmd_end_render_pass(commandbuffer);
+			self.device.end_command_buffer(commandbuffer)?;
+		}
+		Ok(())
+	}
+
 }
 
 impl Drop for Despero {
@@ -144,7 +163,6 @@ impl Drop for Despero {
 					std::mem::swap(&mut alloc, &mut vb.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
-					//self.device.free_memory(vb.allocation.as_ref().unwrap().memory(), None);
 					self.device.destroy_buffer(vb.buffer, None);
 				}
 				if let Some(ib) = &mut m.instancebuffer {
@@ -153,7 +171,6 @@ impl Drop for Despero {
 					std::mem::swap(&mut alloc, &mut ib.allocation);
 					let alloc = alloc.unwrap();
 					self.allocator.free(alloc).unwrap();
-					//self.device.free_memory(ib.allocation.as_ref().unwrap().memory(), None);
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}

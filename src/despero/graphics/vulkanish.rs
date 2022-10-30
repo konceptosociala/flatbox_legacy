@@ -6,7 +6,6 @@ use gpu_allocator::MemoryLocation;
 
 use crate::graphics::{
 	inits::*,
-	model::*,
 };
 
 // Debug

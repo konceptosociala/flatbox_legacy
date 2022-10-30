@@ -6,7 +6,6 @@ use ash::vk;
 
 use crate::graphics::{
 	vulkanish::*,
-	inits::*,
 };
 
 // InvalidHandle custom error

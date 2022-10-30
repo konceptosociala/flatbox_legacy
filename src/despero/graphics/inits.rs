@@ -1,10 +1,7 @@
 use colored::Colorize;
 use ash::vk;
 
-use crate::graphics::{
-	vulkanish::*,
-	model::*,
-};
+use crate::graphics::vulkanish::*;
 
 // Create Instance
 pub fn init_instance(
@@ -219,72 +216,6 @@ pub fn create_commandbuffers(
 		.command_pool(pools.commandpool_graphics)
 		.command_buffer_count(amount as u32);
 	unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
-}
-
-// Fill CommandBuffers
-pub fn fill_commandbuffers(
-	commandbuffers: &[vk::CommandBuffer],
-	logical_device: &ash::Device,
-	renderpass: &vk::RenderPass,
-	swapchain: &Swapchain,
-	pipeline: &GraphicsPipeline,
-	models: &Vec<Model<[f32; 3], InstanceData>>,
-) -> Result<(), vk::Result> {
-	for (i, &commandbuffer) in commandbuffers.iter().enumerate() {
-		// Beginning of CommandBuffer
-		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
-		unsafe {
-			logical_device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
-		}
-		// Color of clearing window
-		let clearvalues = [
-			vk::ClearValue {
-				color: vk::ClearColorValue {
-					float32: [0.08, 0.08, 0.08, 1.0],
-				},
-			},
-			vk::ClearValue {
-				depth_stencil: vk::ClearDepthStencilValue {
-					depth: 1.0,
-					stencil: 0,
-				},
-			}
-		];
-		
-		// Beginning of RenderPass
-		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
-			.render_pass(*renderpass)
-			.framebuffer(swapchain.framebuffers[i])
-			.render_area(vk::Rect2D {
-				offset: vk::Offset2D { x: 0, y: 0 },
-				extent: swapchain.extent,
-			})
-			.clear_values(&clearvalues);
-			
-		unsafe {
-			// Apply RenderPass beginning
-			logical_device.cmd_begin_render_pass(
-				commandbuffer,
-				&renderpass_begininfo,
-				vk::SubpassContents::INLINE,
-			);
-			// Apply GraphicsPipeline
-			logical_device.cmd_bind_pipeline(
-				commandbuffer,
-				vk::PipelineBindPoint::GRAPHICS,
-				pipeline.pipeline,
-			);
-			// Draw models
-			for m in models {
-				m.draw(logical_device, commandbuffer);
-			}
-			// Finish RenderPass
-			logical_device.cmd_end_render_pass(commandbuffer);
-			// Finish CommandBuffer
-			logical_device.end_command_buffer(commandbuffer)?;
-		}
-	}
-	Ok(())
 }
 
 pub unsafe extern "system" fn vulkan_debug_utils_callback(
