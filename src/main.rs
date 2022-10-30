@@ -13,18 +13,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let window = winit::window::Window::new(&eventloop)?;
 	let mut despero = Despero::init(window)?;
 	let mut cube = Model::cube();
-    let mut angle = 0.2;
+	let mut angle = 0.2;
 	let my_special_cube = cube.insert_visibly(InstanceData {
-        modelmatrix: (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
-            * na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
-            * na::Matrix4::new_scaling(0.1))
-        .into(),
-        colour: [0.0, 0.5, 0.0],
-    });
-    cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
-    cube.update_instancebuffer(&despero.device, &mut despero.allocator)?;
-    despero.models = vec![cube];
-    
+		modelmatrix: (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
+			* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
+			* na::Matrix4::new_scaling(0.1))
+		.into(),
+		colour: [0.0, 0.5, 0.0],
+	});
+	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
+	cube.update_instancebuffer(&despero.device, &mut despero.allocator)?;
+	despero.models = vec![cube];
+	
 	eventloop.run(move |event, _, controlflow| match event {
 		Event::WindowEvent {
 			event: WindowEvent::CloseRequested,
@@ -34,14 +34,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		}
 		Event::MainEventsCleared => {
 			angle += 0.01;
-            despero.models[0]
-                .get_mut(my_special_cube)
-                .unwrap()
-                .modelmatrix = (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
-                * na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
-                * na::Matrix4::new_scaling(0.1))
-            .into();
-            despero.window.request_redraw();
+			despero.models[0]
+				.get_mut(my_special_cube)
+				.unwrap()
+				.modelmatrix = (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
+				* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
+				* na::Matrix4::new_scaling(0.1))
+			.into();
+			despero.window.request_redraw();
 		}
 		Event::RedrawRequested(_) => {
 			// Get image of swapchain
@@ -76,12 +76,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			}
 			
 			for m in &mut despero.models {
-                m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update commandbuffer");
-            }
-            
-            despero
-                .update_commandbuffer(image_index as usize)
-                .expect("Cannot update CommandBuffer");
+				m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update commandbuffer");
+			}
+			
+			despero
+				.update_commandbuffer(image_index as usize)
+				.expect("Cannot update CommandBuffer");
 			
 			// Submit commandbuffers
 			let semaphores_available =
