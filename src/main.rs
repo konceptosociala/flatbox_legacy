@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			despero.models[0]
 				.get_mut(my_special_cube)
 				.unwrap()
-				.modelmatrix = (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
+				.modelmatrix = (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, angle, angle))
 				* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
 				* na::Matrix4::new_scaling(0.1))
 			.into();
