@@ -6,6 +6,8 @@ pub mod graphics;
 
 use ash::vk;
 use gpu_allocator::vulkan::*;
+use gpu_allocator::MemoryLocation;
+use nalgebra as na;
 
 use graphics::{
 	vulkanish::*,
@@ -32,6 +34,9 @@ pub struct Despero {
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
 	pub models: Vec<Model<[f32; 3], InstanceData>>,
+	pub uniformbuffer: Buffer,
+	pub descriptor_pool: vk::DescriptorPool,
+	pub descriptor_sets: Vec<vk::DescriptorSet>,
 }
 
 impl Despero {
@@ -73,10 +78,67 @@ impl Despero {
 		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
 		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
-
+		
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
 		let commandbuffers = create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
+		
+		// Uniform buffer
+		let mut uniformbuffer = Buffer::new(
+			&logical_device,
+			&mut allocator,
+			64,
+			vk::BufferUsageFlags::UNIFORM_BUFFER,
+			MemoryLocation::CpuToGpu,
+			"Uniform buffer"
+		)?;
+		// Camera transform
+		let cameratransform: [[f32; 4]; 4] = na::Matrix4::identity().into();
+		uniformbuffer.fill(&logical_device, &mut allocator, &cameratransform)?;
+		
+		// Descriptor pool
+		//
+		// Set pool size
+		let pool_sizes = [vk::DescriptorPoolSize {
+			ty: vk::DescriptorType::UNIFORM_BUFFER,
+			descriptor_count: swapchain.amount_of_images,
+		}];
+		// PoolCreateInfo
+		let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
+			// Amount of descriptors
+			.max_sets(swapchain.amount_of_images)
+			// Size of pool
+			.pool_sizes(&pool_sizes); 
+		let descriptor_pool = unsafe { logical_device.create_descriptor_pool(&descriptor_pool_info, None) }?;
+		
+		// Descriptor sets
+		//
+		// Descriptor layouts
+		let desc_layouts = vec![pipeline.descriptor_set_layouts[0]; swapchain.amount_of_images as usize];
+		// SetAllocateInfo
+		let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
+			// DescPool
+			.descriptor_pool(descriptor_pool)
+			// Layouts
+			.set_layouts(&desc_layouts);
+		let descriptor_sets = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
+
+		// Fill descriptor sets
+		for (_, descset) in descriptor_sets.iter().enumerate() {
+			let buffer_infos = [vk::DescriptorBufferInfo {
+				buffer: uniformbuffer.buffer,
+				offset: 0,
+				range: 64,
+			}];
+			let desc_sets_write = [vk::WriteDescriptorSet::builder()
+				.dst_set(*descset)
+				.dst_binding(0)
+				.descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+				.buffer_info(&buffer_infos)
+				.build()
+			];
+			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
+		}
 		 
 		Ok(Despero {
 			window,
@@ -96,6 +158,9 @@ impl Despero {
 			commandbuffers,
 			allocator,
 			models: vec![],
+			uniformbuffer,
+			descriptor_pool,
+			descriptor_sets,
 		})
 	}
 	
@@ -129,15 +194,26 @@ impl Despero {
 			})
 			.clear_values(&clearvalues);
 		unsafe {
+			// Bind RenderPass
 			self.device.cmd_begin_render_pass(
 				commandbuffer,
 				&renderpass_begininfo,
 				vk::SubpassContents::INLINE,
 			);
+			// Bind Pipeline
 			self.device.cmd_bind_pipeline(
 				commandbuffer,
 				vk::PipelineBindPoint::GRAPHICS,
 				self.pipeline.pipeline,
+			);
+			// Bind DescriptorSets
+			self.device.cmd_bind_descriptor_sets(
+				commandbuffer,
+				vk::PipelineBindPoint::GRAPHICS,
+				self.pipeline.layout,
+				0,
+				&[self.descriptor_sets[index]],
+				&[],
 			);
 			for m in &self.models {
 				m.draw(&self.device, commandbuffer);
@@ -155,7 +231,10 @@ impl Drop for Despero {
 		unsafe {
 			self.device
 				.device_wait_idle()
-				.expect("Error halting device");			
+				.expect("Error halting device");	
+			// Destroy UniformBuffer
+			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
+			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
 			for m in &mut self.models {
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
@@ -174,6 +253,8 @@ impl Drop for Despero {
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}
+			//self.device.free_descriptor_sets(self.descriptor_pool, &self.descriptor_sets).expect("Cannot free DescriptorSets");
+			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);

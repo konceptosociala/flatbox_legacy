@@ -5,7 +5,8 @@ use ash::vk;
 use winit::event::{Event, WindowEvent};
 use despero::*;
 use graphics::{
-	model::*
+	model::*,
+	camera::*,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,17 +14,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let window = winit::window::Window::new(&eventloop)?;
 	let mut despero = Despero::init(window)?;
 	let mut cube = Model::cube();
-	let mut angle = 0.2;
-	let my_special_cube = cube.insert_visibly(InstanceData {
-		modelmatrix: (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, angle))
+	
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.1))
+			* na::Matrix4::new_scaling(0.1))
+		.into(),
+		colour: [0.2, 0.4, 1.0],
+	});
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.05, 0.05, 0.0))
+			* na::Matrix4::new_scaling(0.1))
+		.into(),
+		colour: [1.0, 1.0, 0.2],
+	});
+	for i in 0..10 {
+		for j in 0..10 {
+			cube.insert_visibly(InstanceData {
+				modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(
+					i as f32 * 0.2 - 1.0,
+					j as f32 * 0.2 - 1.0,
+					0.5,
+				)) * na::Matrix4::new_scaling(0.03))
+				.into(),
+				colour: [1.0, i as f32 * 0.07, j as f32 * 0.07],
+			});
+			cube.insert_visibly(InstanceData {
+				modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(
+					i as f32 * 0.2 - 1.0,
+					0.0,
+					j as f32 * 0.2 - 1.0,
+				)) * na::Matrix4::new_scaling(0.02))
+				.into(),
+				colour: [i as f32 * 0.07, j as f32 * 0.07, 1.0],
+			});
+		}
+	}
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, 0.0, 1.4))
 			* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
 			* na::Matrix4::new_scaling(0.1))
 		.into(),
 		colour: [0.0, 0.5, 0.0],
 	});
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.5, 0.0, 0.0))
+			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.5, 0.01, 0.01)))
+		.into(),
+		colour: [1.0, 0.5, 0.5],
+	});
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
+			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.01, 0.5, 0.01)))
+		.into(),
+		colour: [0.5, 1.0, 0.5],
+	});
+	cube.insert_visibly(InstanceData {
+		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.0))
+			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.01, 0.01, 0.5)))
+		.into(),
+		colour: [0.5, 0.5, 1.0],
+	});
+
 	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
 	cube.update_instancebuffer(&despero.device, &mut despero.allocator)?;
 	despero.models = vec![cube];
+	
+	let mut camera = Camera::default();
 	
 	eventloop.run(move |event, _, controlflow| match event {
 		Event::WindowEvent {
@@ -32,17 +88,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		} => {
 			*controlflow = winit::event_loop::ControlFlow::Exit;
 		}
+		
+		Event::WindowEvent {
+			event: WindowEvent::KeyboardInput {input, ..},
+			..
+		} => match input {
+			winit::event::KeyboardInput {
+				state: winit::event::ElementState::Pressed,
+				virtual_keycode: Some(keycode),
+				..
+			} => match keycode {
+				winit::event::VirtualKeyCode::Right => {
+					camera.turn_right(0.1);
+				}
+				winit::event::VirtualKeyCode::Left => {
+					camera.turn_left(0.1);
+				}
+				winit::event::VirtualKeyCode::Up => {
+					camera.move_forward(0.05);
+				}
+				winit::event::VirtualKeyCode::Down => {
+					camera.move_backward(0.05);
+				}
+				winit::event::VirtualKeyCode::PageUp => {
+					camera.turn_up(0.02);
+				}
+				winit::event::VirtualKeyCode::PageDown => {
+					camera.turn_down(0.02);
+				}
+				_ => {}
+			},
+			_ => {}
+		},
+		
 		Event::MainEventsCleared => {
-			angle += 0.01;
-			despero.models[0]
-				.get_mut(my_special_cube)
-				.unwrap()
-				.modelmatrix = (na::Matrix4::from_scaled_axis(na::Vector3::new(0.0, angle, angle))
-				* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
-				* na::Matrix4::new_scaling(0.1))
-			.into();
 			despero.window.request_redraw();
 		}
+		
 		Event::RedrawRequested(_) => {
 			// Get image of swapchain
 			let (image_index, _) = unsafe {
@@ -74,6 +156,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					])
 					.expect("resetting fences");
 			}
+			
+			camera.update_buffer(&despero.device, &mut despero.allocator, &mut despero.uniformbuffer).expect("Cannot update uniformbuffer");
 			
 			for m in &mut despero.models {
 				m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update commandbuffer");

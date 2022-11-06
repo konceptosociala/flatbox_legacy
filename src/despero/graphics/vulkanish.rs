@@ -389,6 +389,7 @@ impl Swapchain {
 pub struct GraphicsPipeline {
 	pub pipeline: vk::Pipeline,
 	pub layout: vk::PipelineLayout,
+	pub descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,
 }
 
 impl GraphicsPipeline {
@@ -543,8 +544,29 @@ impl GraphicsPipeline {
 			.depth_write_enable(true)
 			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
 		
+		// Bind resource descriptor
+		let descriptorset_layout_binding_descs = [
+			vk::DescriptorSetLayoutBinding::builder()
+				// Binding = 0
+				.binding(0)
+				// Resource type = uniform buffer
+				.descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+				// Descriptor count = 1
+				.descriptor_count(1)
+				// Use the buffer in vertex shaders only
+				.stage_flags(vk::ShaderStageFlags::VERTEX)
+				.build()
+		];
+
+		let descriptorset_layout_info = vk::DescriptorSetLayoutCreateInfo::builder()
+			.bindings(&descriptorset_layout_binding_descs);
+		let descriptorsetlayout = unsafe {
+			logical_device.create_descriptor_set_layout(&descriptorset_layout_info, None)
+		}?;
+		let desclayouts = vec![descriptorsetlayout];
+		
 		// Pipeline layout
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder();
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&desclayouts);
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
 		
 		// Graphics Pipeline
@@ -578,11 +600,15 @@ impl GraphicsPipeline {
 		Ok(GraphicsPipeline {
 			pipeline: graphicspipeline,
 			layout: pipelinelayout,
+			descriptor_set_layouts: desclayouts,
 		})
 	}
 	
 	pub fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
+			for dsl in &self.descriptor_set_layouts {
+                logical_device.destroy_descriptor_set_layout(*dsl, None);
+            }
 			logical_device.destroy_pipeline(self.pipeline, None);
 			logical_device.destroy_pipeline_layout(self.layout, None);
 		}
@@ -666,7 +692,6 @@ impl Buffer {
 				self.memory_location,
 				self.allocation_name.as_str(),
 			)?;
-			dbg!(&newbuffer);
 			*self = newbuffer;
 		}
 		

@@ -4,6 +4,8 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
+type Handle = usize;
+
 use crate::graphics::{
 	vulkanish::*,
 };
@@ -34,7 +36,7 @@ pub struct InstanceData {
 pub struct Model<V, I> {
 	pub vertexdata: Vec<V>,
 	// Handle to index of the model instance
-	pub handle_to_index: HashMap<usize, usize>,
+	pub handle_to_index: HashMap<usize, Handle>,
 	// Vec of the handles
 	pub handles: Vec<usize>,
 	// Vec of the instances
@@ -48,7 +50,7 @@ pub struct Model<V, I> {
 }
 
 impl<V, I> Model<V, I> {
-	pub fn get(&self, handle: usize) -> Option<&I> {
+	pub fn get(&self, handle: Handle) -> Option<&I> {
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			self.instances.get(index)
 		} else {
@@ -56,7 +58,7 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	
-	pub fn get_mut(&mut self, handle: usize) -> Option<&mut I> {
+	pub fn get_mut(&mut self, handle: Handle) -> Option<&mut I> {
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			self.instances.get_mut(index)
 		} else {
@@ -64,7 +66,7 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	// Swap instances by handles
-	pub fn swap_by_handle(&mut self, handle1: usize, handle2: usize) -> Result<(), InvalidHandle> {
+	pub fn swap_by_handle(&mut self, handle1: Handle, handle2: Handle) -> Result<(), InvalidHandle> {
 		if handle1 == handle2 {
 			return Ok(());
 		}
@@ -95,7 +97,7 @@ impl<V, I> Model<V, I> {
 		self.handle_to_index.insert(index2, handle1);
 	}
 	
-	pub fn is_visible(&self, handle: usize) -> Result<bool, InvalidHandle> {
+	pub fn is_visible(&self, handle: Handle) -> Result<bool, InvalidHandle> {
 		if let Some(index) = self.handle_to_index.get(&handle) {
 			Ok(index < &self.first_invisible)
 		} else {
@@ -103,7 +105,7 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	
-	pub fn make_visible(&mut self, handle: usize) -> Result<(), InvalidHandle> {
+	pub fn make_visible(&mut self, handle: Handle) -> Result<(), InvalidHandle> {
 		// Check if invisible
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			if index < self.first_invisible {
@@ -118,7 +120,7 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	
-	pub fn make_invisible(&mut self, handle: usize) -> Result<(), InvalidHandle> {
+	pub fn make_invisible(&mut self, handle: Handle) -> Result<(), InvalidHandle> {
 		// Check if visible
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			if index >= self.first_invisible {
@@ -133,7 +135,7 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	
-	pub fn insert(&mut self, element: I) -> usize {
+	pub fn insert(&mut self, element: I) -> Handle {
 		// Make new handle
 		let handle = self.next_handle;
 		self.next_handle += 1;
@@ -146,14 +148,14 @@ impl<V, I> Model<V, I> {
 		return handle;
 	}
 	
-	pub fn insert_visibly(&mut self, element: I) -> usize {
+	pub fn insert_visibly(&mut self, element: I) -> Handle {
 		let handle = self.insert(element);
 		self.make_visible(handle).ok();
 		return handle;
 	}
 	
 	// Remove handle and get the element
-	pub fn remove(&mut self, handle: usize) -> Result<I, InvalidHandle> {
+	pub fn remove(&mut self, handle: Handle) -> Result<I, InvalidHandle> {
 		// Get index of the handle
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			if index < self.first_invisible {
