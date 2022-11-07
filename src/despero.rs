@@ -87,13 +87,16 @@ impl Despero {
 		let mut uniformbuffer = Buffer::new(
 			&logical_device,
 			&mut allocator,
-			64,
+			128,
 			vk::BufferUsageFlags::UNIFORM_BUFFER,
 			MemoryLocation::CpuToGpu,
 			"Uniform buffer"
 		)?;
 		// Camera transform
-		let cameratransform: [[f32; 4]; 4] = na::Matrix4::identity().into();
+		let cameratransform: [[[f32; 4]; 4]; 2] = [
+			na::Matrix4::identity().into(),
+			na::Matrix4::identity().into(),
+		];
 		uniformbuffer.fill(&logical_device, &mut allocator, &cameratransform)?;
 		
 		// Descriptor pool
@@ -128,7 +131,7 @@ impl Despero {
 			let buffer_infos = [vk::DescriptorBufferInfo {
 				buffer: uniformbuffer.buffer,
 				offset: 0,
-				range: 64,
+				range: 128,
 			}];
 			let desc_sets_write = [vk::WriteDescriptorSet::builder()
 				.dst_set(*descset)

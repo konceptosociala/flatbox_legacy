@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	cube.update_instancebuffer(&despero.device, &mut despero.allocator)?;
 	despero.models = vec![cube];
 	
-	let mut camera = Camera::default();
+	let mut camera = Camera::builder().build();
 	
 	eventloop.run(move |event, _, controlflow| match event {
 		Event::WindowEvent {
