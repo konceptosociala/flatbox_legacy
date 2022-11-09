@@ -3,9 +3,11 @@ use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
+use nalgebra as na;
 
 use crate::graphics::{
 	inits::*,
+	model::*,
 };
 
 // Debug
@@ -434,7 +436,7 @@ impl GraphicsPipeline {
 				offset: 0,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
-			vk::VertexInputAttributeDescription {
+			/*vk::VertexInputAttributeDescription {
 				binding: 1,
 				location: 1,
 				offset: 0,
@@ -463,7 +465,7 @@ impl GraphicsPipeline {
 				location: 5,
 				offset: 64,
 				format: vk::Format::R32G32B32_SFLOAT,
-			},
+			},*/
 		];
 		// Input Bindings' description
 		//
@@ -565,8 +567,20 @@ impl GraphicsPipeline {
 		}?;
 		let desclayouts = vec![descriptorsetlayout];
 		
+		// Push Constant
+		let push_constant = vk::PushConstantRange::builder()
+			.offset(0)
+			.size(size_of::<InstanceData>() as u32)
+			.stage_flags(vk::ShaderStageFlags::VERTEX)
+			.build();
+			
+		let pushconstants = vec![push_constant];
+		
 		// Pipeline layout
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&desclayouts);
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
+			.push_constant_ranges(&pushconstants)
+			.set_layouts(&desclayouts);
+			
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
 		
 		// Graphics Pipeline
@@ -591,7 +605,7 @@ impl GraphicsPipeline {
 				).expect("Cannot create pipeline")				
 		}[0];
 		
-		// Destroy useless shader modules
+		// Destroy used shader modules
 		unsafe {
 			logical_device.destroy_shader_module(fragmentshader_module, None);
 			logical_device.destroy_shader_module(vertexshader_module, None);

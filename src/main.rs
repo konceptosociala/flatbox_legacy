@@ -19,13 +19,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.1))
 			* na::Matrix4::new_scaling(0.1))
 		.into(),
-		colour: [0.2, 0.4, 1.0],
+		//colour: [0.2, 0.4, 1.0],
 	});
 	cube.insert_visibly(InstanceData {
 		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.05, 0.05, 0.0))
 			* na::Matrix4::new_scaling(0.1))
 		.into(),
-		colour: [1.0, 1.0, 0.2],
+		//colour: [1.0, 1.0, 0.2],
 	});
 	for i in 0..10 {
 		for j in 0..10 {
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					0.5,
 				)) * na::Matrix4::new_scaling(0.03))
 				.into(),
-				colour: [1.0, i as f32 * 0.07, j as f32 * 0.07],
+				//colour: [1.0, i as f32 * 0.07, j as f32 * 0.07],
 			});
 			cube.insert_visibly(InstanceData {
 				modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					j as f32 * 0.2 - 1.0,
 				)) * na::Matrix4::new_scaling(0.02))
 				.into(),
-				colour: [i as f32 * 0.07, j as f32 * 0.07, 1.0],
+				//colour: [i as f32 * 0.07, j as f32 * 0.07, 1.0],
 			});
 		}
 	}
@@ -54,25 +54,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			* na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
 			* na::Matrix4::new_scaling(0.1))
 		.into(),
-		colour: [0.0, 0.5, 0.0],
+		//colour: [0.0, 0.5, 0.0],
 	});
 	cube.insert_visibly(InstanceData {
 		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.5, 0.0, 0.0))
 			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.5, 0.01, 0.01)))
 		.into(),
-		colour: [1.0, 0.5, 0.5],
+		//colour: [1.0, 0.5, 0.5],
 	});
 	cube.insert_visibly(InstanceData {
 		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.5, 0.0))
 			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.01, 0.5, 0.01)))
 		.into(),
-		colour: [0.5, 1.0, 0.5],
+		//colour: [0.5, 1.0, 0.5],
 	});
 	cube.insert_visibly(InstanceData {
 		modelmatrix: (na::Matrix4::new_translation(&na::Vector3::new(0.0, 0.0, 0.0))
 			* na::Matrix4::new_nonuniform_scaling(&na::Vector3::new(0.01, 0.01, 0.5)))
 		.into(),
-		colour: [0.5, 0.5, 1.0],
+		//colour: [0.5, 0.5, 1.0],
 	});
 
 	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
@@ -157,10 +157,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					.expect("resetting fences");
 			}
 			
-			camera.update_buffer(&despero.device, &mut despero.allocator, &mut despero.uniformbuffer).expect("Cannot update uniformbuffer");
+			camera.update_buffer(
+				&despero.device, 
+				&mut despero.allocator, 
+				&mut despero.uniformbuffer
+			).expect("Cannot update uniformbuffer");
 			
 			for m in &mut despero.models {
-				m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update commandbuffer");
+				//m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update instancebuffer");
 			}
 			
 			despero
@@ -168,11 +172,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				.expect("Cannot update CommandBuffer");
 			
 			// Submit commandbuffers
-			let semaphores_available =
-				[despero.swapchain.image_available[despero.swapchain.current_image]];
+			let semaphores_available = [despero.swapchain.image_available[despero.swapchain.current_image]];
 			let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-			let semaphores_finished =
-				[despero.swapchain.rendering_finished[despero.swapchain.current_image]];
+			let semaphores_finished = [despero.swapchain.rendering_finished[despero.swapchain.current_image]];
 			let commandbuffers = [despero.commandbuffers[image_index as usize]];
 			let submit_info = [vk::SubmitInfo::builder()
 				.wait_semaphores(&semaphores_available)

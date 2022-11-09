@@ -219,7 +219,11 @@ impl Despero {
 				&[],
 			);
 			for m in &self.models {
-				m.draw(&self.device, commandbuffer);
+				m.draw(
+					&self.device,
+					commandbuffer,
+					self.pipeline.layout,
+				);
 			}
 			self.device.cmd_end_render_pass(commandbuffer);
 			self.device.end_command_buffer(commandbuffer)?;

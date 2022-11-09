@@ -3,6 +3,7 @@ use std::mem::size_of;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
+use as_slice::AsSlice;
 
 type Handle = usize;
 
@@ -27,9 +28,10 @@ impl std::error::Error for InvalidHandle {
 }
 
 #[repr(C)]
+#[derive(AsSlice, Debug)]
 pub struct InstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
-	pub colour: [f32; 3],
+	//pub colour: [f32; 3],
 }
 
 // Model struct
@@ -49,7 +51,7 @@ pub struct Model<V, I> {
 	pub instancebuffer: Option<Buffer>,
 }
 
-impl<V, I> Model<V, I> {
+impl<V, I: std::fmt::Debug> Model<V, I> {
 	pub fn get(&self, handle: Handle) -> Option<&I> {
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			self.instances.get(index)
@@ -245,23 +247,44 @@ impl<V, I> Model<V, I> {
 		&self, 
 		logical_device: &ash::Device, 
 		commandbuffer: vk::CommandBuffer,
+		layout: vk::PipelineLayout, 
 	){
 		if let Some(vertexbuffer) = &self.vertexbuffer {
 			if let Some(instancebuffer) = &self.instancebuffer {
 				if self.first_invisible > 0 {
+					// Instances to slice
+					let (_, model_bytes, _) = &self.instances[0..self.first_invisible].as_slice().align_to::<u8>();
+					dbg!(&self.instances[0..self.first_invisible].as_slice().align_to::<u8>());
+
 					unsafe {
+						// Bind position buffer
 						logical_device.cmd_bind_vertex_buffers(
 							commandbuffer,
 							0,
 							&[vertexbuffer.buffer],
 							&[0],
 						);
-						logical_device.cmd_bind_vertex_buffers(
+						/* Bind model matrix buffer
+						 * 
+						 * logical_device.cmd_bind_vertex_buffers(
+						 *	commandbuffer,
+						 *	1,
+						 *	&[instancebuffer.buffer],
+						 *	&[0],
+						 *);
+						 * 
+						 */
+						  
+						// Push Constants
+						logical_device.cmd_push_constants(
 							commandbuffer,
-							1,
-							&[instancebuffer.buffer],
-							&[0],
+							layout,
+							vk::ShaderStageFlags::VERTEX,
+							0,
+							model_bytes,
 						);
+						
+						// Draw mesh
 						logical_device.cmd_draw(
 							commandbuffer,
 							self.vertexdata.len() as u32,
