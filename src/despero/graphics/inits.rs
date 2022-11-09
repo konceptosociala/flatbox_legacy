@@ -33,6 +33,12 @@ pub fn init_instance(
 		#[cfg(feature = "windows")]
 		ash::extensions::khr::Win32Surface::name().as_ptr(),
 	];
+	
+	let val_features_enabled = vec![vk::ValidationFeatureEnableEXT::DEBUG_PRINTF];
+	let mut validation_features = vk::ValidationFeaturesEXT::default();
+	validation_features.enabled_validation_feature_count = val_features_enabled.len() as u32;
+	validation_features.p_enabled_validation_features = val_features_enabled.as_ptr();
+			
 	let mut debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
 		.message_severity(
 			vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
@@ -48,9 +54,10 @@ pub fn init_instance(
 
 	let instance_create_info = vk::InstanceCreateInfo::builder()
 		.push_next(&mut debugcreateinfo)
-		.application_info(&app_info)
+		.push_next(&mut validation_features)
 		.enabled_layer_names(&layer_name_pointers)
-		.enabled_extension_names(&extension_name_pointers);
+		.enabled_extension_names(&extension_name_pointers)
+		.application_info(&app_info);
 	unsafe { entry.create_instance(&instance_create_info, None) }
 }
 
@@ -89,7 +96,7 @@ pub fn init_device_and_queues(
 	let device_extension_name_pointers: Vec<*const i8> =
 		vec![
 			ash::extensions::khr::Swapchain::name().as_ptr(),
-			ash::extensions::ext::BufferDeviceAddress::name().as_ptr(),
+			ash::vk::KhrShaderNonSemanticInfoFn::name().as_ptr(),
 		];
 	let device_create_info = vk::DeviceCreateInfo::builder()
 		.queue_create_infos(&queue_infos)
@@ -236,7 +243,18 @@ pub unsafe extern "system" fn vulkan_debug_utils_callback(
 		&_ => format!("{}", severity).normal(),
 	};
 	
-	println!("[DesperØ][{}][{}] {:?}", severity, ty, message);
+	if severity == format!("info").green() {
+		let msg = message.to_str().expect("An error occurred in Vulkan debug utils callback. What kind of not-String are you handing me?");
+		if msg.contains("DEBUG-PRINTF") {
+			let msg = msg
+				.to_string()
+				.replace("Validation Information: [ UNASSIGNED-DEBUG-PRINTF ]", "");
+			println!("[DesperØ][printf] {:?}", msg);
+		}
+	} else {
+		println!("[DesperØ][{}][{}] {:?}", severity, ty, message);
+	}
+	
 	vk::FALSE
 }
 

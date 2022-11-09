@@ -3,7 +3,7 @@ use std::mem::size_of;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
-use as_slice::AsSlice;
+use nalgebra as na;
 
 type Handle = usize;
 
@@ -28,10 +28,10 @@ impl std::error::Error for InvalidHandle {
 }
 
 #[repr(C)]
-#[derive(AsSlice, Debug)]
+#[derive(Debug, Clone)]
 pub struct InstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
-	//pub colour: [f32; 3],
+	pub colour: [f32; 3],
 }
 
 // Model struct
@@ -252,10 +252,6 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 		if let Some(vertexbuffer) = &self.vertexbuffer {
 			if let Some(instancebuffer) = &self.instancebuffer {
 				if self.first_invisible > 0 {
-					// Instances to slice
-					let (_, model_bytes, _) = &self.instances[0..self.first_invisible].as_slice().align_to::<u8>();
-					dbg!(&self.instances[0..self.first_invisible].as_slice().align_to::<u8>());
-
 					unsafe {
 						// Bind position buffer
 						logical_device.cmd_bind_vertex_buffers(
@@ -264,25 +260,28 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 							&[vertexbuffer.buffer],
 							&[0],
 						);
-						/* Bind model matrix buffer
-						 * 
-						 * logical_device.cmd_bind_vertex_buffers(
-						 *	commandbuffer,
-						 *	1,
-						 *	&[instancebuffer.buffer],
-						 *	&[0],
-						 *);
-						 * 
-						 */
-						  
+						
 						// Push Constants
-						logical_device.cmd_push_constants(
-							commandbuffer,
-							layout,
-							vk::ShaderStageFlags::VERTEX,
-							0,
-							model_bytes,
-						);
+						for (i, ins) in self.instances[0..self.first_invisible].iter().enumerate() {							
+							let ptr = ins as *const _ as *const u8;
+							let bytes = std::slice::from_raw_parts(ptr, size_of::<InstanceData>());
+
+							panic!("
+							
+							Offset of Push Constant model's instances
+							is greater than 128: consider use uniform
+							buffer or do something else
+							
+");
+
+							logical_device.cmd_push_constants(
+								commandbuffer,
+								layout,
+								vk::ShaderStageFlags::VERTEX,
+								(i * size_of::<InstanceData>()) as u32,
+								bytes,
+							);
+						}
 						
 						// Draw mesh
 						logical_device.cmd_draw(

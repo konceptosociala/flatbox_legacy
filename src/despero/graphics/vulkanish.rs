@@ -477,11 +477,11 @@ impl GraphicsPipeline {
 				stride: 12,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
-			vk::VertexInputBindingDescription {
+			/*vk::VertexInputBindingDescription {
 				binding: 1,
 				stride: 76,
 				input_rate: vk::VertexInputRate::INSTANCE,
-			}
+			}*/
 		];
 		
 		
