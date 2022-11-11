@@ -266,31 +266,22 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 							let ptr = ins as *const _ as *const u8;
 							let bytes = std::slice::from_raw_parts(ptr, size_of::<InstanceData>());
 
-							panic!("
-							
-							Offset of Push Constant model's instances
-							is greater than 128: consider use uniform
-							buffer or do something else
-							
-");
-
 							logical_device.cmd_push_constants(
 								commandbuffer,
 								layout,
 								vk::ShaderStageFlags::VERTEX,
-								(i * size_of::<InstanceData>()) as u32,
+								0,
 								bytes,
 							);
-						}
-						
-						// Draw mesh
-						logical_device.cmd_draw(
-							commandbuffer,
-							self.vertexdata.len() as u32,
-							self.first_invisible as u32,
-							0,
-							0,
-						);
+							
+							logical_device.cmd_draw(
+								commandbuffer,
+								self.vertexdata.len() as u32,
+								self.first_invisible as u32,
+								0,
+								0,
+							);
+						}						
 					}
 				}
 			}

@@ -2,8 +2,6 @@
 #extension GL_EXT_debug_printf : enable
 
 layout (location=0) in vec3 position;
-//layout (location=1) in mat4 model_matrix;
-//layout (location=5) in vec3 colour;
 
 layout (set=0, binding=0) uniform UniformBufferObject {
 	mat4 view_matrix;
