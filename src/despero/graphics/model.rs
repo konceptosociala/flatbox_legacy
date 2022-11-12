@@ -27,6 +27,7 @@ impl std::error::Error for InvalidHandle {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone)]
 pub struct InstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
 	pub colour: [f32; 3],
@@ -34,26 +35,25 @@ pub struct InstanceData {
 
 // Model struct
 pub struct Model<V, I> {
-	// Vertices
+	// Model vertices
 	pub vertexdata: Vec<V>,
-	// Indices of vertices
+	// Vertex indices
 	pub indexdata: Vec<u32>,
 	// Handle to index of the model instance
 	pub handle_to_index: HashMap<usize, Handle>,
 	// Vec of the handles
-	pub handles: Vec<Handle>,
+	pub handles: Vec<usize>,
 	// Vec of the instances
 	pub instances: Vec<I>,
 	// Index of first invisible instance
 	pub first_invisible: usize,
 	// Next handle to use
-	pub next_handle: Handle,
+	pub next_handle: usize,
 	pub vertexbuffer: Option<Buffer>,
 	pub indexbuffer: Option<Buffer>,
-	pub instancebuffer: Option<Buffer>,
 }
 
-impl<V, I> Model<V, I> {
+impl<V, I: std::fmt::Debug> Model<V, I> {
 	pub fn get(&self, handle: Handle) -> Option<&I> {
 		if let Some(&index) = self.handle_to_index.get(&handle) {
 			self.instances.get(index)
@@ -222,61 +222,27 @@ impl<V, I> Model<V, I> {
 			buffer.fill(
 				logical_device,
 				allocator,
-				&self.indexbuffer
+				&self.indexdata,
 			)?;
 			Ok(())
 		} else {
 			// Set buffer size
-			let bytes = (self.indexbuffer.len() * size_of::<u32>()) as u64;		
+			let bytes = (self.indexdata.len() * size_of::<u32>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
 				allocator,
 				bytes,
 				vk::BufferUsageFlags::INDEX_BUFFER,
 				MemoryLocation::CpuToGpu,
-				"Model index buffer"
+				"Model buffer of vertex indices"
 			)?;
 			
 			buffer.fill(
 				&logical_device,
 				allocator,
-				&self.vertexdata
+				&self.indexdata
 			)?;
-			self.vertexbuffer = Some(buffer);
-			Ok(())
-		}
-	}
-	
-	// Update InstanceBuffer
-	pub fn update_instancebuffer(
-		&mut self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
-	) -> Result<(), vk::Result> {
-		if let Some(buffer) = &mut self.instancebuffer {
-			buffer.fill(
-				logical_device,
-				allocator, 
-				&self.instances[0..self.first_invisible]
-			)?;
-			Ok(())
-		} else {
-			let bytes = (self.first_invisible * size_of::<I>()) as u64;			
-			let mut buffer = Buffer::new(
-				&logical_device,
-				allocator,
-				bytes,
-				vk::BufferUsageFlags::VERTEX_BUFFER,
-				MemoryLocation::CpuToGpu,
-				"Model instance buffer"
-			)?;
-			
-			buffer.fill(
-				logical_device,
-				allocator,
-				&self.instances[0..self.first_invisible]
-			)?;
-			self.instancebuffer = Some(buffer);
+			self.indexbuffer = Some(buffer);
 			Ok(())
 		}
 	}
@@ -285,36 +251,56 @@ impl<V, I> Model<V, I> {
 		&self, 
 		logical_device: &ash::Device, 
 		commandbuffer: vk::CommandBuffer,
+		layout: vk::PipelineLayout, 
 	){
 		if let Some(vertexbuffer) = &self.vertexbuffer {
-			if let Some(instancebuffer) = &self.instancebuffer {
+			if let Some(indexbuffer) = &self.indexbuffer {
 				if self.first_invisible > 0 {
 					unsafe {
+						// Bind position buffer						
+						logical_device.cmd_bind_index_buffer(
+							commandbuffer,
+							indexbuffer.buffer,
+							0,
+							vk::IndexType::UINT32,
+						);
+						
 						logical_device.cmd_bind_vertex_buffers(
 							commandbuffer,
 							0,
 							&[vertexbuffer.buffer],
 							&[0],
 						);
-						logical_device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							1,
-							&[instancebuffer.buffer],
-							&[0],
-						);
-						logical_device.cmd_draw(
-							commandbuffer,
-							self.vertexdata.len() as u32,
-							self.first_invisible as u32,
-							0,
-							0,
-						);
+						
+						// Push Constants
+						for ins in &self.instances[0..self.first_invisible] {							
+							let ptr = ins as *const _ as *const u8;
+							let bytes = std::slice::from_raw_parts(ptr, size_of::<InstanceData>());
+							
+							logical_device.cmd_push_constants(
+								commandbuffer,
+								layout,
+								vk::ShaderStageFlags::VERTEX,
+								0,
+								bytes,
+							);
+							
+							logical_device.cmd_draw_indexed(
+								commandbuffer,
+								self.indexdata.len() as u32,
+								1,
+								0,
+								0,
+								0,
+							);
+						}						
 					}
 				}
 			}
 		}
 	}
 }
+
 
 //Implement cubic model
 impl Model<[f32; 3], InstanceData> {
@@ -337,7 +323,7 @@ impl Model<[f32; 3], InstanceData> {
 				1, 3, 7, 1, 7, 5, //back
 				0, 2, 1, 1, 2, 3, //left
 				4, 5, 6, 5, 7, 6, //right
-			]
+			],
 			handle_to_index: HashMap::new(),
 			handles: Vec::new(),
 			instances: Vec::new(),
@@ -345,7 +331,6 @@ impl Model<[f32; 3], InstanceData> {
 			next_handle: 0,
 			vertexbuffer: None,
 			indexbuffer: None,
-			instancebuffer: None,
 		}
 	}
 }

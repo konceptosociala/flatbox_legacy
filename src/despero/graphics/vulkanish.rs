@@ -6,6 +6,7 @@ use gpu_allocator::MemoryLocation;
 
 use crate::graphics::{
 	inits::*,
+	model::*,
 };
 
 // Debug
@@ -22,13 +23,13 @@ impl Debug {
 		let debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
 			.message_severity(
 				vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-				//	| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+					| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
 					| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
 					| vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
 			)
 			.message_type(
-			//	vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-					 vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
+				vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+					| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
 					| vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
 			)
 			.pfn_user_callback(Some(vulkan_debug_utils_callback));
@@ -434,36 +435,6 @@ impl GraphicsPipeline {
 				offset: 0,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 1,
-				offset: 0,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 2,
-				offset: 16,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 3,
-				offset: 32,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 4,
-				offset: 48,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 5,
-				offset: 64,
-				format: vk::Format::R32G32B32_SFLOAT,
-			},
 		];
 		// Input Bindings' description
 		//
@@ -475,11 +446,6 @@ impl GraphicsPipeline {
 				stride: 12,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
-			vk::VertexInputBindingDescription {
-				binding: 1,
-				stride: 76,
-				input_rate: vk::VertexInputRate::INSTANCE,
-			}
 		];
 		
 		
@@ -565,8 +531,20 @@ impl GraphicsPipeline {
 		}?;
 		let desclayouts = vec![descriptorsetlayout];
 		
+		// Push Constant
+		let push_constant = vk::PushConstantRange::builder()
+			.offset(0)
+			.size(size_of::<InstanceData>() as u32)
+			.stage_flags(vk::ShaderStageFlags::VERTEX)
+			.build();
+			
+		let pushconstants = vec![push_constant];
+		
 		// Pipeline layout
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&desclayouts);
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
+			.push_constant_ranges(&pushconstants)
+			.set_layouts(&desclayouts);
+			
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
 		
 		// Graphics Pipeline
@@ -591,7 +569,7 @@ impl GraphicsPipeline {
 				).expect("Cannot create pipeline")				
 		}[0];
 		
-		// Destroy useless shader modules
+		// Destroy used shader modules
 		unsafe {
 			logical_device.destroy_shader_module(fragmentshader_module, None);
 			logical_device.destroy_shader_module(vertexshader_module, None);

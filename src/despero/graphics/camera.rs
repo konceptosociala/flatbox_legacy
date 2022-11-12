@@ -20,17 +20,17 @@ pub struct Camera {
 
 impl Camera {
 	pub fn builder() -> CameraBuilder {
-        CameraBuilder {
-            position: na::Vector3::new(0.0, -3.0, -3.0),
-            view_direction: na::Unit::new_normalize(na::Vector3::new(0.0, 1.0, 1.0)),
-            down_direction: na::Unit::new_normalize(na::Vector3::new(0.0, 1.0, -1.0)),
-            fovy: std::f32::consts::FRAC_PI_3,
-            aspect: 800.0 / 600.0,
-            near: 0.1,
-            far: 100.0,
-        }
-    }
-    
+		CameraBuilder {
+			position: na::Vector3::new(0.0, -3.0, -3.0),
+			view_direction: na::Unit::new_normalize(na::Vector3::new(0.0, 1.0, 1.0)),
+			down_direction: na::Unit::new_normalize(na::Vector3::new(0.0, 1.0, -1.0)),
+			fovy: std::f32::consts::FRAC_PI_3,
+			aspect: 800.0 / 600.0,
+			near: 0.1,
+			far: 100.0,
+		}
+	}
+	
 	fn update_projectionmatrix(&mut self) {
 		let d = 1.0 / (0.5 * self.fovy).tan();
 		self.projectionmatrix = na::Matrix4::new(
@@ -115,85 +115,85 @@ impl Camera {
 }
 
 pub struct CameraBuilder {
-    position: na::Vector3<f32>,
-    view_direction: na::Unit<na::Vector3<f32>>,
-    down_direction: na::Unit<na::Vector3<f32>>,
-    fovy: f32,
-    aspect: f32,
-    near: f32,
-    far: f32,
+	position: na::Vector3<f32>,
+	view_direction: na::Unit<na::Vector3<f32>>,
+	down_direction: na::Unit<na::Vector3<f32>>,
+	fovy: f32,
+	aspect: f32,
+	near: f32,
+	far: f32,
 }
 
 impl CameraBuilder {
 	pub fn build(self) -> Camera {
-        if self.far < self.near {
-            panic!(
-                "Far plane (at {}) is closer than near plane (at {})!",
-                self.far, self.near
-            );
-        }
-        
-        let mut cam = Camera {
-            position: self.position,
-            view_direction: self.view_direction,
-            down_direction: na::Unit::new_normalize(
-                self.down_direction.as_ref()
-                    - self
-                        .down_direction
-                        .as_ref()
-                        .dot(self.view_direction.as_ref())
-                        * self.view_direction.as_ref(),
-            ),
-            fovy: self.fovy,
-            aspect: self.aspect,
-            near: self.near,
-            far: self.far,
-            viewmatrix: na::Matrix4::identity(),
-            projectionmatrix: na::Matrix4::identity(),
-        };
-        cam.update_projectionmatrix();
-        cam.update_viewmatrix();
-        cam
-    }
+		if self.far < self.near {
+			panic!(
+				"Far plane (at {}) is closer than near plane (at {})!",
+				self.far, self.near
+			);
+		}
+		
+		let mut cam = Camera {
+			position: self.position,
+			view_direction: self.view_direction,
+			down_direction: na::Unit::new_normalize(
+				self.down_direction.as_ref()
+					- self
+						.down_direction
+						.as_ref()
+						.dot(self.view_direction.as_ref())
+						* self.view_direction.as_ref(),
+			),
+			fovy: self.fovy,
+			aspect: self.aspect,
+			near: self.near,
+			far: self.far,
+			viewmatrix: na::Matrix4::identity(),
+			projectionmatrix: na::Matrix4::identity(),
+		};
+		cam.update_projectionmatrix();
+		cam.update_viewmatrix();
+		cam
+	}
 	
 	pub fn position(mut self, pos: na::Vector3<f32>) -> CameraBuilder {
-        self.position = pos;
-        self
-    }
-    
-    pub fn fovy(mut self, fovy: f32) -> CameraBuilder {
-        self.fovy = fovy.max(0.01).min(std::f32::consts::PI - 0.01);
-        self
-    }
-    
-    pub fn aspect(mut self, aspect: f32) -> CameraBuilder {
-        self.aspect = aspect;
-        self
-    }
-    
-    pub fn near(mut self, near: f32) -> CameraBuilder {
-        if near <= 0.0 {
-            panic!("Near plane ({}) can't be negative!", near);
-        }
-        self.near = near;
-        self
-    }
-    
-    pub fn far(mut self, far: f32) -> CameraBuilder {
-        if far <= 0.0 {
-            panic!("Far plane ({}) can't be negative!", far);
-        }
-        self.far = far;
-        self
-    }
-    
-    pub fn view_direction(mut self, direction: na::Vector3<f32>) -> CameraBuilder {
-        self.view_direction = na::Unit::new_normalize(direction);
-        self
-    }
-    
-    pub fn down_direction(mut self, direction: na::Vector3<f32>) -> CameraBuilder {
-        self.down_direction = na::Unit::new_normalize(direction);
-        self
-    }
+		self.position = pos;
+		self
+	}
+	
+	pub fn fovy(mut self, fovy: f32) -> CameraBuilder {
+		self.fovy = fovy.max(0.01).min(std::f32::consts::PI - 0.01);
+		self
+	}
+	
+	pub fn aspect(mut self, aspect: f32) -> CameraBuilder {
+		self.aspect = aspect;
+		self
+	}
+	
+	pub fn near(mut self, near: f32) -> CameraBuilder {
+		if near <= 0.0 {
+			panic!("Near plane ({}) can't be negative!", near);
+		}
+		self.near = near;
+		self
+	}
+	
+	pub fn far(mut self, far: f32) -> CameraBuilder {
+		if far <= 0.0 {
+			panic!("Far plane ({}) can't be negative!", far);
+		}
+		self.far = far;
+		self
+	}
+	
+	pub fn view_direction(mut self, direction: na::Vector3<f32>) -> CameraBuilder {
+		self.view_direction = na::Unit::new_normalize(direction);
+		self
+	}
+	
+	pub fn down_direction(mut self, direction: na::Vector3<f32>) -> CameraBuilder {
+		self.down_direction = na::Unit::new_normalize(direction);
+		self
+	}
 }
