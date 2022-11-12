@@ -34,18 +34,22 @@ pub struct InstanceData {
 
 // Model struct
 pub struct Model<V, I> {
+	// Vertices
 	pub vertexdata: Vec<V>,
+	// Indices of vertices
+	pub indexdata: Vec<u32>,
 	// Handle to index of the model instance
 	pub handle_to_index: HashMap<usize, Handle>,
 	// Vec of the handles
-	pub handles: Vec<usize>,
+	pub handles: Vec<Handle>,
 	// Vec of the instances
 	pub instances: Vec<I>,
 	// Index of first invisible instance
 	pub first_invisible: usize,
 	// Next handle to use
-	pub next_handle: usize,
+	pub next_handle: Handle,
 	pub vertexbuffer: Option<Buffer>,
+	pub indexbuffer: Option<Buffer>,
 	pub instancebuffer: Option<Buffer>,
 }
 
@@ -207,6 +211,42 @@ impl<V, I> Model<V, I> {
 		}
 	}
 	
+	// Update IndexBuffer
+	pub fn update_indexbuffer(
+		&mut self,
+		logical_device: &ash::Device,
+		allocator: &mut Allocator,
+	) -> Result<(), vk::Result> {
+		// Check whether the buffer exists
+		if let Some(buffer) = &mut self.indexbuffer {
+			buffer.fill(
+				logical_device,
+				allocator,
+				&self.indexbuffer
+			)?;
+			Ok(())
+		} else {
+			// Set buffer size
+			let bytes = (self.indexbuffer.len() * size_of::<u32>()) as u64;		
+			let mut buffer = Buffer::new(
+				&logical_device,
+				allocator,
+				bytes,
+				vk::BufferUsageFlags::INDEX_BUFFER,
+				MemoryLocation::CpuToGpu,
+				"Model index buffer"
+			)?;
+			
+			buffer.fill(
+				&logical_device,
+				allocator,
+				&self.vertexdata
+			)?;
+			self.vertexbuffer = Some(buffer);
+			Ok(())
+		}
+	}
+	
 	// Update InstanceBuffer
 	pub fn update_instancebuffer(
 		&mut self,
@@ -289,20 +329,22 @@ impl Model<[f32; 3], InstanceData> {
 		let rtb = [1.0,-1.0,1.0]; // Right-top-back
 
 		Model {
-			vertexdata: vec![
-				lbf, lbb, rbb, lbf, rbb, rbf, // Bottom
-				ltf, rtb, ltb, ltf, rtf, rtb, // Top
-				lbf, rtf, ltf, lbf, rbf, rtf, // Front
-				lbb, ltb, rtb, lbb, rtb, rbb, // Back
-				lbf, ltf, lbb, lbb, ltf, ltb, // Left
-				rbf, rbb, rtf, rbb, rtb, rtf, // Right
-			],
+			vertexdata: vec![lbf,lbb,ltf,ltb,rbf,rbb,rtf,rtb],
+			indexdata: vec![
+				0, 1, 5, 0, 5, 4, //bottom
+				2, 7, 3, 2, 6, 7, //top
+				0, 6, 2, 0, 4, 6, //front
+				1, 3, 7, 1, 7, 5, //back
+				0, 2, 1, 1, 2, 3, //left
+				4, 5, 6, 5, 7, 6, //right
+			]
 			handle_to_index: HashMap::new(),
 			handles: Vec::new(),
 			instances: Vec::new(),
 			first_invisible: 0,
 			next_handle: 0,
 			vertexbuffer: None,
+			indexbuffer: None,
 			instancebuffer: None,
 		}
 	}
