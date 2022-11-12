@@ -7,9 +7,10 @@ use crate::graphics::vulkanish::*;
 pub fn init_instance(
 	entry: &ash::Entry,
 	layer_names: &[&str],
+	app_title: &String,
 ) -> Result<ash::Instance, vk::Result> {
 	let enginename = std::ffi::CString::new("DesperØ").unwrap();
-	let appname = std::ffi::CString::new("Ash Application").unwrap();
+	let appname = std::ffi::CString::new(app_title.as_str()).unwrap();
 	let app_info = vk::ApplicationInfo::builder()
 		.application_name(&appname)
 		.application_version(vk::make_api_version(0, 0, 0, 1))

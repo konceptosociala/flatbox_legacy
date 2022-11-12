@@ -3,7 +3,6 @@ use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
-use nalgebra as na;
 
 use crate::graphics::{
 	inits::*,
@@ -436,36 +435,6 @@ impl GraphicsPipeline {
 				offset: 0,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
-			/*vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 1,
-				offset: 0,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 2,
-				offset: 16,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 3,
-				offset: 32,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 4,
-				offset: 48,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 5,
-				offset: 64,
-				format: vk::Format::R32G32B32_SFLOAT,
-			},*/
 		];
 		// Input Bindings' description
 		//
@@ -477,11 +446,6 @@ impl GraphicsPipeline {
 				stride: 12,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
-			/*vk::VertexInputBindingDescription {
-				binding: 1,
-				stride: 76,
-				input_rate: vk::VertexInputRate::INSTANCE,
-			}*/
 		];
 		
 		

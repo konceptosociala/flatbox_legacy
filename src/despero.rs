@@ -40,12 +40,17 @@ pub struct Despero {
 }
 
 impl Despero {
-	pub fn init(window: winit::window::Window)
-	-> Result<Despero, Box<dyn std::error::Error>> {
+	pub fn init(
+		window: winit::window::Window,
+		app_title: String,
+	) -> Result<Despero, Box<dyn std::error::Error>> {
+		// Set window title
+		window.set_title(&app_title.as_str());
+		// Create Entry
 		let entry = unsafe { ash::Entry::load()? };
 		// Instance, Debug, Surface
 		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
-		let instance = init_instance(&entry, &layer_names)?;	
+		let instance = init_instance(&entry, &layer_names, &app_title)?;
 		let debug = Debug::init(&entry, &instance)?;
 		let surfaces = Surface::init(&window, &entry, &instance)?;
 		
@@ -251,8 +256,8 @@ impl Drop for Despero {
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(vb.buffer, None);
 				}
-				if let Some(ib) = &mut m.instancebuffer {
-					// Reassign InstanceBuffer allocation to remove
+				if let Some(ib) = &mut m.indexbuffer {
+					// Reassign IndexBuffer allocation to remove
 					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut ib.allocation);
 					let alloc = alloc.unwrap();
@@ -260,7 +265,6 @@ impl Drop for Despero {
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}
-			//self.device.free_descriptor_sets(self.descriptor_pool, &self.descriptor_sets).expect("Cannot free DescriptorSets");
 			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);

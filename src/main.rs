@@ -12,7 +12,10 @@ use graphics::{
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let eventloop = winit::event_loop::EventLoop::new();
 	let window = winit::window::Window::new(&eventloop)?;
-	let mut despero = Despero::init(window)?;
+	let mut despero = Despero::init(
+		window,
+		String::from("App Name"),
+	)?;
 	let mut cube = Model::cube();
 	
 	cube.insert_visibly(InstanceData {
@@ -76,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	});
 
 	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
-	cube.update_instancebuffer(&despero.device, &mut despero.allocator)?;
+	cube.update_indexbuffer(&despero.device, &mut despero.allocator)?;
 	despero.models = vec![cube];
 	
 	let mut camera = Camera::builder().build();
@@ -162,10 +165,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				&mut despero.allocator, 
 				&mut despero.uniformbuffer
 			).expect("Cannot update uniformbuffer");
-			
-			for m in &mut despero.models {
-				//m.update_instancebuffer(&despero.device, &mut despero.allocator).expect("Cannot update instancebuffer");
-			}
 			
 			despero
 				.update_commandbuffer(image_index as usize)
