@@ -277,7 +277,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 							logical_device.cmd_draw(
 								commandbuffer,
 								self.vertexdata.len() as u32,
-								self.first_invisible as u32,
+								1,
 								0,
 								0,
 							);
