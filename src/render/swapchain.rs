@@ -1,3 +1,12 @@
+use gpu_allocator::vulkan::*;
+use gpu_allocator::MemoryLocation;
+use ash::vk;
+
+use crate::render::{
+	surface,
+	queues,
+};
+
 pub struct Swapchain {
 	pub swapchain_loader: ash::extensions::khr::Swapchain,
 	pub swapchain: vk::SwapchainKHR,
@@ -24,8 +33,8 @@ impl Swapchain {
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
 		logical_device: &ash::Device,
-		surfaces: &Surface,
-		queue_families: &QueueFamilies,
+		surfaces: &surface::Surface,
+		queue_families: &queues::QueueFamilies,
 		allocator: &mut Allocator,
 	) -> Result<Swapchain, vk::Result> {
 		let surface_capabilities = surfaces.get_capabilities(physical_device)?;

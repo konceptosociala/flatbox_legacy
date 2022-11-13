@@ -1,3 +1,7 @@
+use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::HasRawDisplayHandle;
+use ash::vk;
+
 pub struct Surface {
 	pub surface: vk::SurfaceKHR,
 	pub surface_loader: ash::extensions::khr::Surface,

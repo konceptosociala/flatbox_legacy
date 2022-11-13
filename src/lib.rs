@@ -2,17 +2,44 @@
 #[cfg(all(feature = "x11", feature = "windows"))]
 compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same time");
 
-pub mod graphics;
-
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
 
-use graphics::{
-	vulkanish::*,
-	inits::*,
-	model::*,
+pub mod render;
+pub mod engine;
+pub mod ecs;
+pub mod physics;
+pub mod scripting;
+
+use crate::render::{
+	surface::Surface,
+	swapchain::Swapchain,
+	queues::{
+		QueueFamilies,
+		Queues,
+		init_instance,
+		init_device_and_queues,
+		init_physical_device_and_properties,
+	},
+	pipeline::{
+		GraphicsPipeline,
+		init_renderpass,
+	},
+	commandbuffers::{
+		CommandBufferPools,
+		create_commandbuffers,
+	},
+	buffer::Buffer,
+};
+
+use crate::engine::{
+	debug::Debug,
+	model::{
+		Model,
+		InstanceData,
+	},
 };
 
 // Main struct

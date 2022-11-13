@@ -1,3 +1,8 @@
+use ash::vk;
+
+use crate::render::surface;
+use crate::engine::debug;
+
 // QueueFamilies
 pub struct QueueFamilies {
 	pub graphics_q_index: Option<u32>,
@@ -8,7 +13,7 @@ impl QueueFamilies {
 	pub fn init(
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
-		surfaces: &Surface,
+		surfaces: &surface::Surface,
 	) -> Result<QueueFamilies, vk::Result>{
 		// Get queue families
 		let queuefamilyproperties = unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
@@ -91,7 +96,7 @@ pub fn init_instance(
 				| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
 				| vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
 		)
-		.pfn_user_callback(Some(vulkan_debug_utils_callback));
+		.pfn_user_callback(Some(debug::Debug::vulkan_debug_utils_callback));
 
 	let instance_create_info = vk::InstanceCreateInfo::builder()
 		.push_next(&mut debugcreateinfo)

@@ -6,9 +6,7 @@ use ash::vk;
 
 type Handle = usize;
 
-use crate::graphics::{
-	vulkanish::*,
-};
+use crate::render::buffer::Buffer;
 
 // InvalidHandle custom error
 #[derive(Debug, Clone)]

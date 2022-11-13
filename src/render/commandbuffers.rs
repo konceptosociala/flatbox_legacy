@@ -1,3 +1,7 @@
+use ash::vk;
+
+use crate::render::queues::QueueFamilies;
+
 // CommandBuffers Pools
 pub struct CommandBufferPools {
 	pub commandpool_graphics: vk::CommandPool,

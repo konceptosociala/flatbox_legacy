@@ -1,10 +1,8 @@
-use ash::vk;
 use gpu_allocator::vulkan::*;
+use ash::vk;
 use nalgebra as na;
 
-use crate::graphics::{
-	vulkanish::*,
-};
+use crate::render::buffer::Buffer;
 
 pub struct Camera {
 	pub viewmatrix: na::Matrix4<f32>,
