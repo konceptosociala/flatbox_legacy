@@ -1,13 +1,8 @@
-pub mod despero;
+pub mod lib;
 
 use nalgebra as na;
 use ash::vk;
 use winit::event::{Event, WindowEvent};
-use despero::*;
-use graphics::{
-	model::*,
-	camera::*,
-};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let eventloop = winit::event_loop::EventLoop::new();

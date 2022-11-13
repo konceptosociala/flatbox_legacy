@@ -1,7 +1,47 @@
-use colored::Colorize;
-use ash::vk;
+// QueueFamilies
+pub struct QueueFamilies {
+	pub graphics_q_index: Option<u32>,
+	pub transfer_q_index: Option<u32>,
+}
 
-use crate::graphics::vulkanish::*;
+impl QueueFamilies {
+	pub fn init(
+		instance: &ash::Instance,
+		physical_device: vk::PhysicalDevice,
+		surfaces: &Surface,
+	) -> Result<QueueFamilies, vk::Result>{
+		// Get queue families
+		let queuefamilyproperties = unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
+		let mut found_graphics_q_index = None;
+		let mut found_transfer_q_index = None;
+		// Get indices of queue families
+		for (index, qfam) in queuefamilyproperties.iter().enumerate() {
+			if qfam.queue_count > 0 && qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS) && 
+				surfaces.get_physical_device_surface_support(physical_device, index)?
+			{
+				found_graphics_q_index = Some(index as u32);
+			}
+			if qfam.queue_count > 0 && qfam.queue_flags.contains(vk::QueueFlags::TRANSFER) {
+				if found_transfer_q_index.is_none()
+					|| !qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS)
+				{
+					found_transfer_q_index = Some(index as u32);
+				}
+			}
+		}
+		
+		Ok(QueueFamilies {
+			graphics_q_index: found_graphics_q_index,
+			transfer_q_index: found_transfer_q_index,
+		})
+	}
+}
+
+// Queues
+pub struct Queues {
+	pub graphics_queue: vk::Queue,
+	pub transfer_queue: vk::Queue,
+}
 
 // Create Instance
 pub fn init_instance(
@@ -141,124 +181,7 @@ pub fn init_physical_device_and_properties(
 	return Ok((physical_device, physical_device_properties, physical_device_features));
 }
 
-// Create RenderPass
-pub fn init_renderpass(
-	logical_device: &ash::Device,
-	physical_device: vk::PhysicalDevice,
-	surfaces: &Surface
-) -> Result<vk::RenderPass, vk::Result> {
-	let attachments = [
-		vk::AttachmentDescription::builder()
-			.format(
-				surfaces
-					.get_formats(physical_device)?
-					.first()
-					.unwrap()
-					.format,
-			)
-			.load_op(vk::AttachmentLoadOp::CLEAR)
-			.store_op(vk::AttachmentStoreOp::STORE)
-			.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-			.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-			.initial_layout(vk::ImageLayout::UNDEFINED)
-			.final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-			.samples(vk::SampleCountFlags::TYPE_1)
-			.build(),
-		vk::AttachmentDescription::builder()
-			.format(vk::Format::D32_SFLOAT)
-			.load_op(vk::AttachmentLoadOp::CLEAR)
-			.store_op(vk::AttachmentStoreOp::DONT_CARE)
-			.stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-			.stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-			.initial_layout(vk::ImageLayout::UNDEFINED)
-			.final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-			.samples(vk::SampleCountFlags::TYPE_1)
-			.build(),
-	];
-	
-	// Color attachment reference
-	let color_attachment_references = [vk::AttachmentReference {
-		attachment: 0,
-		layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-	}];
-	
-	// Depth attachment
-	let depth_attachment_references = vk::AttachmentReference {
-		attachment: 1,
-		layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-	};
-
-	let subpasses = [vk::SubpassDescription::builder()
-		.color_attachments(&color_attachment_references)
-		.depth_stencil_attachment(&depth_attachment_references)
-		.pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-		.build()
-	];
-	
-	let subpass_dependencies = [vk::SubpassDependency::builder()
-		.src_subpass(vk::SUBPASS_EXTERNAL)
-		.src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-		.dst_subpass(0)
-		.dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-		.dst_access_mask(
-			vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
-		)
-		.build()
-	];
-	
-	let renderpass_info = vk::RenderPassCreateInfo::builder()
-		.attachments(&attachments)
-		.subpasses(&subpasses)
-		.dependencies(&subpass_dependencies);
-	let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
-	Ok(renderpass)
-}
-
-// Create CommandBuffers
-pub fn create_commandbuffers(
-	logical_device: &ash::Device,
-	pools: &CommandBufferPools,
-	amount: usize,
-) -> Result<Vec<vk::CommandBuffer>, vk::Result> {
-	let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-		.command_pool(pools.commandpool_graphics)
-		.command_buffer_count(amount as u32);
-	unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
-}
-
-pub unsafe extern "system" fn vulkan_debug_utils_callback(
-	message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
-	message_type: vk::DebugUtilsMessageTypeFlagsEXT,
-	p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
-	_p_user_data: *mut std::ffi::c_void,
-) -> vk::Bool32 {
-	let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
-	let severity = format!("{:?}", message_severity).to_lowercase();
-	let ty = format!("{:?}", message_type).to_lowercase();
-	
-	let severity = match severity.as_str() {
-		"info" 		=> format!("{}", severity).green(),
-		"warning" 	=> format!("{}", severity).yellow(),
-		"error" 	=> format!("{}", severity).red(),
-		"verbose" 	=> format!("{}", severity).blue(),
-		&_ => format!("{}", severity).normal(),
-	};
-	
-	if severity == format!("info").green() {
-		let msg = message.to_str().expect("An error occurred in Vulkan debug utils callback. What kind of not-String are you handing me?");
-		if msg.contains("DEBUG-PRINTF") {
-			let msg = msg
-				.to_string()
-				.replace("Validation Information: [ UNASSIGNED-DEBUG-PRINTF ]", "");
-			println!("[DesperØ][printf] {:?}", msg);
-		}
-	} else {
-		println!("[DesperØ][{}][{}] {:?}", severity, ty, message);
-	}
-	
-	vk::FALSE
-}
-
+// Select PhysicalDevice function
 fn select_device_of_type<'a>(
 	instance:	&'a ash::Instance,
 	phys_devs: 	&'a Vec<vk::PhysicalDevice>,
