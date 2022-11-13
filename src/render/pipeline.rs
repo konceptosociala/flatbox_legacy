@@ -102,7 +102,7 @@ impl GraphicsPipeline {
 		let rasterizer_info = vk::PipelineRasterizationStateCreateInfo::builder()
 			.line_width(1.0)
 			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
-			.cull_mode(vk::CullModeFlags::NONE)
+			.cull_mode(vk::CullModeFlags::BACK)
 			.polygon_mode(vk::PolygonMode::FILL);
 			
 		// Multisampler	
@@ -207,8 +207,8 @@ impl GraphicsPipeline {
 	pub fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
 			for dsl in &self.descriptor_set_layouts {
-                logical_device.destroy_descriptor_set_layout(*dsl, None);
-            }
+				logical_device.destroy_descriptor_set_layout(*dsl, None);
+			}
 			logical_device.destroy_pipeline(self.pipeline, None);
 			logical_device.destroy_pipeline_layout(self.layout, None);
 		}

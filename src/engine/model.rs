@@ -331,4 +331,127 @@ impl Model<[f32; 3], InstanceData> {
 			indexbuffer: None,
 		}
 	}
+	
+	pub fn icosahedron() -> Model<[f32; 3], InstanceData> {
+		let phi = (1.0 + 5.0_f32.sqrt()) / 2.0;
+		Model {
+			vertexdata: vec![
+				[phi, -1.0, 0.0],
+				[phi, 1.0, 0.0],
+				[-phi, -1.0, 0.0],
+				[-phi, 1.0, 0.0],
+				[1.0, 0.0, -phi],
+				[-1.0, 0.0, -phi],
+				[1.0, 0.0, phi],
+				[-1.0, 0.0, phi],
+				[0.0, -phi, -1.0],
+				[0.0, -phi, 1.0],
+				[0.0, phi, -1.0],
+				[0.0, phi, 1.0],
+			],
+			indexdata: vec![
+				0,9,8,//
+				0,8,4,//
+				0,4,1,//
+				0,1,6,//
+				0,6,9,//
+				8,9,2,//
+				8,2,5,//
+				8,5,4,//
+				4,5,10,//
+				4,10,1,//
+				1,10,11,//
+				1,11,6,//
+				2,3,5,//
+				2,7,3,//
+				2,9,7,//
+				5,3,10,//
+				3,11,10,//
+				3,7,11,//
+				6,7,9,//
+				6,11,7//
+			],
+
+			handle_to_index: HashMap::new(),
+			handles: Vec::new(),
+			instances: Vec::new(),
+			first_invisible: 0,
+			next_handle: 0,
+			vertexbuffer: None,
+			indexbuffer: None,
+		}
+	}
+	
+	pub fn sphere(refinements: u32) -> Model<[f32; 3], InstanceData> {
+		// New icosahedron
+		let mut model = Model::icosahedron();
+		// Subdivide faces
+		for _ in 0..refinements{
+			model.refine();
+		}
+		// Align vertices to equal distance to sphere's center
+		for v in &mut model.vertexdata {
+			let l = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+			*v = [v[0] / l, v[1] / l, v[2] / l];
+		}
+		return model;
+	}
+	
+	// Triangle subdividing
+	fn refine(&mut self) {
+		let mut new_indices = vec![];
+		let mut midpoints = std::collections::HashMap::<(u32, u32), u32>::new();
+		for triangle in self.indexdata.chunks(3) {
+			let a = triangle[0];
+			let b = triangle[1];
+			let c = triangle[2];
+			let vertex_a = self.vertexdata[a as usize];
+			let vertex_b = self.vertexdata[b as usize];
+			let vertex_c = self.vertexdata[c as usize];
+			let mab = if let Some(ab) = midpoints.get(&(a, b)) {
+				*ab
+			} else {
+				let vertex_ab = [
+					0.5 * (vertex_a[0] + vertex_b[0]),
+					0.5 * (vertex_a[1] + vertex_b[1]),
+					0.5 * (vertex_a[2] + vertex_b[2]),
+				];
+				let mab = self.vertexdata.len() as u32;
+				self.vertexdata.push(vertex_ab);
+				midpoints.insert((a, b), mab);
+				midpoints.insert((b, a), mab);
+				mab
+			};
+			let mbc = if let Some(bc) = midpoints.get(&(b, c)) {
+				*bc
+			} else {
+				let vertex_bc = [
+					0.5 * (vertex_b[0] + vertex_c[0]),
+					0.5 * (vertex_b[1] + vertex_c[1]),
+					0.5 * (vertex_b[2] + vertex_c[2]),
+				];
+				let mbc = self.vertexdata.len() as u32;
+				midpoints.insert((b, c), mbc);
+				midpoints.insert((c, b), mbc);
+				self.vertexdata.push(vertex_bc);
+				mbc
+			};
+			let mca = if let Some(ca) = midpoints.get(&(c, a)) {
+				*ca
+			} else {
+				let vertex_ca = [
+					0.5 * (vertex_c[0] + vertex_a[0]),
+					0.5 * (vertex_c[1] + vertex_a[1]),
+					0.5 * (vertex_c[2] + vertex_a[2]),
+				];
+				let mca = self.vertexdata.len() as u32;
+				midpoints.insert((c, a), mca);
+				midpoints.insert((a, c), mca);
+				self.vertexdata.push(vertex_ca);
+				mca
+			};
+			new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
+		}
+		self.indexdata = new_indices;
+	}
 }

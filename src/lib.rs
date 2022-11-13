@@ -69,15 +69,15 @@ pub struct Despero {
 impl Despero {
 	pub fn init(
 		window: winit::window::Window,
-		app_title: String,
+		app_title: &str,
 	) -> Result<Despero, Box<dyn std::error::Error>> {
 		// Set window title
-		window.set_title(&app_title.as_str());
+		window.set_title(app_title);
 		// Create Entry
 		let entry = unsafe { ash::Entry::load()? };
 		// Instance, Debug, Surface
 		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
-		let instance = init_instance(&entry, &layer_names, &app_title)?;
+		let instance = init_instance(&entry, &layer_names, app_title)?;
 		let debug = Debug::init(&entry, &instance)?;
 		let surfaces = Surface::init(&window, &entry, &instance)?;
 		
