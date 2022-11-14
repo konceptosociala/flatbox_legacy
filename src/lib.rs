@@ -39,6 +39,7 @@ use crate::engine::{
 	model::{
 		Model,
 		InstanceData,
+		VertexData,
 	},
 };
 
@@ -60,7 +61,7 @@ pub struct Despero {
 	pub commandbuffer_pools: CommandBufferPools,
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
-	pub models: Vec<Model<[f32; 3], InstanceData>>,
+	pub models: Vec<Model<VertexData, InstanceData>>,
 	pub uniformbuffer: Buffer,
 	pub descriptor_pool: vk::DescriptorPool,
 	pub descriptor_sets: Vec<vk::DescriptorSet>,
@@ -209,7 +210,7 @@ impl Despero {
 		let clearvalues = [
 			vk::ClearValue {
 				color: vk::ClearColorValue {
-					float32: [0.0, 0.0, 0.08, 1.0],
+					float32: [0.0, 0.0, 0.0, 1.0],
 				},
 			},
 			vk::ClearValue {
@@ -262,7 +263,6 @@ impl Despero {
 		}
 		Ok(())
 	}
-
 }
 
 impl Drop for Despero {

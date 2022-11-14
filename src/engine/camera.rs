@@ -86,6 +86,15 @@ impl Camera {
 	pub fn move_backward(&mut self, distance:f32){
 		self.move_forward(-distance);
 	}
+	
+	pub fn move_left(&mut self, distance: f32) {
+		self.position += distance * *na::Unit::new_normalize(-self.down_direction.cross(&self.view_direction));
+		self.update_viewmatrix();
+	}
+	
+	pub fn move_right(&mut self, distance:f32){
+		self.move_left(-distance);
+	}
 
 	pub fn turn_right(&mut self, angle: f32) {
 		let rotation = na::Rotation3::from_axis_angle(&self.down_direction, angle);

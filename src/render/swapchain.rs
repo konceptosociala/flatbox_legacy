@@ -54,7 +54,10 @@ impl Swapchain {
 			.image_color_space(surface_format.color_space)
 			.image_extent(surface_capabilities.current_extent)
 			.image_array_layers(1)
-			.image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+			.image_usage(
+				vk::ImageUsageFlags::COLOR_ATTACHMENT |
+				vk::ImageUsageFlags::TRANSFER_SRC
+			)
 			.image_sharing_mode(vk::SharingMode::EXCLUSIVE)
 			.queue_family_indices(&queuefamilies)
 			.pre_transform(surface_capabilities.current_transform)

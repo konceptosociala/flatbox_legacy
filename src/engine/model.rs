@@ -3,6 +3,7 @@ use std::mem::size_of;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
+use nalgebra as na;
 
 type Handle = usize;
 
@@ -24,11 +25,51 @@ impl std::error::Error for InvalidHandle {
 	}
 }
 
+// InstanceData
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct InstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
-	pub colour: [f32; 3],
+	pub inverse_modelmatrix: [[f32; 4]; 4],
+}
+
+impl InstanceData {
+    pub fn new(modelmatrix: na::Matrix4<f32>) -> InstanceData {
+        InstanceData {
+            modelmatrix: modelmatrix.into(),
+            inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
+        }
+    }
+}
+
+// VertexData
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VertexData {
+	pub position: [f32; 3],
+	pub normal: [f32; 3],
+}
+
+impl VertexData {
+	fn midpoint(a: &VertexData, b: &VertexData) -> VertexData {
+		VertexData {
+			position: [
+				0.5 * (a.position[0] + b.position[0]),
+				0.5 * (a.position[1] + b.position[1]),
+				0.5 * (a.position[2] + b.position[2]),
+			],
+			normal: Self::normalize([
+				0.5 * (a.normal[0] + b.normal[0]),
+				0.5 * (a.normal[1] + b.normal[1]),
+				0.5 * (a.normal[2] + b.normal[2]),
+			]),
+		}
+	}
+	
+	fn normalize(v: [f32; 3]) -> [f32; 3] {
+		let l = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+		[v[0] / l, v[1] / l, v[2] / l]
+	}
 }
 
 // Model struct
@@ -301,19 +342,52 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 
 
 //Implement cubic model
-impl Model<[f32; 3], InstanceData> {
-	pub fn cube() -> Model<[f32; 3], InstanceData> {
+impl Model<VertexData, InstanceData> {
+	pub fn cube() -> Model<VertexData, InstanceData> {
 		let lbf = [-1.0,1.0,0.0]; // Left-bottom-front
-		let lbb = [-1.0,1.0,1.0]; // Left-bottom-back
+		let lbb = [-1.0,1.0,2.0]; // Left-bottom-back
 		let ltf = [-1.0,-1.0,0.0];// Left-top-front
-		let ltb = [-1.0,-1.0,1.0];// Left-top-back
+		let ltb = [-1.0,-1.0,2.0];// Left-top-back
 		let rbf = [1.0,1.0,0.0];  // Right-bottom-front
-		let rbb = [1.0,1.0,1.0];  // Right-bottom-back
+		let rbb = [1.0,1.0,2.0];  // Right-bottom-back
 		let rtf = [1.0,-1.0,0.0]; // Right-top-front
-		let rtb = [1.0,-1.0,1.0]; // Right-top-back
+		let rtb = [1.0,-1.0,2.0]; // Right-top-back
 
 		Model {
-			vertexdata: vec![lbf,lbb,ltf,ltb,rbf,rbb,rtf,rtb],
+			vertexdata: vec![
+				VertexData {
+					position: lbf,
+					normal: VertexData::normalize(lbf),
+				},
+				VertexData {
+					position: lbb,
+					normal: VertexData::normalize(lbb),
+				},
+				VertexData {
+					position: ltf,
+					normal: VertexData::normalize(ltf),
+				},
+				VertexData {
+					position: ltb,
+					normal: VertexData::normalize(ltb),
+				},
+				VertexData {
+					position: rbf,
+					normal: VertexData::normalize(rbf),
+				},
+				VertexData {
+					position: rbb,
+					normal: VertexData::normalize(rbb),
+				},
+				VertexData {
+					position: rtf,
+					normal: VertexData::normalize(rtf),
+				},
+				VertexData {
+					position: rtb,
+					normal: VertexData::normalize(rtb),
+				},
+			],
 			indexdata: vec![
 				0, 1, 5, 0, 5, 4, //bottom
 				2, 7, 3, 2, 6, 7, //top
@@ -332,22 +406,58 @@ impl Model<[f32; 3], InstanceData> {
 		}
 	}
 	
-	pub fn icosahedron() -> Model<[f32; 3], InstanceData> {
+	pub fn icosahedron() -> Model<VertexData, InstanceData> {
 		let phi = (1.0 + 5.0_f32.sqrt()) / 2.0;
 		Model {
 			vertexdata: vec![
-				[phi, -1.0, 0.0],
-				[phi, 1.0, 0.0],
-				[-phi, -1.0, 0.0],
-				[-phi, 1.0, 0.0],
-				[1.0, 0.0, -phi],
-				[-1.0, 0.0, -phi],
-				[1.0, 0.0, phi],
-				[-1.0, 0.0, phi],
-				[0.0, -phi, -1.0],
-				[0.0, -phi, 1.0],
-				[0.0, phi, -1.0],
-				[0.0, phi, 1.0],
+				VertexData {
+					position: [phi, -1.0, 0.0],
+					normal: VertexData::normalize([phi, -1.0, 0.0]),
+				},
+				VertexData {
+					position: [phi, 1.0, 0.0],
+					normal: VertexData::normalize([phi, 1.0, 0.0]),
+				},
+				VertexData {
+					position: [-phi, -1.0, 0.0],
+					normal: VertexData::normalize([-phi, -1.0, 0.0]),
+				},
+				VertexData {
+					position: [-phi, 1.0, 0.0],
+					normal: VertexData::normalize([-phi, 1.0, 0.0]),
+				},
+				VertexData {
+					position: [1.0, 0.0, -phi],
+					normal: VertexData::normalize([1.0, 0.0, -phi]),
+				},
+				VertexData {
+					position: [-1.0, 0.0, -phi],
+					normal: VertexData::normalize([-1.0, 0.0, -phi]),
+				},
+				VertexData {
+					position: [1.0, 0.0, phi],
+					normal: VertexData::normalize([1.0, 0.0, phi]),
+				},
+				VertexData {
+					position: [-1.0, 0.0, phi],
+					normal: VertexData::normalize([-1.0, 0.0, phi]),
+				},
+				VertexData {
+					position: [0.0, -phi, -1.0],
+					normal: VertexData::normalize([0.0, -phi, -1.0]),
+				},
+				VertexData {
+					position: [0.0, -phi, 1.0],
+					normal: VertexData::normalize([0.0, -phi, 1.0]),
+				},
+				VertexData {
+					position: [0.0, phi, -1.0],
+					normal: VertexData::normalize([0.0, phi, -1.0]),
+				},
+				VertexData {
+					position: [0.0, phi, 1.0],
+					normal: VertexData::normalize([0.0, phi, 1.0]),
+				},
 			],
 			indexdata: vec![
 				0,9,8,//
@@ -382,7 +492,7 @@ impl Model<[f32; 3], InstanceData> {
 		}
 	}
 	
-	pub fn sphere(refinements: u32) -> Model<[f32; 3], InstanceData> {
+	pub fn sphere(refinements: u32) -> Model<VertexData, InstanceData> {
 		// New icosahedron
 		let mut model = Model::icosahedron();
 		// Subdivide faces
@@ -391,67 +501,54 @@ impl Model<[f32; 3], InstanceData> {
 		}
 		// Align vertices to equal distance to sphere's center
 		for v in &mut model.vertexdata {
-			let l = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-			*v = [v[0] / l, v[1] / l, v[2] / l];
+			v.position = VertexData::normalize(v.position);
 		}
 		return model;
 	}
 	
 	// Triangle subdividing
-	fn refine(&mut self) {
-		let mut new_indices = vec![];
-		let mut midpoints = std::collections::HashMap::<(u32, u32), u32>::new();
-		for triangle in self.indexdata.chunks(3) {
-			let a = triangle[0];
-			let b = triangle[1];
-			let c = triangle[2];
-			let vertex_a = self.vertexdata[a as usize];
-			let vertex_b = self.vertexdata[b as usize];
-			let vertex_c = self.vertexdata[c as usize];
-			let mab = if let Some(ab) = midpoints.get(&(a, b)) {
-				*ab
-			} else {
-				let vertex_ab = [
-					0.5 * (vertex_a[0] + vertex_b[0]),
-					0.5 * (vertex_a[1] + vertex_b[1]),
-					0.5 * (vertex_a[2] + vertex_b[2]),
-				];
-				let mab = self.vertexdata.len() as u32;
-				self.vertexdata.push(vertex_ab);
-				midpoints.insert((a, b), mab);
-				midpoints.insert((b, a), mab);
-				mab
-			};
-			let mbc = if let Some(bc) = midpoints.get(&(b, c)) {
-				*bc
-			} else {
-				let vertex_bc = [
-					0.5 * (vertex_b[0] + vertex_c[0]),
-					0.5 * (vertex_b[1] + vertex_c[1]),
-					0.5 * (vertex_b[2] + vertex_c[2]),
-				];
-				let mbc = self.vertexdata.len() as u32;
-				midpoints.insert((b, c), mbc);
-				midpoints.insert((c, b), mbc);
-				self.vertexdata.push(vertex_bc);
-				mbc
-			};
-			let mca = if let Some(ca) = midpoints.get(&(c, a)) {
-				*ca
-			} else {
-				let vertex_ca = [
-					0.5 * (vertex_c[0] + vertex_a[0]),
-					0.5 * (vertex_c[1] + vertex_a[1]),
-					0.5 * (vertex_c[2] + vertex_a[2]),
-				];
-				let mca = self.vertexdata.len() as u32;
-				midpoints.insert((c, a), mca);
-				midpoints.insert((a, c), mca);
-				self.vertexdata.push(vertex_ca);
-				mca
-			};
-			new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
-		}
-		self.indexdata = new_indices;
-	}
+	pub fn refine(&mut self) {
+        let mut new_indices = vec![];
+        let mut midpoints = std::collections::HashMap::<(u32, u32), u32>::new();
+        for triangle in self.indexdata.chunks(3) {
+            let a = triangle[0];
+            let b = triangle[1];
+            let c = triangle[2];
+            let vertex_a = self.vertexdata[a as usize];
+            let vertex_b = self.vertexdata[b as usize];
+            let vertex_c = self.vertexdata[c as usize];
+            let mab = if let Some(ab) = midpoints.get(&(a, b)) {
+                *ab
+            } else {
+                let vertex_ab = VertexData::midpoint(&vertex_a, &vertex_b);
+                let mab = self.vertexdata.len() as u32;
+                self.vertexdata.push(vertex_ab);
+                midpoints.insert((a, b), mab);
+                midpoints.insert((b, a), mab);
+                mab
+            };
+            let mbc = if let Some(bc) = midpoints.get(&(b, c)) {
+                *bc
+            } else {
+                let vertex_bc = VertexData::midpoint(&vertex_b, &vertex_c);
+                let mbc = self.vertexdata.len() as u32;
+                midpoints.insert((b, c), mbc);
+                midpoints.insert((c, b), mbc);
+                self.vertexdata.push(vertex_bc);
+                mbc
+            };
+            let mca = if let Some(ca) = midpoints.get(&(c, a)) {
+                *ca
+            } else {
+                let vertex_ca = VertexData::midpoint(&vertex_c, &vertex_a);
+                let mca = self.vertexdata.len() as u32;
+                midpoints.insert((c, a), mca);
+                midpoints.insert((a, c), mca);
+                self.vertexdata.push(vertex_ca);
+                mca
+            };
+            new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
+        }
+        self.indexdata = new_indices;
+    }
 }

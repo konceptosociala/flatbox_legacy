@@ -9,7 +9,8 @@ use despero::{
 			InstanceData,
 		},
 		camera::Camera,
-		//debug::Debug,
+		debug::Debug,
+		screenshot::Screenshot,
 	},
 };
 
@@ -18,15 +19,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let window = winit::window::Window::new(&eventloop)?;
 	let mut despero = Despero::init(window, "App Name")?;
 	let mut sphere = Model::sphere(3);
+	let mut cube = Model::cube();
 	
-	sphere.insert_visibly(InstanceData {
-        modelmatrix: na::Matrix4::new_scaling(0.5).into(),
-        colour: [0.5, 0.0, 0.0],
-    });
+	sphere.insert_visibly(InstanceData::new(na::Matrix4::new_scaling(0.5)));
+	
+	cube.insert_visibly(InstanceData::new(na::Matrix4::new_scaling(0.5)
+		.append_translation(&na::Vector3::new(0.5, 0.0, 0.0))));
 
+	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
+	cube.update_indexbuffer(&despero.device, &mut despero.allocator)?;
 	sphere.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
 	sphere.update_indexbuffer(&despero.device, &mut despero.allocator)?;
-	despero.models = vec![sphere];
+	despero.models = vec![cube, sphere];
 	
 	let mut camera = Camera::builder().build();
 	
@@ -47,23 +51,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				virtual_keycode: Some(keycode),
 				..
 			} => match keycode {
+				// System
+				winit::event::VirtualKeyCode::F5 => {
+					let path = "screenshots";
+					let name = "name";
+					Screenshot::take_jpg(&mut despero, name, path).expect("Failed to create a screenshot");
+					Debug::info(format!("Screenshot \"{}\" saved in \"{}\"", name, path).as_str());
+				}
+				// Rotating
 				winit::event::VirtualKeyCode::Right => {
-					camera.turn_right(0.1);
+					camera.turn_right(0.05);
 				}
 				winit::event::VirtualKeyCode::Left => {
-					camera.turn_left(0.1);
+					camera.turn_left(0.05);
 				}
 				winit::event::VirtualKeyCode::Up => {
-					camera.move_forward(0.05);
+					camera.turn_up(0.05);
 				}
 				winit::event::VirtualKeyCode::Down => {
+					camera.turn_down(0.05);
+				}
+				// Movement
+				winit::event::VirtualKeyCode::W => {
+					camera.move_forward(0.05);
+				}
+				winit::event::VirtualKeyCode::S => {
 					camera.move_backward(0.05);
 				}
-				winit::event::VirtualKeyCode::PageUp => {
-					camera.turn_up(0.02);
+				winit::event::VirtualKeyCode::A => {
+					camera.move_left(0.05);
 				}
-				winit::event::VirtualKeyCode::PageDown => {
-					camera.turn_down(0.02);
+				winit::event::VirtualKeyCode::D => {
+					camera.move_right(0.05);
 				}
 				_ => {}
 			},

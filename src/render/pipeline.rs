@@ -51,10 +51,18 @@ impl GraphicsPipeline {
 		// 
 		// Attribute description
 		let vertex_attrib_descs = [
+			// Vertex data
 			vk::VertexInputAttributeDescription {
 				binding: 0,
 				location: 0,
 				offset: 0,
+				format: vk::Format::R32G32B32_SFLOAT,
+			},
+			// Normal data
+			vk::VertexInputAttributeDescription {
+				binding: 0,
+				location: 1,
+				offset: 12,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
 		];
@@ -65,7 +73,7 @@ impl GraphicsPipeline {
 		let vertex_binding_descs = [
 			vk::VertexInputBindingDescription {
 				binding: 0,
-				stride: 12,
+				stride: 24,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
 		];
