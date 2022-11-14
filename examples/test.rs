@@ -19,18 +19,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let window = winit::window::Window::new(&eventloop)?;
 	let mut despero = Despero::init(window, "App Name")?;
 	let mut sphere = Model::sphere(3);
-	let mut cube = Model::cube();
 	
 	sphere.insert_visibly(InstanceData::new(na::Matrix4::new_scaling(0.5)));
-	
-	cube.insert_visibly(InstanceData::new(na::Matrix4::new_scaling(0.5)
-		.append_translation(&na::Vector3::new(0.5, 0.0, 0.0))));
-
-	cube.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
-	cube.update_indexbuffer(&despero.device, &mut despero.allocator)?;
 	sphere.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
 	sphere.update_indexbuffer(&despero.device, &mut despero.allocator)?;
-	despero.models = vec![cube, sphere];
+	despero.models = vec![sphere];
 	
 	let mut camera = Camera::builder().build();
 	
