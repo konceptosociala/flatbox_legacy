@@ -145,7 +145,6 @@ impl GraphicsPipeline {
 			},
 		];
 		
-		
 		// Bind vertex inputs
 		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
 			.vertex_attribute_descriptions(&vertex_attrib_descs)
