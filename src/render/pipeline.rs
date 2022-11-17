@@ -1,12 +1,9 @@
-use std::mem::size_of;
 use ash::vk;
 
 use crate::render::{
 	surface::Surface,
 	swapchain::Swapchain,
 };
-
-use crate::engine::model::InstanceData;
 
 // Pipeline
 pub struct GraphicsPipeline {
@@ -51,21 +48,74 @@ impl GraphicsPipeline {
 		// 
 		// Attribute description
 		let vertex_attrib_descs = [
-			// Vertex data
 			vk::VertexInputAttributeDescription {
 				binding: 0,
 				location: 0,
 				offset: 0,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
-			// Normal data
 			vk::VertexInputAttributeDescription {
 				binding: 0,
 				location: 1,
 				offset: 12,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 2,
+				offset: 0,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 3,
+				offset: 16,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 4,
+				offset: 32,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 5,
+				offset: 48,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 6,
+				offset: 64,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 7,
+				offset: 80,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 8,
+				offset: 96,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 9,
+				offset: 112,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 10,
+				offset: 128,
+				format: vk::Format::R32G32B32_SFLOAT,
+			},
 		];
+		
 		// Input Bindings' description
 		//
 		// stride	  - binding variables' size
@@ -75,6 +125,11 @@ impl GraphicsPipeline {
 				binding: 0,
 				stride: 24,
 				input_rate: vk::VertexInputRate::VERTEX,
+			},
+			vk::VertexInputBindingDescription {
+				binding: 1,
+				stride: 140,
+				input_rate: vk::VertexInputRate::INSTANCE,
 			},
 		];
 		
@@ -161,18 +216,8 @@ impl GraphicsPipeline {
 		}?;
 		let desclayouts = vec![descriptorsetlayout];
 		
-		// Push Constant
-		let push_constant = vk::PushConstantRange::builder()
-			.offset(0)
-			.size(size_of::<InstanceData>() as u32)
-			.stage_flags(vk::ShaderStageFlags::VERTEX)
-			.build();
-			
-		let pushconstants = vec![push_constant];
-		
 		// Pipeline layout
 		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
-			.push_constant_ranges(&pushconstants)
 			.set_layouts(&desclayouts);
 			
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;

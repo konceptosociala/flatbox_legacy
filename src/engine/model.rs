@@ -31,15 +31,20 @@ impl std::error::Error for InvalidHandle {
 pub struct InstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
 	pub inverse_modelmatrix: [[f32; 4]; 4],
+	pub colour: [f32; 3],
 }
 
 impl InstanceData {
-    pub fn new(modelmatrix: na::Matrix4<f32>) -> InstanceData {
-        InstanceData {
-            modelmatrix: modelmatrix.into(),
-            inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
-        }
-    }
+	pub fn new(
+		modelmatrix: na::Matrix4<f32>,
+		colour: [f32; 3],
+	) -> InstanceData {
+		InstanceData {
+			modelmatrix: modelmatrix.into(),
+			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
+			colour,
+		}
+	}
 }
 
 // VertexData
@@ -88,7 +93,9 @@ pub struct Model<V, I> {
 	pub first_invisible: usize,
 	// Next handle to use
 	pub next_handle: usize,
+	// Buffers
 	pub vertexbuffer: Option<Buffer>,
+	pub instancebuffer: Option<Buffer>,
 	pub indexbuffer: Option<Buffer>,
 }
 
@@ -250,6 +257,40 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 		}
 	}
 	
+	// Update InstanceBuffer
+	pub fn update_instancebuffer(
+		&mut self,
+		logical_device: &ash::Device,
+		allocator: &mut Allocator,
+	) -> Result<(), vk::Result> {
+		if let Some(buffer) = &mut self.instancebuffer {
+			buffer.fill(
+				logical_device,
+				allocator,
+				&self.instances[0..self.first_invisible]
+			)?;
+			Ok(())
+		} else {
+			let bytes = (self.first_invisible * size_of::<I>()) as u64; 
+			let mut buffer = Buffer::new(
+				&logical_device,
+				allocator,
+				bytes,
+				vk::BufferUsageFlags::VERTEX_BUFFER,
+				MemoryLocation::CpuToGpu,
+				"Model instance buffer"
+			)?;
+			
+			buffer.fill(
+				logical_device,
+				allocator,
+				&self.instances[0..self.first_invisible]
+			)?;
+			self.instancebuffer = Some(buffer);
+			Ok(())
+		}
+	}
+
 	// Update IndexBuffer
 	pub fn update_indexbuffer(
 		&mut self,
@@ -290,49 +331,43 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 		&self, 
 		logical_device: &ash::Device, 
 		commandbuffer: vk::CommandBuffer,
-		layout: vk::PipelineLayout, 
 	){
 		if let Some(vertexbuffer) = &self.vertexbuffer {
-			if let Some(indexbuffer) = &self.indexbuffer {
-				if self.first_invisible > 0 {
-					unsafe {
-						// Bind position buffer						
-						logical_device.cmd_bind_index_buffer(
-							commandbuffer,
-							indexbuffer.buffer,
-							0,
-							vk::IndexType::UINT32,
-						);
-						
-						logical_device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							0,
-							&[vertexbuffer.buffer],
-							&[0],
-						);
-						
-						// Push Constants
-						for ins in &self.instances[0..self.first_invisible] {							
-							let ptr = ins as *const _ as *const u8;
-							let bytes = std::slice::from_raw_parts(ptr, size_of::<InstanceData>());
-							
-							logical_device.cmd_push_constants(
+			if let Some(instancebuffer) = &self.instancebuffer {
+				if let Some(indexbuffer) = &self.indexbuffer {
+					if self.first_invisible > 0 {
+						unsafe {
+							// Bind position buffer						
+							logical_device.cmd_bind_index_buffer(
 								commandbuffer,
-								layout,
-								vk::ShaderStageFlags::VERTEX,
+								indexbuffer.buffer,
 								0,
-								bytes,
+								vk::IndexType::UINT32,
+							);
+							
+							logical_device.cmd_bind_vertex_buffers(
+								commandbuffer,
+								0,
+								&[vertexbuffer.buffer],
+								&[0],
+							);
+							
+							logical_device.cmd_bind_vertex_buffers(
+								commandbuffer,
+								1,
+								&[instancebuffer.buffer],
+								&[0],
 							);
 							
 							logical_device.cmd_draw_indexed(
 								commandbuffer,
 								self.indexdata.len() as u32,
-								1,
+								self.first_invisible as u32,
 								0,
 								0,
 								0,
 							);
-						}						
+						}
 					}
 				}
 			}
@@ -402,6 +437,7 @@ impl Model<VertexData, InstanceData> {
 			first_invisible: 0,
 			next_handle: 0,
 			vertexbuffer: None,
+			instancebuffer: None,
 			indexbuffer: None,
 		}
 	}
@@ -488,6 +524,7 @@ impl Model<VertexData, InstanceData> {
 			first_invisible: 0,
 			next_handle: 0,
 			vertexbuffer: None,
+			instancebuffer: None,
 			indexbuffer: None,
 		}
 	}
@@ -508,47 +545,47 @@ impl Model<VertexData, InstanceData> {
 	
 	// Triangle subdividing
 	pub fn refine(&mut self) {
-        let mut new_indices = vec![];
-        let mut midpoints = std::collections::HashMap::<(u32, u32), u32>::new();
-        for triangle in self.indexdata.chunks(3) {
-            let a = triangle[0];
-            let b = triangle[1];
-            let c = triangle[2];
-            let vertex_a = self.vertexdata[a as usize];
-            let vertex_b = self.vertexdata[b as usize];
-            let vertex_c = self.vertexdata[c as usize];
-            let mab = if let Some(ab) = midpoints.get(&(a, b)) {
-                *ab
-            } else {
-                let vertex_ab = VertexData::midpoint(&vertex_a, &vertex_b);
-                let mab = self.vertexdata.len() as u32;
-                self.vertexdata.push(vertex_ab);
-                midpoints.insert((a, b), mab);
-                midpoints.insert((b, a), mab);
-                mab
-            };
-            let mbc = if let Some(bc) = midpoints.get(&(b, c)) {
-                *bc
-            } else {
-                let vertex_bc = VertexData::midpoint(&vertex_b, &vertex_c);
-                let mbc = self.vertexdata.len() as u32;
-                midpoints.insert((b, c), mbc);
-                midpoints.insert((c, b), mbc);
-                self.vertexdata.push(vertex_bc);
-                mbc
-            };
-            let mca = if let Some(ca) = midpoints.get(&(c, a)) {
-                *ca
-            } else {
-                let vertex_ca = VertexData::midpoint(&vertex_c, &vertex_a);
-                let mca = self.vertexdata.len() as u32;
-                midpoints.insert((c, a), mca);
-                midpoints.insert((a, c), mca);
-                self.vertexdata.push(vertex_ca);
-                mca
-            };
-            new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
-        }
-        self.indexdata = new_indices;
-    }
+		let mut new_indices = vec![];
+		let mut midpoints = std::collections::HashMap::<(u32, u32), u32>::new();
+		for triangle in self.indexdata.chunks(3) {
+			let a = triangle[0];
+			let b = triangle[1];
+			let c = triangle[2];
+			let vertex_a = self.vertexdata[a as usize];
+			let vertex_b = self.vertexdata[b as usize];
+			let vertex_c = self.vertexdata[c as usize];
+			let mab = if let Some(ab) = midpoints.get(&(a, b)) {
+				*ab
+			} else {
+				let vertex_ab = VertexData::midpoint(&vertex_a, &vertex_b);
+				let mab = self.vertexdata.len() as u32;
+				self.vertexdata.push(vertex_ab);
+				midpoints.insert((a, b), mab);
+				midpoints.insert((b, a), mab);
+				mab
+			};
+			let mbc = if let Some(bc) = midpoints.get(&(b, c)) {
+				*bc
+			} else {
+				let vertex_bc = VertexData::midpoint(&vertex_b, &vertex_c);
+				let mbc = self.vertexdata.len() as u32;
+				midpoints.insert((b, c), mbc);
+				midpoints.insert((c, b), mbc);
+				self.vertexdata.push(vertex_bc);
+				mbc
+			};
+			let mca = if let Some(ca) = midpoints.get(&(c, a)) {
+				*ca
+			} else {
+				let vertex_ca = VertexData::midpoint(&vertex_c, &vertex_a);
+				let mca = self.vertexdata.len() as u32;
+				midpoints.insert((c, a), mca);
+				midpoints.insert((a, c), mca);
+				self.vertexdata.push(vertex_ca);
+				mca
+			};
+			new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
+		}
+		self.indexdata = new_indices;
+	}
 }

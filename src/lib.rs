@@ -255,7 +255,6 @@ impl Despero {
 				m.draw(
 					&self.device,
 					commandbuffer,
-					self.pipeline.layout,
 				);
 			}
 			self.device.cmd_end_render_pass(commandbuffer);
@@ -283,7 +282,17 @@ impl Drop for Despero {
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(vb.buffer, None);
 				}
-				if let Some(ib) = &mut m.indexbuffer {
+				
+				if let Some(xb) = &mut m.indexbuffer {
+					// Reassign IndexBuffer allocation to remove
+					let mut alloc: Option<Allocation> = None;
+					std::mem::swap(&mut alloc, &mut xb.allocation);
+					let alloc = alloc.unwrap();
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(xb.buffer, None);
+				}
+				
+				if let Some(ib) = &mut m.instancebuffer {
 					// Reassign IndexBuffer allocation to remove
 					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut ib.allocation);

@@ -41,7 +41,7 @@ vec3 compute_radiance(vec3 irradiance, vec3 light_direction, vec3 normal, vec3 c
 	vec3 irradiance_on_surface=irradiance*NdotL;
 
 	float metallic = 1.0;
-	float roughness = 0.4;
+	float roughness = 0.5;
 	roughness=roughness*roughness;
 
 	vec3 F0 = mix(vec3(0.03),surface_colour,vec3(metallic));
@@ -62,16 +62,15 @@ void main(){
 	vec3 normal = normalize(normal);
 	vec3 L = vec3(0);
 
-	DirectionalLight dlight = DirectionalLight(normalize(vec3(-1,-1,0)),vec3(0.1,0.1,0.1));
+	DirectionalLight dlight = DirectionalLight(normalize(vec3(-1,-1,0)),vec3(0.5, 0.5, 0.5));
 
 	L += compute_radiance(dlight.irradiance, dlight.direction_to_light, normal, direction_to_camera, colour_in);
 
-	const int NUMBER_OF_POINTLIGHTS = 3;
+	const int NUMBER_OF_POINTLIGHTS = 2;
 	
 	PointLight pointlights [NUMBER_OF_POINTLIGHTS] = { 
-		PointLight(vec3(1.5,0.0,0.0),vec3(10,10,10)),
-		PointLight(vec3(1.5,0.2,0.0),vec3(5,5,5)),
-		PointLight(vec3(0.1,-3.0,-3.0),vec3(5,5,5))
+		PointLight(vec3(0.1,-3.0,-3.0),vec3(25,25,25)),
+		PointLight(vec3(1.5, 0.0, 0.0),vec3(5,5,5)),
 	};
 	
 	const float PI = 3.14159265358979323846264;	
