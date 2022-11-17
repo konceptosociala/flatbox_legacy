@@ -21,6 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let mut sphere = Model::sphere(3);
 	
 	sphere.insert_visibly(InstanceData::new(na::Matrix4::new_scaling(0.5)));
+	
 	sphere.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
 	sphere.update_indexbuffer(&despero.device, &mut despero.allocator)?;
 	despero.models = vec![sphere];
