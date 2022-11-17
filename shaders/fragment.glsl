@@ -6,6 +6,8 @@ layout (location=0) in vec3 colour_in;
 layout (location=1) in vec3 normal;
 layout (location=2) in vec3 worldpos;
 layout (location=3) in vec3 camera_coordinates;
+layout (location=4) in float metallic;
+layout (location=5) in float roughness;
 
 struct DirectionalLight{
 	vec3 direction_to_light;
@@ -40,9 +42,7 @@ vec3 compute_radiance(vec3 irradiance, vec3 light_direction, vec3 normal, vec3 c
 	
 	vec3 irradiance_on_surface=irradiance*NdotL;
 
-	float metallic = 1.0;
-	float roughness = 0.5;
-	roughness=roughness*roughness;
+	float roughness2 = roughness*roughness;
 
 	vec3 F0 = mix(vec3(0.03),surface_colour,vec3(metallic));
 	vec3 reflected_irradiance = (F0 + (1 - F0)*(1-NdotL)*(1-NdotL)*(1-NdotL)*(1-NdotL)*(1-NdotL)) * irradiance_on_surface;
@@ -52,7 +52,7 @@ vec3 compute_radiance(vec3 irradiance, vec3 light_direction, vec3 normal, vec3 c
 	vec3 halfvector=normalize(0.5*(camera_direction + light_direction));
 	float NdotH=max(dot(normal,halfvector),0);
 	vec3 F=(F0 + (1 - F0)*(1-NdotH)*(1-NdotH)*(1-NdotH)*(1-NdotH)*(1-NdotH));
-	vec3 relevant_reflection = reflected_irradiance*F*geometry(light_direction,normal,camera_direction,roughness)*distribution(normal,halfvector,roughness);
+	vec3 relevant_reflection = reflected_irradiance*F*geometry(light_direction,normal,camera_direction,roughness2)*distribution(normal,halfvector,roughness2);
 
 	return refracted_not_absorbed_irradiance*surface_colour/PI + relevant_reflection;
 }

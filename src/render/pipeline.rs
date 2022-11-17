@@ -114,6 +114,18 @@ impl GraphicsPipeline {
 				offset: 128,
 				format: vk::Format::R32G32B32_SFLOAT,
 			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 11,
+				offset: 140,
+				format: vk::Format::R32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 12,
+				offset: 144,
+				format: vk::Format::R32_SFLOAT,
+			},
 		];
 		
 		// Input Bindings' description
@@ -128,7 +140,7 @@ impl GraphicsPipeline {
 			},
 			vk::VertexInputBindingDescription {
 				binding: 1,
-				stride: 140,
+				stride: 148,
 				input_rate: vk::VertexInputRate::INSTANCE,
 			},
 		];
