@@ -80,6 +80,11 @@ impl Camera {
 		Ok(())
 	}
 	
+	pub fn set_aspect(&mut self, aspect: f32) {
+        self.aspect = aspect;
+        self.update_projectionmatrix();
+    }
+	
 	pub fn move_forward(&mut self, distance: f32) {
 		self.position += distance * self.view_direction.as_ref();
 		self.update_viewmatrix();

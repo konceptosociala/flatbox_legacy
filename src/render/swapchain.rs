@@ -14,7 +14,7 @@ pub struct Swapchain {
 	pub imageviews: Vec<vk::ImageView>,
 	// Depth buffer
 	pub depth_image: vk::Image,							  
-	pub depth_image_allocation: Allocation,		  
+	pub depth_image_allocation: Option<Allocation>,		  
 	pub depth_imageview: vk::ImageView,
 	pub framebuffers: Vec<vk::Framebuffer>,
 	pub surface_format: vk::SurfaceFormatKHR,
@@ -164,7 +164,7 @@ impl Swapchain {
 			images: swapchain_images,
 			imageviews: swapchain_imageviews,
 			depth_image,
-			depth_image_allocation,
+			depth_image_allocation: Some(depth_image_allocation),
 			depth_imageview,
 			framebuffers: vec![],
 			surface_format,
@@ -197,7 +197,12 @@ impl Swapchain {
 		Ok(())
 	}
 	
-	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device) {
+	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
+		// Free Depth Image allocation
+		let mut alloc: Option<Allocation> = None;
+		std::mem::swap(&mut alloc, &mut self.depth_image_allocation);
+		let alloc = alloc.unwrap();
+		allocator.free(alloc).unwrap();
 		logical_device.destroy_image_view(self.depth_imageview, None);
 		logical_device.destroy_image(self.depth_image, None);
 		// Remove Fences

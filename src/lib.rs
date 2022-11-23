@@ -75,7 +75,7 @@ pub struct Despero {
 	pub lightbuffer: Buffer,
 	pub descriptor_pool: vk::DescriptorPool,
 	pub descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-    pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
+	pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
 }
 
 impl Despero {
@@ -324,6 +324,38 @@ impl Despero {
 		}
 		Ok(())
 	}
+	
+	pub fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+		unsafe {
+			self.device
+                .device_wait_idle()
+                .expect("something wrong while waiting");
+			self.swapchain.cleanup(&self.device, &mut self.allocator);
+		}
+		// Recreate Swapchain
+		self.swapchain = Swapchain::init(
+			&self.instance,
+			self.physical_device,
+			&self.device,
+			&self.surfaces,
+			&self.queue_families,
+			&mut self.allocator,
+		)?;
+		
+		// Recreate FrameBuffers
+		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
+		
+		// Recreate Pipeline
+		self.pipeline.cleanup(&self.device);
+        self.pipeline = GraphicsPipeline::init(
+			&self.device, 
+			&self.swapchain, 
+			&self.renderpass
+		)?;
+		
+		Ok(())
+	}
+
 }
 
 impl Drop for Despero {
@@ -370,7 +402,7 @@ impl Drop for Despero {
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);
-			self.swapchain.cleanup(&self.device);
+			self.swapchain.cleanup(&self.device, &mut self.allocator);
 			self.device.destroy_device(None);
 			std::mem::ManuallyDrop::drop(&mut self.surfaces);
 			std::mem::ManuallyDrop::drop(&mut self.debug);

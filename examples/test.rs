@@ -44,23 +44,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let mut camera = Camera::builder().build();
 	// Lights
 	let mut lights = LightManager::default();
-	
 	lights.add_light(DirectionalLight {
 		direction: na::Vector3::new(-1., -1., 0.),
-		illuminance: [10.1, 10.1, 10.1],
+		illuminance: [0.5, 0.5, 0.5],
 	});
 	lights.add_light(PointLight {
 		position: na::Point3::new(0.1, -3.0, -3.0),
 		luminous_flux: [100.0, 100.0, 100.0],
 	});
 	lights.add_light(PointLight {
-		position: na::Point3::new(1.5, 0.0, 0.0),
-		luminous_flux: [10.0, 10.0, 10.0],
+		position: na::Point3::new(0.1, -3.0, -3.0),
+		luminous_flux: [100.0, 100.0, 100.0],
 	});
 	lights.add_light(PointLight {
-		position: na::Point3::new(1.5, 0.2, 0.0),
-		luminous_flux: [5.0, 5.0, 5.0],
+		position: na::Point3::new(0.1, -3.0, -3.0),
+		luminous_flux: [100.0, 100.0, 100.0],
 	});
+	
 	lights.update_buffer(
 		&despero.device, 
 		&mut despero.allocator, 
@@ -197,11 +197,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				.swapchains(&swapchains)
 				.image_indices(&indices);
 			unsafe {
-				despero
+				if despero
 					.swapchain
 					.swapchain_loader
 					.queue_present(despero.queues.graphics_queue, &present_info)
-					.expect("queue presentation");
+					.expect("queue presentation")
+				{
+					despero.recreate_swapchain().expect("swapchain recreation");
+					
+					camera.set_aspect(
+						despero.swapchain.extent.width as f32
+							/ despero.swapchain.extent.height as f32,
+					);
+					
+					camera
+						.update_buffer(
+							&despero.device, 
+							&mut despero.allocator, 
+							&mut despero.uniformbuffer
+						).expect("camera buffer update");
+				}
 			};
 			// Set swapchain image
 			despero.swapchain.current_image =

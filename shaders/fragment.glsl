@@ -9,11 +9,11 @@ layout (location=3) in vec3 camera_coordinates;
 layout (location=4) in float metallic;
 layout (location=5) in float roughness;
 
-readonly layout (set=1, binding=0) buffer UniformBufferObject {
+readonly layout (set=1, binding=0) buffer StorageBufferObject {
 	float num_directional;
 	float num_point;
 	vec3 data[];
-} ubo;
+} sbo;
 
 struct DirectionalLight{
 	vec3 direction_to_light;
@@ -25,7 +25,7 @@ struct PointLight{
 	vec3 luminous_flux;
 };
 
-float PI = 3.1415926535897932;
+const float PI = 3.1415926535897932;
 
 float distribution(vec3 normal,vec3 halfvector,float roughness){
 	float NdotH=dot(halfvector,normal);
@@ -64,38 +64,35 @@ vec3 compute_radiance(vec3 irradiance, vec3 light_direction, vec3 normal, vec3 c
 }
 
 void main(){
+	vec3 L = vec3(0);
 	vec3 direction_to_camera = normalize(camera_coordinates - worldpos);
 	vec3 normal = normalize(normal);
-	vec3 L = vec3(0);
-
-	DirectionalLight dlight = DirectionalLight(normalize(vec3(-1,-1,0)),vec3(0.5, 0.5, 0.5));
-
-	L += compute_radiance(dlight.irradiance, dlight.direction_to_light, normal, direction_to_camera, colour_in);
-
-	const int NUMBER_OF_POINTLIGHTS = 2;
 	
-	PointLight pointlights [NUMBER_OF_POINTLIGHTS] = { 
-		PointLight(vec3(0.1,-3.0,-3.0),vec3(25,25,25)),
-		PointLight(vec3(1.5, 0.0, 0.0),vec3(5,5,5)),
-	};
-	
-	const float PI = 3.14159265358979323846264;	
-	for (int i=0; i<NUMBER_OF_POINTLIGHTS; i++){
-		PointLight light = pointlights[i];
+	int number_directional = int(sbo.num_directional);
+	int number_point = int(sbo.num_point);
+
+	// Directional lights
+	for (int i = 0; i < number_directional; i++){
+		vec3 direction = sbo.data[2 * i];
+		vec3 illuminance = sbo.data[2 * i + 1];
+		DirectionalLight dlight = DirectionalLight(normalize(direction), illuminance);
+
+		L += compute_radiance(dlight.irradiance, dlight.direction_to_light, normal, direction_to_camera, colour_in);
+	}
+
+	// Point lights
+	for (int i = 0; i < number_point; i++){
+		vec3 position = sbo.data[2 * i + 2 * number_point];
+		vec3 luminous_flux = sbo.data[2 * i + 1 + 2 * number_point];
+		PointLight light = PointLight(position, luminous_flux);
+		
 		vec3 direction_to_light = normalize(light.position - worldpos);
 		float d = length(worldpos - light.position);
 		vec3 irradiance = light.luminous_flux/(4*PI*d*d);
 
 		L += compute_radiance(irradiance, direction_to_light, normal, direction_to_camera, colour_in);
-	};
-
-	theColour=vec4(L/(1+L),1.0);
-	
-	theColour=vec4(vec3(0.0),1.0);
-	for (int i=0;i<ubo.num_directional;i++){
-		vec3 data1=ubo.data[2+3*i];
-		theColour+=vec4(data1,0.0); 	
 	}
 
+	theColour=vec4(L/(1+L),1.0);
 }
 
