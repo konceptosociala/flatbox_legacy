@@ -9,6 +9,12 @@ layout (location=3) in vec3 camera_coordinates;
 layout (location=4) in float metallic;
 layout (location=5) in float roughness;
 
+readonly layout (set=1, binding=0) buffer UniformBufferObject {
+	float num_directional;
+	float num_point;
+	vec3 data[];
+} ubo;
+
 struct DirectionalLight{
 	vec3 direction_to_light;
 	vec3 irradiance;
@@ -84,5 +90,12 @@ void main(){
 	};
 
 	theColour=vec4(L/(1+L),1.0);
+	
+	theColour=vec4(vec3(0.0),1.0);
+	for (int i=0;i<ubo.num_directional;i++){
+		vec3 data1=ubo.data[2+3*i];
+		theColour+=vec4(data1,0.0); 	
+	}
+
 }
 

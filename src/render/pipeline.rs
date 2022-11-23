@@ -207,7 +207,9 @@ impl GraphicsPipeline {
 			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
 		
 		// Bind resource descriptor
-		let descriptorset_layout_binding_descs = [
+		//
+		// 0
+		let descriptorset_layout_binding_descs0 = [
 			vk::DescriptorSetLayoutBinding::builder()
 				// Binding = 0
 				.binding(0)
@@ -219,13 +221,34 @@ impl GraphicsPipeline {
 				.stage_flags(vk::ShaderStageFlags::VERTEX)
 				.build()
 		];
-
-		let descriptorset_layout_info = vk::DescriptorSetLayoutCreateInfo::builder()
-			.bindings(&descriptorset_layout_binding_descs);
-		let descriptorsetlayout = unsafe {
-			logical_device.create_descriptor_set_layout(&descriptorset_layout_info, None)
+		let descriptorset_layout_info0 = vk::DescriptorSetLayoutCreateInfo::builder()
+			.bindings(&descriptorset_layout_binding_descs0);
+		let descriptorsetlayout0 = unsafe {
+			logical_device.create_descriptor_set_layout(&descriptorset_layout_info0, None)
 		}?;
-		let desclayouts = vec![descriptorsetlayout];
+		// 1
+		let descriptorset_layout_binding_descs1 = [
+			vk::DescriptorSetLayoutBinding::builder()
+				// Binding = 0
+				.binding(0)
+				// Resource type = uniform buffer
+				.descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+				// Descriptor count = 1
+				.descriptor_count(1)
+				// Use the buffer in fragment shaders only
+				.stage_flags(vk::ShaderStageFlags::FRAGMENT)
+				.build()
+		];
+		let descriptorset_layout_info1 = vk::DescriptorSetLayoutCreateInfo::builder()
+			.bindings(&descriptorset_layout_binding_descs1);
+		let descriptorsetlayout1 = unsafe {
+			logical_device.create_descriptor_set_layout(&descriptorset_layout_info1, None)
+		}?;
+		// Push descriptor layouts
+		let desclayouts = vec![
+			descriptorsetlayout0,
+			descriptorsetlayout1,
+		];
 		
 		// Pipeline layout
 		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()

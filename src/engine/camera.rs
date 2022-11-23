@@ -14,6 +14,7 @@ pub struct Camera {
 	pub aspect: f32,
 	pub near: f32,
 	pub far: f32,
+	pub is_active: bool,
 }
 
 impl Camera {
@@ -26,6 +27,7 @@ impl Camera {
 			aspect: 800.0 / 600.0,
 			near: 0.1,
 			far: 100.0,
+			is_active: false,
 		}
 	}
 	
@@ -129,6 +131,7 @@ pub struct CameraBuilder {
 	aspect: f32,
 	near: f32,
 	far: f32,
+	is_active: bool,
 }
 
 impl CameraBuilder {
@@ -157,6 +160,7 @@ impl CameraBuilder {
 			far: self.far,
 			viewmatrix: na::Matrix4::identity(),
 			projectionmatrix: na::Matrix4::identity(),
+			is_active: self.is_active,
 		};
 		cam.update_projectionmatrix();
 		cam.update_viewmatrix();
@@ -201,6 +205,11 @@ impl CameraBuilder {
 	
 	pub fn down_direction(mut self, direction: na::Vector3<f32>) -> CameraBuilder {
 		self.down_direction = na::Unit::new_normalize(direction);
+		self
+	}
+	
+	pub fn is_active(mut self, is_active: bool) -> CameraBuilder {
+		self.is_active = is_active;
 		self
 	}
 }
