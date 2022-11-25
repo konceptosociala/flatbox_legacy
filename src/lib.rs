@@ -1,12 +1,12 @@
 //
-//   _____							 _____   _									_ 
-//  / ____|						   |_   _| | |								  | |
-// | (___   ___  _ __  _   _  __ _	  | |   | | _____   _____   _   _  ___  _   _| |
-//  \___ \ / _ \| '_ \| | | |/ _` |	 | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
+//   _____                             _____   _                                    _ 
+//  / ____|						      |_   _| | |                                  | |
+// | (___   ___  _ __  _   _  __ _	    | |   | | _____   _____   _   _  ___  _   _| |
+//  \___ \ / _ \| '_ \| | | |/ _` |     | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
 //  ____) | (_) | | | | |_| | (_| |_   _| |_  | | (_) \ V /  __/ | |_| | (_) | |_| |_|
 // |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
-//					  __/ |	 |/							   __/ |			  
-//					 |___/									  |___/		 
+//                      __/ |     |/                               __/ |			  
+//	                   |___/                                      |___/		 
 //						   
 #[cfg(all(feature = "x11", feature = "windows"))]
 compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same time");
@@ -121,7 +121,7 @@ impl Despero {
 		// RenderPass, Pipeline
 		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
-		let pipeline = GraphicsPipeline::init(&logical_device, &swapchain, &renderpass)?;
+		let pipeline = GraphicsPipeline::init_textured(&logical_device, &swapchain, &renderpass)?;
 		
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -208,7 +208,7 @@ impl Despero {
 		// Descriptor sets (Light)
 		//
 		// Descriptor layouts (Light)
-		let desc_layouts_light = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
+		/*let desc_layouts_light = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
 		// SetAllocateInfo (Light)
 		let descriptor_set_allocate_info_light = vk::DescriptorSetAllocateInfo::builder()
 			// DescPool
@@ -231,7 +231,7 @@ impl Despero {
 				.build()
 			];
 			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
-		}
+		}*/
 		 
 		Ok(Despero {
 			window,
@@ -309,7 +309,7 @@ impl Despero {
 				0,
 				&[
 					self.descriptor_sets_camera[index],
-					self.descriptor_sets_light[index],
+					//self.descriptor_sets_light[index],
 				],
 				&[],
 			);
