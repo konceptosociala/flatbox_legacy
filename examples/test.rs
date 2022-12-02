@@ -6,12 +6,15 @@ use despero::{
 	engine::{
 		model::{
 			Model,
-			InstanceData,
 		},
 		camera::Camera,
 		debug::Debug,
 		screenshot::Screenshot,
-		light::*,
+		//light::*,
+		texture::{
+			Filter,
+			TexturedInstanceData,
+		},
 	},
 };
 
@@ -21,9 +24,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// Main struct
 	let mut despero = Despero::init(window, "App Name")?;
 	// Models
-	let mut sphere = Model::sphere(3);
+	//let mut sphere = Model::sphere(3);
+	let mut quad = Model::quad();
 	
-	for i in 0..10 {
+	let texture_id = despero.texture_from_file("assets/image.jpg", Filter::LINEAR)?;
+	let second_texture_id = despero.texture_from_file("assets/image2.jpg", Filter::LINEAR)?;
+	let third_texture_id = despero.texture_from_file("assets/image.jpg", Filter::NEAREST)?;
+	
+	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
+		na::Matrix4::identity(),
+		texture_id,
+	));
+	
+	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
+        na::Matrix4::new_translation(&na::Vector3::new(2.0, 0., 0.3)),
+        second_texture_id,
+    ));
+	
+	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
+        na::Matrix4::new_translation(&na::Vector3::new(5.0, 0., 0.3)),
+        third_texture_id,
+    ));
+	
+	/*for i in 0..10 {
 		for j in 0..10 {
 			sphere.insert_visibly(InstanceData::new(
 				na::Matrix4::new_translation(&na::Vector3::new(i as f32 - 5., j as f32 + 5., 10.0))
@@ -33,17 +56,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				j as f32 * 0.1,
 			));
 		}
-	}
+	}*/
 	
-	sphere.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
-	sphere.update_instancebuffer(&despero.device, &mut despero.allocator)?;
-	sphere.update_indexbuffer(&despero.device, &mut despero.allocator)?;
-	despero.models = vec![sphere];
+	quad.update_vertexbuffer(&despero.device, &mut despero.allocator)?;
+	quad.update_instancebuffer(&despero.device, &mut despero.allocator)?;
+	quad.update_indexbuffer(&despero.device, &mut despero.allocator)?;
+	despero.models = vec![quad];
 	
 	//Camera
 	let mut camera = Camera::builder().build();
 	// Lights
-	let mut lights = LightManager::default();
+	/*let mut lights = LightManager::default();
 	lights.add_light(DirectionalLight {
 		direction: na::Vector3::new(-1., -1., 0.),
 		illuminance: [0.5, 0.5, 0.5],
@@ -66,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		&mut despero.allocator, 
 		&mut despero.lightbuffer, 
 		&mut despero.descriptor_sets_light
-	)?;
+	)?;*/
 	
 	eventloop.run(move |event, _, controlflow| match event {
 		Event::WindowEvent {
@@ -91,6 +114,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					let name = "name";
 					Screenshot::take_jpg(&mut despero, name, path).expect("Failed to create a screenshot");
 					Debug::info(format!("Screenshot \"{}\" saved in \"{}\"", name, path).as_str());
+				}
+				winit::event::VirtualKeyCode::F11 => {
+					despero.texture_storage.textures.swap(0, 1);
 				}
 				// Rotating
 				winit::event::VirtualKeyCode::Right => {
@@ -164,6 +190,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				&mut despero.allocator, 
 				&mut despero.uniformbuffer
 			).expect("Cannot update uniformbuffer");
+			
+			// Get image descriptor info
+			let imageinfos = despero.texture_storage.get_descriptor_image_info();
+			let descriptorwrite_image = vk::WriteDescriptorSet::builder()
+				.dst_set(despero.descriptor_sets_texture[despero.swapchain.current_image])
+				.dst_binding(0)
+				.dst_array_element(0)
+				.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .image_info(&imageinfos)
+                .build();
+
+			// Update descriptors
+			unsafe {
+				despero
+					.device
+					.update_descriptor_sets(&[descriptorwrite_image], &[]);
+			}
 			
 			despero
 				.update_commandbuffer(image_index as usize)

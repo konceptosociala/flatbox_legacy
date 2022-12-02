@@ -8,10 +8,16 @@ Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komp
 
 - [ ] Biblioteka privateco
 - [ ] Enteni ĉefan ĉiklon (eventloop) al Despero struct
-- [ ] Reorganizi Despero struct
+- [ ] Reorganizi Despero struct:
+```rust
+struct Despero {
+	renderer: Renderer,
+}
+```
 - [ ] Realigi EKS
 	- [ ] main
 	- [ ] lib.rs
 	- [ ] light.rs
 	- [ ] model.rs
 	- [ ] camera.rs
+	- [ ] texture.rs

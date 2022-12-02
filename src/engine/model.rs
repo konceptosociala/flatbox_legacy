@@ -8,6 +8,10 @@ use nalgebra as na;
 type Handle = usize;
 
 use crate::render::buffer::Buffer;
+use crate::engine::texture::{
+	TexturedVertexData,
+	TexturedInstanceData,
+};
 
 // InvalidHandle custom error
 #[derive(Debug, Clone)]
@@ -593,5 +597,39 @@ impl Model<VertexData, InstanceData> {
 			new_indices.extend_from_slice(&[mca, a, mab, mab, b, mbc, mbc, c, mca, mab, mbc, mca]);
 		}
 		self.indexdata = new_indices;
+	}
+}
+
+impl Model<TexturedVertexData, TexturedInstanceData> {
+	pub fn quad() -> Self {
+		let lb = TexturedVertexData {
+			position: [-1.0, 1.0, 0.0],
+			texcoord: [0.0, 1.0],
+		};
+		let lt = TexturedVertexData {
+			position: [-1.0, -1.0, 0.0],
+			texcoord: [0.0, 0.0],
+		};
+		let rb = TexturedVertexData {
+			position: [1.0, 1.0, 0.0],
+			texcoord: [1.0, 1.0],
+		};
+		let rt = TexturedVertexData {
+			position: [1.0, -1.0, 0.0],
+			texcoord: [1.0, 0.0],
+		};
+		
+		Model {
+			vertexdata: vec![lb, lt, rb, rt],
+			indexdata: vec![0, 2, 1, 1, 2, 3],
+			handle_to_index: std::collections::HashMap::new(),
+			handles: Vec::new(),
+			instances: Vec::new(),
+			first_invisible: 0,
+			next_handle: 0,
+			vertexbuffer: None,
+			indexbuffer: None,
+			instancebuffer: None,
+		}
 	}
 }

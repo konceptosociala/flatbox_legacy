@@ -5,6 +5,8 @@ use crate::render::{
 	swapchain::Swapchain,
 };
 
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 393210;
+
 // Pipeline
 pub struct GraphicsPipeline {
 	pub pipeline: vk::Pipeline,
@@ -326,73 +328,85 @@ impl GraphicsPipeline {
 		// 
 		// Attribute description
 		let vertex_attrib_descs = [
-            vk::VertexInputAttributeDescription {
-                binding: 0,
-                location: 0,
-                offset: 0,
-                format: vk::Format::R32G32B32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 1,
-                offset: 0,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 2,
-                offset: 16,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 3,
-                offset: 32,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 4,
-                offset: 48,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 5,
-                offset: 64,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 6,
-                offset: 80,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 7,
-                offset: 96,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            },
-            vk::VertexInputAttributeDescription {
-                binding: 1,
-                location: 8,
-                offset: 112,
-                format: vk::Format::R32G32B32A32_SFLOAT,
-            }
-        ];
-        let vertex_binding_descs = [
-            vk::VertexInputBindingDescription {
-                binding: 0,
-                stride: 12,
-                input_rate: vk::VertexInputRate::VERTEX,
-            },
-            vk::VertexInputBindingDescription {
-                binding: 1,
-                stride: 128,
-                input_rate: vk::VertexInputRate::INSTANCE,
-            },
-        ];
+			vk::VertexInputAttributeDescription {
+				binding: 0,
+				location: 0,
+				offset: 0,
+				format: vk::Format::R32G32B32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 0,
+				location: 1,
+				offset: 12,
+				format: vk::Format::R32G32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 2,
+				offset: 0,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 3,
+				offset: 16,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 4,
+				offset: 32,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 5,
+				offset: 48,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 6,
+				offset: 64,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 7,
+				offset: 80,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 8,
+				offset: 96,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription {
+				binding: 1,
+				location: 9,
+				offset: 112,
+				format: vk::Format::R32G32B32A32_SFLOAT,
+			},
+			vk::VertexInputAttributeDescription{
+				binding: 1,
+				location: 10,
+				offset: 128,
+				format: vk::Format::R8G8B8A8_UINT,
+			},
+		];
+		let vertex_binding_descs = [
+			vk::VertexInputBindingDescription {
+				binding: 0,
+				stride: 20,
+				input_rate: vk::VertexInputRate::VERTEX,
+			},
+			vk::VertexInputBindingDescription {
+				binding: 1,
+				stride: 132,
+				input_rate: vk::VertexInputRate::INSTANCE,
+			},
+		];
 		
 		// Bind vertex inputs
 		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
@@ -475,9 +489,24 @@ impl GraphicsPipeline {
 		let descriptorsetlayout0 = unsafe {
 			logical_device.create_descriptor_set_layout(&descriptorset_layout_info0, None)
 		}?;
+		//
+		//
+		// 1
+		let descriptorset_layout_binding_descs1 = [vk::DescriptorSetLayoutBinding::builder()
+			.binding(0)
+			.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+			.descriptor_count(MAX_NUMBER_OF_TEXTURES)
+			.stage_flags(vk::ShaderStageFlags::FRAGMENT)
+			.build()];
+		let descriptorset_layout_info1 = vk::DescriptorSetLayoutCreateInfo::builder()
+			.bindings(&descriptorset_layout_binding_descs1);
+		let descriptorsetlayout1 = unsafe {
+			logical_device.create_descriptor_set_layout(&descriptorset_layout_info1, None)
+		}?;
 		
 		let desclayouts = vec![
 			descriptorsetlayout0,
+			descriptorsetlayout1,
 		];
 		
 		// Pipeline layout

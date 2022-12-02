@@ -138,6 +138,11 @@ pub fn init_device_and_queues(
 	// Get PhysDev's features
 	let features = vk::PhysicalDeviceFeatures::builder()
 		.fill_mode_non_solid(true);
+		
+	let mut indexing_features =
+        vk::PhysicalDeviceDescriptorIndexingFeatures::builder()
+			.runtime_descriptor_array(true)
+			.descriptor_binding_variable_descriptor_count(true);
 
 	let device_extension_name_pointers: Vec<*const i8> =
 		vec![
@@ -148,7 +153,8 @@ pub fn init_device_and_queues(
 		.queue_create_infos(&queue_infos)
 		.enabled_extension_names(&device_extension_name_pointers)
 		.enabled_layer_names(&layer_name_pointers)
-		.enabled_features(&features);
+		.enabled_features(&features)
+		.push_next(&mut indexing_features);
 	let logical_device =
 		unsafe { instance.create_device(physical_device, &device_create_info, None)? };
 	let graphics_queue =

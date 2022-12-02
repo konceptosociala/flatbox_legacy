@@ -1,12 +1,12 @@
 //
-//   _____                             _____   _                                    _ 
-//  / ____|						      |_   _| | |                                  | |
-// | (___   ___  _ __  _   _  __ _	    | |   | | _____   _____   _   _  ___  _   _| |
-//  \___ \ / _ \| '_ \| | | |/ _` |     | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
+//   _____							 _____   _									_ 
+//  / ____|							  |_   _| | |								  | |
+// | (___   ___  _ __  _   _  __ _		| |   | | _____   _____   _   _  ___  _   _| |
+//  \___ \ / _ \| '_ \| | | |/ _` |	 | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
 //  ____) | (_) | | | | |_| | (_| |_   _| |_  | | (_) \ V /  __/ | |_| | (_) | |_| |_|
 // |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
-//                      __/ |     |/                               __/ |			  
-//	                   |___/                                      |___/		 
+//					  __/ |	 |/							   __/ |			  
+//					   |___/									  |___/		 
 //						   
 #[cfg(all(feature = "x11", feature = "windows"))]
 compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same time");
@@ -35,6 +35,7 @@ use crate::render::{
 	pipeline::{
 		GraphicsPipeline,
 		init_renderpass,
+		MAX_NUMBER_OF_TEXTURES,
 	},
 	commandbuffers::{
 		CommandBufferPools,
@@ -43,12 +44,17 @@ use crate::render::{
 	buffer::Buffer,
 };
 
+use crate::engine::texture::{
+	TexturedInstanceData,
+	TexturedVertexData,
+	TextureStorage,
+	Filter,
+};
+
 use crate::engine::{
 	debug::Debug,
 	model::{
 		Model,
-		InstanceData,
-		VertexData,
 	},
 };
 
@@ -70,12 +76,14 @@ pub struct Despero {
 	pub commandbuffer_pools: CommandBufferPools,
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
-	pub models: Vec<Model<VertexData, InstanceData>>,
+	pub models: Vec<Model<TexturedVertexData, TexturedInstanceData>>,
+	pub texture_storage: TextureStorage,
 	pub uniformbuffer: Buffer,
 	pub lightbuffer: Buffer,
 	pub descriptor_pool: vk::DescriptorPool,
 	pub descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
+	pub descriptor_sets_texture: Vec<vk::DescriptorSet>,
+	//pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
 }
 
 impl Despero {
@@ -167,6 +175,10 @@ impl Despero {
 				ty: vk::DescriptorType::STORAGE_BUFFER,
 				descriptor_count: swapchain.amount_of_images,
 			},
+			vk::DescriptorPoolSize {
+				ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+				descriptor_count: MAX_NUMBER_OF_TEXTURES * swapchain.amount_of_images,
+			},
 		];
 		// PoolCreateInfo
 		let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
@@ -204,6 +216,18 @@ impl Despero {
 			];
 			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
+		
+		// Descriptor sets (Texture)
+		//
+		// Descriptor layouts (Texture)
+		let desc_layouts_texture = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
+		// SetAllocateInfo (Texture)
+		let descriptor_set_allocate_info_texture = vk::DescriptorSetAllocateInfo::builder()
+			// DescPool
+			.descriptor_pool(descriptor_pool)
+			// Layouts
+			.set_layouts(&desc_layouts_texture);
+		let descriptor_sets_texture = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_texture) }?;
 		
 		// Descriptor sets (Light)
 		//
@@ -251,21 +275,25 @@ impl Despero {
 			commandbuffers,
 			allocator,
 			models: vec![],
+			texture_storage: TextureStorage::new(),
 			uniformbuffer,
 			lightbuffer,
 			descriptor_pool,
 			descriptor_sets_camera,
-			descriptor_sets_light,
+			descriptor_sets_texture,
+			//descriptor_sets_light,
 		})
 	}
 	
 	pub fn update_commandbuffer(&mut self, index: usize) -> Result<(), vk::Result> {
 		let commandbuffer = self.commandbuffers[index];
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
+		
 		unsafe {
 			self.device
 				.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		}
+		
 		let clearvalues = [
 			vk::ClearValue {
 				color: vk::ClearColorValue {
@@ -309,6 +337,7 @@ impl Despero {
 				0,
 				&[
 					self.descriptor_sets_camera[index],
+					self.descriptor_sets_texture[index],
 					//self.descriptor_sets_light[index],
 				],
 				&[],
@@ -328,8 +357,8 @@ impl Despero {
 	pub fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
 		unsafe {
 			self.device
-                .device_wait_idle()
-                .expect("something wrong while waiting");
+				.device_wait_idle()
+				.expect("something wrong while waiting");
 			self.swapchain.cleanup(&self.device, &mut self.allocator);
 		}
 		// Recreate Swapchain
@@ -347,7 +376,7 @@ impl Despero {
 		
 		// Recreate Pipeline
 		self.pipeline.cleanup(&self.device);
-        self.pipeline = GraphicsPipeline::init(
+		self.pipeline = GraphicsPipeline::init(
 			&self.device, 
 			&self.swapchain, 
 			&self.renderpass
@@ -355,7 +384,21 @@ impl Despero {
 		
 		Ok(())
 	}
-
+	
+	pub fn texture_from_file<P: AsRef<std::path::Path>>(
+		&mut self,
+		path: P,
+		filter: Filter,
+	) -> Result<usize, Box<dyn std::error::Error>> {
+		self.texture_storage.new_texture_from_file(
+			path,
+			filter,
+			&self.device,
+			&mut self.allocator,
+			&self.commandbuffer_pools.commandpool_graphics,
+			&self.queues.graphics_queue,
+		)
+	}
 }
 
 impl Drop for Despero {
@@ -364,6 +407,9 @@ impl Drop for Despero {
 			self.device
 				.device_wait_idle()
 				.expect("Error halting device");	
+			// Destroy TextureStorage
+			self.texture_storage.cleanup(&self.device, &mut self.allocator);
+			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
 			// Destroy UniformBuffer
 			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
 			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
@@ -398,7 +444,6 @@ impl Drop for Despero {
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}
-			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
 			self.commandbuffer_pools.cleanup(&self.device);
 			self.pipeline.cleanup(&self.device);
 			self.device.destroy_render_pass(self.renderpass, None);
