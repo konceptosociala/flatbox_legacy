@@ -22,23 +22,23 @@ impl Screenshot {
 	fn screenshot(despero: &mut Despero, full_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 		// Create CommandBuffer
 		let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-			.command_pool(despero.commandbuffer_pools.commandpool_graphics)
+			.command_pool(despero.renderer.commandbuffer_pools.commandpool_graphics)
 			.command_buffer_count(1);
 		let copybuffer = unsafe {
-			despero.device.allocate_command_buffers(&commandbuf_allocate_info)
+			despero.renderer.device.allocate_command_buffers(&commandbuf_allocate_info)
 		}.unwrap()[0];
 		// Begin CommandBuffer
 		let cmd_begin_info = vk::CommandBufferBeginInfo::builder()
 			.flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
-		unsafe { despero.device.begin_command_buffer(copybuffer, &cmd_begin_info) }?;
+		unsafe { despero.renderer.device.begin_command_buffer(copybuffer, &cmd_begin_info) }?;
 		
 		// Create Image to store
 		let ici = vk::ImageCreateInfo::builder()
 			.format(vk::Format::R8G8B8A8_UNORM)
 			.image_type(vk::ImageType::TYPE_2D)
 			.extent(vk::Extent3D {
-				width: despero.swapchain.extent.width,
-				height: despero.swapchain.extent.height,
+				width: despero.renderer.swapchain.extent.width,
+				height: despero.renderer.swapchain.extent.height,
 				depth: 1,
 			})
 			.array_layers(1)
@@ -48,13 +48,13 @@ impl Screenshot {
 			.usage(vk::ImageUsageFlags::TRANSFER_DST)
 			.initial_layout(vk::ImageLayout::UNDEFINED);
 		let image = unsafe { 
-			despero.device.create_image(&ici, None)
+			despero.renderer.device.create_image(&ici, None)
 		}.unwrap();
 		
 		// Image allocation
 		//
 		// Image memory requirements
-		let requirements = unsafe { despero.device.get_image_memory_requirements(image) };
+		let requirements = unsafe { despero.renderer.device.get_image_memory_requirements(image) };
 		// Allocation info
 		let allocation_info = &AllocationCreateDesc {
 			name: "Screenshot allocation",
@@ -63,9 +63,9 @@ impl Screenshot {
 			linear: true,
 		};
 		// Create memory allocation
-		let allocation = despero.allocator.allocate(allocation_info).unwrap();
+		let allocation = despero.renderer.allocator.allocate(allocation_info).unwrap();
 		// Bind memory allocation to image
-		unsafe { despero.device.bind_image_memory(
+		unsafe { despero.renderer.device.bind_image_memory(
 			image,
 			allocation.memory(), 
 			allocation.offset())
@@ -88,7 +88,7 @@ impl Screenshot {
 			.build();
 		// Bind IMB to CommandBuffer
 		unsafe {
-			despero.device.cmd_pipeline_barrier(
+			despero.renderer.device.cmd_pipeline_barrier(
 				copybuffer,
 				vk::PipelineStageFlags::TRANSFER,
 				vk::PipelineStageFlags::TRANSFER,
@@ -100,7 +100,7 @@ impl Screenshot {
 		};
 		
 		// Layout transition
-		let source_image = despero.swapchain.images[despero.swapchain.current_image];
+		let source_image = despero.renderer.swapchain.images[despero.renderer.swapchain.current_image];
 		let barrier = vk::ImageMemoryBarrier::builder()
 			.image(source_image)
 			.src_access_mask(vk::AccessFlags::MEMORY_READ)
@@ -116,7 +116,7 @@ impl Screenshot {
 			})
 			.build();
 		unsafe {
-			despero.device.cmd_pipeline_barrier(
+			despero.renderer.device.cmd_pipeline_barrier(
 				copybuffer,
 				vk::PipelineStageFlags::TRANSFER,
 				vk::PipelineStageFlags::TRANSFER,
@@ -146,14 +146,14 @@ impl Screenshot {
 			})
 			.dst_offset(vk::Offset3D::default())
 			.extent(vk::Extent3D {
-				width: despero.swapchain.extent.width,
-				height: despero.swapchain.extent.height,
+				width: despero.renderer.swapchain.extent.width,
+				height: despero.renderer.swapchain.extent.height,
 				depth: 1,
 			})
 			.build();
 		// Copy Command
 		unsafe {
-			despero.device.cmd_copy_image(
+			despero.renderer.device.cmd_copy_image(
 				copybuffer,
 				source_image,
 				vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
@@ -179,7 +179,7 @@ impl Screenshot {
 			})
 			.build();
 		unsafe {
-			despero.device.cmd_pipeline_barrier(
+			despero.renderer.device.cmd_pipeline_barrier(
 				copybuffer,
 				vk::PipelineStageFlags::TRANSFER,
 				vk::PipelineStageFlags::TRANSFER,
@@ -206,7 +206,7 @@ impl Screenshot {
 			})
 			.build();
 		unsafe {
-			despero.device.cmd_pipeline_barrier(
+			despero.renderer.device.cmd_pipeline_barrier(
 				copybuffer,
 				vk::PipelineStageFlags::TRANSFER,
 				vk::PipelineStageFlags::TRANSFER,
@@ -217,7 +217,7 @@ impl Screenshot {
 			)
 		};
 		// End CommandBuffer
-		unsafe { despero.device.end_command_buffer(copybuffer) }?;
+		unsafe { despero.renderer.device.end_command_buffer(copybuffer) }?;
 		
 		// Submit CommandBuffer
 		//
@@ -229,22 +229,22 @@ impl Screenshot {
 		];
 		// Create fence (to wait until CommandBuffer is finished)
 		let fence = unsafe {
-			despero.device.create_fence(&vk::FenceCreateInfo::default(), None)
+			despero.renderer.device.create_fence(&vk::FenceCreateInfo::default(), None)
 		}?;
 		// Submit
-		unsafe { despero.device.queue_submit(
-			despero.queues.graphics_queue, 
+		unsafe { despero.renderer.device.queue_submit(
+			despero.renderer.queues.graphics_queue, 
 			&submit_infos, 
 			fence
 		)? };
 		// Wait for fences
-		unsafe { despero.device.wait_for_fences(&[fence], true, std::u64::MAX) }?;
+		unsafe { despero.renderer.device.wait_for_fences(&[fence], true, std::u64::MAX) }?;
 		
 		// Remove CommandBuffer and Fence
-		unsafe { despero.device.destroy_fence(fence, None) };
+		unsafe { despero.renderer.device.destroy_fence(fence, None) };
 		unsafe {
-			despero.device.free_command_buffers(
-				despero.commandbuffer_pools.commandpool_graphics, 
+			despero.renderer.device.free_command_buffers(
+				despero.renderer.commandbuffer_pools.commandpool_graphics, 
 				&[copybuffer]
 			)
 		};
@@ -255,7 +255,7 @@ impl Screenshot {
 		let source_ptr = allocation.mapped_ptr().unwrap().as_ptr() as *mut u8;
 		// Size of the image in bytes (usize)
 		let image_size = unsafe {
-			despero.device.get_image_subresource_layout(
+			despero.renderer.device.get_image_subresource_layout(
 				image,
 				vk::ImageSubresource {
 					aspect_mask: vk::ImageAspectFlags::COLOR,
@@ -276,12 +276,12 @@ impl Screenshot {
 		}
 		let data = Self::bgra_to_rgba(&data);
 		// Destroy VulkanImage
-		despero.allocator.free(allocation)?;
-		unsafe { despero.device.destroy_image(image, None); }
+		despero.renderer.allocator.free(allocation)?;
+		unsafe { despero.renderer.device.destroy_image(image, None); }
 		// Create ImageBuffer
 		let screen: image::ImageBuffer<image::Rgba<u8>, _> = image::ImageBuffer::from_raw(
-			despero.swapchain.extent.width,
-			despero.swapchain.extent.height,
+			despero.renderer.swapchain.extent.width,
+			despero.renderer.swapchain.extent.height,
 			data,
 		)
 		.expect("Failed create ImageBuffer");

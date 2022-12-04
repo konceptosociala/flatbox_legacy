@@ -1,52 +1,12 @@
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
-use nalgebra as na;
 
 use crate::{
 	render::buffer::Buffer,
 };
 
 pub type Filter = vk::Filter; 
-
-// Textured VertexData
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct TexturedVertexData {
-	pub position: [f32; 3],
-	pub texcoord: [f32; 2],
-}
-
-// Textured InstanceData
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct TexturedInstanceData {
-	pub modelmatrix: [[f32; 4]; 4],
-	pub inverse_modelmatrix: [[f32; 4]; 4],
-	pub texture_id: u32,
-}
-
-impl TexturedInstanceData {
-	pub fn from_matrix(
-		modelmatrix: na::Matrix4<f32>
-	) -> TexturedInstanceData {
-		TexturedInstanceData {
-			modelmatrix: modelmatrix.into(),
-			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
-			texture_id: 0,
-		}
-	}
-	pub fn from_matrix_and_texture(
-		modelmatrix: na::Matrix4<f32>,
-		texture_id: usize,
-	) -> TexturedInstanceData {
-		TexturedInstanceData {
-			modelmatrix: modelmatrix.into(),
-			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
-			texture_id: texture_id as u32,
-		}
-	}
-}
 
 pub struct Texture {
 	pub image: image::RgbaImage,

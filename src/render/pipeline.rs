@@ -3,9 +3,8 @@ use ash::vk;
 use crate::render::{
 	surface::Surface,
 	swapchain::Swapchain,
+	renderer::MAX_NUMBER_OF_TEXTURES,
 };
-
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 393210;
 
 // Pipeline
 pub struct GraphicsPipeline {

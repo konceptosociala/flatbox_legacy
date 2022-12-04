@@ -1,20 +1,25 @@
 //
-//   _____							 _____   _									_ 
-//  / ____|							  |_   _| | |								  | |
-// | (___   ___  _ __  _   _  __ _		| |   | | _____   _____   _   _  ___  _   _| |
-//  \___ \ / _ \| '_ \| | | |/ _` |	 | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
+//   _____                             _____   _                                    _ 
+//  / ____|                           |_   _| | |                                  | |
+// | (___   ___  _ __  _   _  __ _      | |   | | _____   _____   _   _  ___  _   _| |
+//  \___ \ / _ \| '_ \| | | |/ _` |     | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
 //  ____) | (_) | | | | |_| | (_| |_   _| |_  | | (_) \ V /  __/ | |_| | (_) | |_| |_|
 // |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
-//					  __/ |	 |/							   __/ |			  
-//					   |___/									  |___/		 
+//                      __/ |     |/                               __/ |
+//                     |___/                                      |___/	
 //						   
 #[cfg(all(feature = "x11", feature = "windows"))]
 compile_error!("features \"x11\" and \"windows\" cannot be enabled at the same time");
 
 use ash::vk;
 use gpu_allocator::vulkan::*;
-use gpu_allocator::MemoryLocation;
-use nalgebra as na;
+use winit::{
+	window::WindowBuilder,
+	event::{Event, WindowEvent},
+};
+use hecs::{
+	World,
+};
 
 pub mod render;
 pub mod engine;
@@ -23,274 +28,266 @@ pub mod physics;
 pub mod scripting;
 
 use crate::render::{
-	surface::Surface,
-	swapchain::Swapchain,
-	queues::{
-		QueueFamilies,
-		Queues,
-		init_instance,
-		init_device_and_queues,
-		init_physical_device_and_properties,
-	},
-	pipeline::{
-		GraphicsPipeline,
-		init_renderpass,
-		MAX_NUMBER_OF_TEXTURES,
-	},
-	commandbuffers::{
-		CommandBufferPools,
-		create_commandbuffers,
-	},
-	buffer::Buffer,
-};
-
-use crate::engine::texture::{
-	TexturedInstanceData,
-	TexturedVertexData,
-	TextureStorage,
-	Filter,
-};
-
-use crate::engine::{
+	renderer::Renderer,
 	debug::Debug,
+};
+use crate::engine::{
+	camera::Camera,
+	screenshot::Screenshot,
 	model::{
 		Model,
+		TexturedInstanceData,
+		TexturedVertexData,
+	},
+	texture::{
+		TextureStorage, 
+		Filter
 	},
 };
 
 // Main struct
 pub struct Despero {
-	pub window: winit::window::Window,
-	pub entry: ash::Entry,
-	pub instance: ash::Instance,
-	pub debug: std::mem::ManuallyDrop<Debug>,
-	pub surfaces: std::mem::ManuallyDrop<Surface>,
-	pub physical_device: vk::PhysicalDevice,
-	pub physical_device_properties: vk::PhysicalDeviceProperties,
-	pub queue_families: QueueFamilies,
-	pub queues: Queues,
-	pub device: ash::Device,
-	pub swapchain: Swapchain,
-	pub renderpass: vk::RenderPass,
-	pub pipeline: GraphicsPipeline,
-	pub commandbuffer_pools: CommandBufferPools,
-	pub commandbuffers: Vec<vk::CommandBuffer>,
-	pub allocator: gpu_allocator::vulkan::Allocator,
+	pub world: World,
+	pub renderer: Renderer,
 	pub models: Vec<Model<TexturedVertexData, TexturedInstanceData>>,
 	pub texture_storage: TextureStorage,
-	pub uniformbuffer: Buffer,
-	pub lightbuffer: Buffer,
-	pub descriptor_pool: vk::DescriptorPool,
-	pub descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	//pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
+	pub camera: Camera,
 }
 
-impl Despero {
-	pub fn init(
-		window: winit::window::Window,
-		app_title: &str,
-	) -> Result<Despero, Box<dyn std::error::Error>> {
-		// Set window title
-		window.set_title(app_title);
-		// Create Entry
-		let entry = unsafe { ash::Entry::load()? };
-		// Instance, Debug, Surface
-		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
-		let instance = init_instance(&entry, &layer_names, app_title)?;
-		let debug = Debug::init(&entry, &instance)?;
-		let surfaces = Surface::init(&window, &entry, &instance)?;
-		
-		// PhysicalDevice and PhysicalDeviceProperties
-		let (physical_device, physical_device_properties, _) = init_physical_device_and_properties(&instance)?;
-		// QueueFamilies, (Logical) Device, Queues
-		let queue_families = QueueFamilies::init(&instance, physical_device, &surfaces)?;
-		let (logical_device, queues) = init_device_and_queues(&instance, physical_device, &queue_families, &layer_names)?;
-		
-		// Create memory allocator
-		let mut allocator = Allocator::new(&AllocatorCreateDesc {
-			instance: instance.clone(),
-			device: logical_device.clone(),
-			physical_device,
-			debug_settings: Default::default(),
-			buffer_device_address: true,
-		}).expect("Cannot create allocator");
-		
-		// Swapchain
-		let mut swapchain = Swapchain::init(
-			&instance, 
-			physical_device, 
-			&logical_device, 
-			&surfaces, 
-			&queue_families,
-			&mut allocator
-		)?;
-		
-		// RenderPass, Pipeline
-		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
-		swapchain.create_framebuffers(&logical_device, renderpass)?;
-		let pipeline = GraphicsPipeline::init_textured(&logical_device, &swapchain, &renderpass)?;
-		
-		// CommandBufferPools and CommandBuffers
-		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
-		let commandbuffers = create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
-		
-		// Uniform buffer
-		let mut uniformbuffer = Buffer::new(
-			&logical_device,
-			&mut allocator,
-			128,
-			vk::BufferUsageFlags::UNIFORM_BUFFER,
-			MemoryLocation::CpuToGpu,
-			"Uniform buffer"
-		)?;
-		
-		// Light buffer
-		let mut lightbuffer = Buffer::new(
-			&logical_device,
-			&mut allocator,
-			8,
-			vk::BufferUsageFlags::STORAGE_BUFFER,
-			MemoryLocation::CpuToGpu,
-			"Light buffer",
-		)?;
-		lightbuffer.fill(&logical_device, &mut allocator, &[0.,0.])?;
-		
-		// Camera transform
-		let cameratransform: [[[f32; 4]; 4]; 2] = [
-			na::Matrix4::identity().into(),
-			na::Matrix4::identity().into(),
-		];
-		uniformbuffer.fill(&logical_device, &mut allocator, &cameratransform)?;
-		
-		// Descriptor pool
-		//
-		// Set pool size
-		let pool_sizes = [
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::UNIFORM_BUFFER,
-				descriptor_count: swapchain.amount_of_images,
-			},
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::STORAGE_BUFFER,
-				descriptor_count: swapchain.amount_of_images,
-			},
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-				descriptor_count: MAX_NUMBER_OF_TEXTURES * swapchain.amount_of_images,
-			},
-		];
-		// PoolCreateInfo
-		let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
-			// Amount of descriptors
-			.max_sets(2 * swapchain.amount_of_images)
-			// Size of pool
-			.pool_sizes(&pool_sizes); 
-		let descriptor_pool = unsafe { logical_device.create_descriptor_pool(&descriptor_pool_info, None) }?;
-		
-		// Descriptor sets (Camera)
-		//
-		// Descriptor layouts (Camera)
-		let desc_layouts_camera = vec![pipeline.descriptor_set_layouts[0]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Camera)
-		let descriptor_set_allocate_info_camera = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_camera);
-		let descriptor_sets_camera = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_camera) }?;
-
-		// Fill descriptor sets (Camera)
-		for descset in &descriptor_sets_camera {
-			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: uniformbuffer.buffer,
-				offset: 0,
-				range: 128,
-			}];
-			let desc_sets_write = [vk::WriteDescriptorSet::builder()
-				.dst_set(*descset)
-				.dst_binding(0)
-				.descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-				.buffer_info(&buffer_infos)
-				.build()
-			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
-		}
-		
-		// Descriptor sets (Texture)
-		//
-		// Descriptor layouts (Texture)
-		let desc_layouts_texture = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Texture)
-		let descriptor_set_allocate_info_texture = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_texture);
-		let descriptor_sets_texture = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_texture) }?;
-		
-		// Descriptor sets (Light)
-		//
-		// Descriptor layouts (Light)
-		/*let desc_layouts_light = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Light)
-		let descriptor_set_allocate_info_light = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_light);
-		let descriptor_sets_light = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_light) }?;
-		// Fill descriptor sets (Light)
-		for descset in &descriptor_sets_light {
-			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: lightbuffer.buffer,
-				offset: 0,
-				range: 8,
-			}];
-			let desc_sets_write = [vk::WriteDescriptorSet::builder()
-				.dst_set(*descset)
-				.dst_binding(0)
-				.descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-				.buffer_info(&buffer_infos)
-				.build()
-			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
-		}*/
-		 
+impl Despero {	
+	pub fn init(window_builder: WindowBuilder) -> Result<Despero, Box<dyn std::error::Error>> {
+		let renderer = Renderer::init(window_builder)?;
+		let camera = Camera::builder().build();
 		Ok(Despero {
-			window,
-			entry,
-			instance,
-			debug: std::mem::ManuallyDrop::new(debug),
-			surfaces: std::mem::ManuallyDrop::new(surfaces),
-			physical_device,
-			physical_device_properties,
-			queue_families,
-			queues,
-			device: logical_device,
-			swapchain,
-			renderpass,
-			pipeline,
-			commandbuffer_pools,
-			commandbuffers,
-			allocator,
+			world: World::new(),
+			renderer,
 			models: vec![],
 			texture_storage: TextureStorage::new(),
-			uniformbuffer,
-			lightbuffer,
-			descriptor_pool,
-			descriptor_sets_camera,
-			descriptor_sets_texture,
-			//descriptor_sets_light,
+			camera,
 		})
+	}
+	// TODO: replace textures' vec with hecs ECS
+	pub fn texture_from_file<P: AsRef<std::path::Path>>(
+		&mut self,
+		path: P,
+		filter: Filter,
+	) -> Result<usize, Box<dyn std::error::Error>> {
+		self.texture_storage.new_texture_from_file(
+			path,
+			filter,
+			&self.renderer.device,
+			&mut self.renderer.allocator,
+			&self.renderer.commandbuffer_pools.commandpool_graphics,
+			&self.renderer.queues.graphics_queue,
+		)
+	}
+	
+	pub fn run(mut self) {
+		// Update Models' buffers
+		for m in &mut self.models {
+			m.update_vertexbuffer(
+				&self.renderer.device, 
+				&mut self.renderer.allocator
+			).expect("Cannot update vertexbuffer");
+			
+			m.update_instancebuffer(
+				&self.renderer.device, 
+				&mut self.renderer.allocator
+			).expect("Cannot update instancebuffer");
+			
+			m.update_indexbuffer(
+				&self.renderer.device,
+				&mut self.renderer.allocator
+			).expect("Cannot update indexbuffer");
+		}
+		// Winit EventLoop
+		let mut eventloop = None;
+		std::mem::swap(&mut self.renderer.eventloop, &mut eventloop);
+		let eventloop = eventloop.unwrap();
+		eventloop.run(move |event, _, controlflow| match event {
+			Event::WindowEvent {
+				event: WindowEvent::CloseRequested,
+				..
+			} => {
+				*controlflow = winit::event_loop::ControlFlow::Exit;
+			}
+			
+			Event::WindowEvent {
+				event: WindowEvent::KeyboardInput {input, ..},
+				..
+			} => match input {
+				winit::event::KeyboardInput {
+					state: winit::event::ElementState::Pressed,
+					virtual_keycode: Some(keycode),
+					..
+				} => match keycode {
+					// System
+					winit::event::VirtualKeyCode::F5 => {
+						let path = "screenshots";
+						let name = "name";
+						Screenshot::take_jpg(&mut self, name, path).expect("Failed to create a screenshot");
+						Debug::info(format!("Screenshot \"{}\" saved in \"{}\"", name, path).as_str());
+					}
+					winit::event::VirtualKeyCode::F11 => {
+						self.texture_storage.textures.swap(0, 1);
+					}
+					// Rotating
+					winit::event::VirtualKeyCode::Right => {
+						self.camera.turn_right(0.05);
+					}
+					winit::event::VirtualKeyCode::Left => {
+						self.camera.turn_left(0.05);
+					}
+					winit::event::VirtualKeyCode::Up => {
+						self.camera.turn_up(0.05);
+					}
+					winit::event::VirtualKeyCode::Down => {
+						self.camera.turn_down(0.05);
+					}
+					// Movement
+					winit::event::VirtualKeyCode::W => {
+						self.camera.move_forward(0.05);
+					}
+					winit::event::VirtualKeyCode::S => {
+						self.camera.move_backward(0.05);
+					}
+					winit::event::VirtualKeyCode::A => {
+						self.camera.move_left(0.05);
+					}
+					winit::event::VirtualKeyCode::D => {
+						self.camera.move_right(0.05);
+					}
+					_ => {}
+				},
+				_ => {}
+			},
+			
+			Event::MainEventsCleared => {
+				self.renderer.window.request_redraw();
+			}
+			
+			Event::RedrawRequested(_) => {
+				// Get image of swapchain
+				let (image_index, _) = unsafe {
+					self.renderer
+						.swapchain
+						.swapchain_loader
+						.acquire_next_image(
+							self.renderer.swapchain.swapchain,
+							std::u64::MAX,
+							self.renderer.swapchain.image_available[self.renderer.swapchain.current_image],
+							vk::Fence::null(),
+						)
+						.expect("Error image acquisition")
+				};
+				// Control fences
+				unsafe {
+					self.renderer
+						.device
+						.wait_for_fences(
+							&[self.renderer.swapchain.may_begin_drawing[self.renderer.swapchain.current_image]],
+							true,
+							std::u64::MAX,
+						)
+						.expect("fence-waiting");
+					self.renderer
+						.device
+						.reset_fences(&[
+							self.renderer.swapchain.may_begin_drawing[self.renderer.swapchain.current_image]
+						])
+						.expect("resetting fences");
+				}
+				
+				self.camera.update_buffer(
+					&self.renderer.device, 
+					&mut self.renderer.allocator, 
+					&mut self.renderer.uniformbuffer
+				).expect("Cannot update uniformbuffer");
+				
+				// Get image descriptor info
+				let imageinfos = self.texture_storage.get_descriptor_image_info();
+				let descriptorwrite_image = vk::WriteDescriptorSet::builder()
+					.dst_set(self.renderer.descriptor_sets_texture[self.renderer.swapchain.current_image])
+					.dst_binding(0)
+					.dst_array_element(0)
+					.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+					.image_info(&imageinfos)
+					.build();
+
+				// Update descriptors
+				unsafe {
+					self.renderer
+						.device
+						.update_descriptor_sets(&[descriptorwrite_image], &[]);
+				}
+				
+				self
+					.update_commandbuffer(image_index as usize)
+					.expect("Cannot update CommandBuffer");
+				
+				// Submit commandbuffers
+				let semaphores_available = [self.renderer.swapchain.image_available[self.renderer.swapchain.current_image]];
+				let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+				let semaphores_finished = [self.renderer.swapchain.rendering_finished[self.renderer.swapchain.current_image]];
+				let commandbuffers = [self.renderer.commandbuffers[image_index as usize]];
+				let submit_info = [vk::SubmitInfo::builder()
+					.wait_semaphores(&semaphores_available)
+					.wait_dst_stage_mask(&waiting_stages)
+					.command_buffers(&commandbuffers)
+					.signal_semaphores(&semaphores_finished)
+					.build()];
+				unsafe {
+					self.renderer
+						.device
+						.queue_submit(
+							self.renderer.queues.graphics_queue,
+							&submit_info,
+							self.renderer.swapchain.may_begin_drawing[self.renderer.swapchain.current_image],
+						)
+						.expect("queue submission");
+				};
+				let swapchains = [self.renderer.swapchain.swapchain];
+				let indices = [image_index];
+				let present_info = vk::PresentInfoKHR::builder()
+					.wait_semaphores(&semaphores_finished)
+					.swapchains(&swapchains)
+					.image_indices(&indices);
+				unsafe {
+					if self.renderer
+						.swapchain
+						.swapchain_loader
+						.queue_present(self.renderer.queues.graphics_queue, &present_info)
+						.expect("queue presentation")
+					{
+						self.renderer.recreate_swapchain().expect("swapchain recreation");
+						
+						self.camera.set_aspect(
+							self.renderer.swapchain.extent.width as f32
+								/ self.renderer.swapchain.extent.height as f32,
+						);
+						
+						self.camera
+							.update_buffer(
+								&self.renderer.device, 
+								&mut self.renderer.allocator, 
+								&mut self.renderer.uniformbuffer
+							).expect("camera buffer update");
+					}
+				};
+				// Set swapchain image
+				self.renderer.swapchain.current_image =
+					(self.renderer.swapchain.current_image + 1) % self.renderer.swapchain.amount_of_images as usize;
+			}
+			_ => {}
+		});
 	}
 	
 	pub fn update_commandbuffer(&mut self, index: usize) -> Result<(), vk::Result> {
-		let commandbuffer = self.commandbuffers[index];
+		let commandbuffer = self.renderer.commandbuffers[index];
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
 		
 		unsafe {
-			self.device
+			self.renderer.device
 				.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		}
 		
@@ -309,112 +306,64 @@ impl Despero {
 		];
 		
 		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
-			.render_pass(self.renderpass)
-			.framebuffer(self.swapchain.framebuffers[index])
+			.render_pass(self.renderer.renderpass)
+			.framebuffer(self.renderer.swapchain.framebuffers[index])
 			.render_area(vk::Rect2D {
 				offset: vk::Offset2D { x: 0, y: 0 },
-				extent: self.swapchain.extent,
+				extent: self.renderer.swapchain.extent,
 			})
 			.clear_values(&clearvalues);
 		unsafe {
 			// Bind RenderPass
-			self.device.cmd_begin_render_pass(
+			self.renderer.device.cmd_begin_render_pass(
 				commandbuffer,
 				&renderpass_begininfo,
 				vk::SubpassContents::INLINE,
 			);
 			// Bind Pipeline
-			self.device.cmd_bind_pipeline(
+			self.renderer.device.cmd_bind_pipeline(
 				commandbuffer,
 				vk::PipelineBindPoint::GRAPHICS,
-				self.pipeline.pipeline,
+				self.renderer.pipeline.pipeline,
 			);
 			// Bind DescriptorSets
-			self.device.cmd_bind_descriptor_sets(
+			self.renderer.device.cmd_bind_descriptor_sets(
 				commandbuffer,
 				vk::PipelineBindPoint::GRAPHICS,
-				self.pipeline.layout,
+				self.renderer.pipeline.layout,
 				0,
 				&[
-					self.descriptor_sets_camera[index],
-					self.descriptor_sets_texture[index],
-					//self.descriptor_sets_light[index],
+					self.renderer.descriptor_sets_camera[index],
+					self.renderer.descriptor_sets_texture[index],
+					//self.renderer.descriptor_sets_light[index],
 				],
 				&[],
 			);
 			for m in &self.models {
 				m.draw(
-					&self.device,
+					&self.renderer.device,
 					commandbuffer,
 				);
 			}
-			self.device.cmd_end_render_pass(commandbuffer);
-			self.device.end_command_buffer(commandbuffer)?;
+			self.renderer.device.cmd_end_render_pass(commandbuffer);
+			self.renderer.device.end_command_buffer(commandbuffer)?;
 		}
 		Ok(())
-	}
-	
-	pub fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-		unsafe {
-			self.device
-				.device_wait_idle()
-				.expect("something wrong while waiting");
-			self.swapchain.cleanup(&self.device, &mut self.allocator);
-		}
-		// Recreate Swapchain
-		self.swapchain = Swapchain::init(
-			&self.instance,
-			self.physical_device,
-			&self.device,
-			&self.surfaces,
-			&self.queue_families,
-			&mut self.allocator,
-		)?;
-		
-		// Recreate FrameBuffers
-		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
-		
-		// Recreate Pipeline
-		self.pipeline.cleanup(&self.device);
-		self.pipeline = GraphicsPipeline::init(
-			&self.device, 
-			&self.swapchain, 
-			&self.renderpass
-		)?;
-		
-		Ok(())
-	}
-	
-	pub fn texture_from_file<P: AsRef<std::path::Path>>(
-		&mut self,
-		path: P,
-		filter: Filter,
-	) -> Result<usize, Box<dyn std::error::Error>> {
-		self.texture_storage.new_texture_from_file(
-			path,
-			filter,
-			&self.device,
-			&mut self.allocator,
-			&self.commandbuffer_pools.commandpool_graphics,
-			&self.queues.graphics_queue,
-		)
 	}
 }
 
 impl Drop for Despero {
 	fn drop(&mut self) {
 		unsafe {
-			self.device
-				.device_wait_idle()
-				.expect("Error halting device");	
+			self.renderer.device.device_wait_idle().expect("Error halting device");	
 			// Destroy TextureStorage
-			self.texture_storage.cleanup(&self.device, &mut self.allocator);
-			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
+			self.texture_storage.cleanup(&self.renderer.device, &mut self.renderer.allocator);
+			self.renderer.device.destroy_descriptor_pool(self.renderer.descriptor_pool, None);
 			// Destroy UniformBuffer
-			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
-			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
+			self.renderer.device.destroy_buffer(self.renderer.uniformbuffer.buffer, None);
+			self.renderer.device.free_memory(self.renderer.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
 			// Destroy LightBuffer
-			self.device.destroy_buffer(self.lightbuffer.buffer, None);
+			self.renderer.device.destroy_buffer(self.renderer.lightbuffer.buffer, None);
 			// Models clean
 			for m in &mut self.models {
 				if let Some(vb) = &mut m.vertexbuffer {
@@ -422,8 +371,8 @@ impl Drop for Despero {
 					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut vb.allocation);
 					let alloc = alloc.unwrap();
-					self.allocator.free(alloc).unwrap();
-					self.device.destroy_buffer(vb.buffer, None);
+					self.renderer.allocator.free(alloc).unwrap();
+					self.renderer.device.destroy_buffer(vb.buffer, None);
 				}
 				
 				if let Some(xb) = &mut m.indexbuffer {
@@ -431,8 +380,8 @@ impl Drop for Despero {
 					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut xb.allocation);
 					let alloc = alloc.unwrap();
-					self.allocator.free(alloc).unwrap();
-					self.device.destroy_buffer(xb.buffer, None);
+					self.renderer.allocator.free(alloc).unwrap();
+					self.renderer.device.destroy_buffer(xb.buffer, None);
 				}
 				
 				if let Some(ib) = &mut m.instancebuffer {
@@ -440,18 +389,18 @@ impl Drop for Despero {
 					let mut alloc: Option<Allocation> = None;
 					std::mem::swap(&mut alloc, &mut ib.allocation);
 					let alloc = alloc.unwrap();
-					self.allocator.free(alloc).unwrap();
-					self.device.destroy_buffer(ib.buffer, None);
+					self.renderer.allocator.free(alloc).unwrap();
+					self.renderer.device.destroy_buffer(ib.buffer, None);
 				}
 			}
-			self.commandbuffer_pools.cleanup(&self.device);
-			self.pipeline.cleanup(&self.device);
-			self.device.destroy_render_pass(self.renderpass, None);
-			self.swapchain.cleanup(&self.device, &mut self.allocator);
-			self.device.destroy_device(None);
-			std::mem::ManuallyDrop::drop(&mut self.surfaces);
-			std::mem::ManuallyDrop::drop(&mut self.debug);
-			self.instance.destroy_instance(None);
+			self.renderer.commandbuffer_pools.cleanup(&self.renderer.device);
+			self.renderer.pipeline.cleanup(&self.renderer.device);
+			self.renderer.device.destroy_render_pass(self.renderer.renderpass, None);
+			self.renderer.swapchain.cleanup(&self.renderer.device, &mut self.renderer.allocator);
+			self.renderer.device.destroy_device(None);
+			std::mem::ManuallyDrop::drop(&mut self.renderer.surfaces);
+			std::mem::ManuallyDrop::drop(&mut self.renderer.debug);
+			self.renderer.instance.destroy_instance(None);
 		};
 	}
 }

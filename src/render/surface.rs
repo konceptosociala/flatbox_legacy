@@ -1,5 +1,3 @@
-use raw_window_handle::HasRawWindowHandle;
-use raw_window_handle::HasRawDisplayHandle;
 use ash::vk;
 
 pub struct Surface {
@@ -17,9 +15,8 @@ impl Surface {
 		let surface = unsafe { ash_window::create_surface(
 			&entry, 
 			&instance, 
-			window.raw_display_handle(), 
-			window.raw_window_handle(), 
-			None
+			&window, 
+			None,
 		)? };
 		
 		let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);

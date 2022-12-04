@@ -1,7 +1,9 @@
 use ash::vk;
 
-use crate::render::surface;
-use crate::engine::debug;
+use crate::render::{
+	surface::Surface,
+	debug::Debug,
+};
 
 // QueueFamilies
 pub struct QueueFamilies {
@@ -13,7 +15,7 @@ impl QueueFamilies {
 	pub fn init(
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
-		surfaces: &surface::Surface,
+		surfaces: &Surface,
 	) -> Result<QueueFamilies, vk::Result>{
 		// Get queue families
 		let queuefamilyproperties = unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
@@ -52,10 +54,10 @@ pub struct Queues {
 pub fn init_instance(
 	entry: &ash::Entry,
 	layer_names: &[&str],
-	app_title: &str,
+	app_title: String,
 ) -> Result<ash::Instance, vk::Result> {
 	let enginename = std::ffi::CString::new("DesperØ").unwrap();
-	let appname = std::ffi::CString::new(app_title).unwrap();
+	let appname = std::ffi::CString::new(app_title.as_str()).unwrap();
 	let app_info = vk::ApplicationInfo::builder()
 		.application_name(&appname)
 		.application_version(vk::make_api_version(0, 0, 0, 1))
@@ -74,9 +76,9 @@ pub fn init_instance(
 	let extension_name_pointers: Vec<*const i8> = vec![
 		ash::extensions::ext::DebugUtils::name().as_ptr(),
 		ash::extensions::khr::Surface::name().as_ptr(),
-		#[cfg(feature = "x11")]
+		#[cfg(target_os = "linux")]
 		ash::extensions::khr::XlibSurface::name().as_ptr(),
-		#[cfg(feature = "windows")]
+		#[cfg(target_os = "windows")]
 		ash::extensions::khr::Win32Surface::name().as_ptr(),
 	];
 	
@@ -96,7 +98,7 @@ pub fn init_instance(
 				| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
 				| vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
 		)
-		.pfn_user_callback(Some(debug::Debug::vulkan_debug_utils_callback));
+		.pfn_user_callback(Some(Debug::vulkan_debug_utils_callback));
 
 	let instance_create_info = vk::InstanceCreateInfo::builder()
 		.push_next(&mut debugcreateinfo)

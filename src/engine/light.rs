@@ -2,7 +2,7 @@ use ash::vk;
 use gpu_allocator::vulkan::Allocator;
 use nalgebra as na;
 
-use crate::Buffer;
+use crate::render::buffer::Buffer;
 
 pub struct DirectionalLight {
 	pub direction: na::Vector3<f32>,

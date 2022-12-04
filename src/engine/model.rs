@@ -8,10 +8,6 @@ use nalgebra as na;
 type Handle = usize;
 
 use crate::render::buffer::Buffer;
-use crate::engine::texture::{
-	TexturedVertexData,
-	TexturedInstanceData,
-};
 
 // InvalidHandle custom error
 #[derive(Debug, Clone)]
@@ -84,6 +80,45 @@ impl VertexData {
 	fn normalize(v: [f32; 3]) -> [f32; 3] {
 		let l = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
 		[v[0] / l, v[1] / l, v[2] / l]
+	}
+}
+
+// Textured VertexData
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct TexturedVertexData {
+	pub position: [f32; 3],
+	pub texcoord: [f32; 2],
+}
+
+// Textured InstanceData
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TexturedInstanceData {
+	pub modelmatrix: [[f32; 4]; 4],
+	pub inverse_modelmatrix: [[f32; 4]; 4],
+	pub texture_id: u32,
+}
+
+impl TexturedInstanceData {
+	pub fn from_matrix(
+		modelmatrix: na::Matrix4<f32>
+	) -> TexturedInstanceData {
+		TexturedInstanceData {
+			modelmatrix: modelmatrix.into(),
+			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
+			texture_id: 0,
+		}
+	}
+	pub fn from_matrix_and_texture(
+		modelmatrix: na::Matrix4<f32>,
+		texture_id: usize,
+	) -> TexturedInstanceData {
+		TexturedInstanceData {
+			modelmatrix: modelmatrix.into(),
+			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
+			texture_id: texture_id as u32,
+		}
 	}
 }
 
@@ -384,7 +419,6 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 		}
 	}
 }
-
 
 //Implement cubic model
 impl Model<VertexData, InstanceData> {

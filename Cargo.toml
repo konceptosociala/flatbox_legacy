@@ -4,22 +4,35 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
+
+# Misc
+
 colored = "2.0.0"
-image = "0.24.5"
-
-ash = "0.37.0"
 nalgebra = "0.31.2"
-vk-shader-macros = "0.2.8"
-gpu-allocator = "0.20.0"
 
-winit = "0.27.4"
-ash-window = "0.12.0"
-raw-window-handle = "0.5.0"
+# Rendering
 
-[features]
-default = ["x11"]
-x11 = []
-windows = []
+image 				= "0.24.5"
+ash 				= "0.37.0"
+vk-shader-macros 	= "0.2.8"
+gpu-allocator	 	= "0.20.0"
+winit 				= "0.26.0"
+ash-window 			= "0.11.0"
+raw-window-handle 	= "0.4.2"
+
+# ECS
+
+hecs = "0.7.7"
+hecs-schedule = "0.6.2"
+hecs-hierarchy = "0.11.7"
+
+# Physics
+
+rapier3d = "0.16.1"
+
+# UI
+
+egui = "0.19.0"
 
 [profile.dev]
 opt-level = 1
