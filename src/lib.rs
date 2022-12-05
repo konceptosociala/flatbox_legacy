@@ -18,7 +18,9 @@ pub mod engine;
 pub mod ecs;
 pub mod physics;
 pub mod scripting;
+
 pub mod prelude;
+pub mod prelude_eo;
 
 use crate::ecs::systems::*;
 use crate::render::renderer::Renderer;
