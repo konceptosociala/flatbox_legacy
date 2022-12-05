@@ -1,37 +1,64 @@
-use nalgebra as na;
 use winit::window::WindowBuilder;
-use despero::Despero;
-use despero::{
-	engine::{
-		model::{
-			Model,
-			TexturedInstanceData,
-		},
-		//light::*,
-		texture::{
-			Filter,
-		},
-	},
-};
+use hecs_schedule::SubWorld;
+use despero::prelude::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"))?;
-	let mut quad = Model::quad();
-	
+fn main() {
+	Despero::init(WindowBuilder::new().with_title("The Game"))
+		.add_system(print_system1)
+		.add_system(print_system2)
+		.run();
+}
+
+fn print_system1(w: SubWorld<(& &'static str, &i32)>){
+	loop{
+		Debug::info("1");
+	}
+}
+
+fn print_system2(w: SubWorld<(& &'static str, &i32)>){
+	loop{
+		Debug::info("2");
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+	// Textures
 	let texture_id = despero.texture_from_file("assets/image.jpg", Filter::LINEAR)?;
 	let second_texture_id = despero.texture_from_file("assets/image2.jpg", Filter::LINEAR)?;
 	let third_texture_id = despero.texture_from_file("assets/image.jpg", Filter::NEAREST)?;
 	
+	//Models
+	let mut quad = Model::quad();
 	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
 		na::Matrix4::identity(),
 		texture_id,
 	));
-	
 	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
         na::Matrix4::new_translation(&na::Vector3::new(2.0, 0., 0.3)),
         second_texture_id,
     ));
-	
 	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
         na::Matrix4::new_translation(&na::Vector3::new(5.0, 0., 0.3)),
         third_texture_id,
@@ -42,8 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     Ok(())
 	
-	//let mut sphere = Model::sphere(3);
-	/*for i in 0..10 {
+	let mut sphere = Model::sphere(3);
+	for i in 0..10 {
 		for j in 0..10 {
 			sphere.insert_visibly(InstanceData::new(
 				na::Matrix4::new_translation(&na::Vector3::new(i as f32 - 5., j as f32 + 5., 10.0))
@@ -80,4 +107,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		&mut despero.lightbuffer, 
 		&mut despero.descriptor_sets_light
 	)?;*/
-}

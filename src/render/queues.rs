@@ -60,7 +60,6 @@ pub fn init_instance(
 	let appname = std::ffi::CString::new(app_title.as_str()).unwrap();
 	let app_info = vk::ApplicationInfo::builder()
 		.application_name(&appname)
-		.application_version(vk::make_api_version(0, 0, 0, 1))
 		.engine_name(&enginename)
 		.engine_version(vk::make_api_version(0, 0, 0, 1))
 		.api_version(vk::make_api_version(0, 1, 0, 106));

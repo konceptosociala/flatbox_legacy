@@ -2,9 +2,7 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
-use crate::{
-	render::buffer::Buffer,
-};
+use crate::render::buffer::Buffer;
 
 pub type Filter = vk::Filter; 
 

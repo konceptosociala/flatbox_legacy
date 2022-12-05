@@ -1,8 +1,10 @@
-use gpu_allocator::vulkan::*;
 use ash::vk;
+use gpu_allocator::vulkan::*;
 use nalgebra as na;
+use hecs::*;
 
 use crate::render::buffer::Buffer;
+use crate::engine::transform::Transform;
 
 pub struct Camera {
 	pub viewmatrix: na::Matrix4<f32>,
@@ -217,4 +219,10 @@ impl CameraBuilder {
 		self.is_active = is_active;
 		self
 	}
+}
+
+#[derive(Bundle)]
+pub struct CameraBundle {
+	pub camera: Camera,
+	pub transform: Transform<f32>,
 }

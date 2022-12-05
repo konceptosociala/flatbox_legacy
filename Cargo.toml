@@ -7,8 +7,8 @@ edition = "2021"
 
 # Misc
 
-colored = "2.0.0"
-nalgebra = "0.31.2"
+colored 	= "2.0.0"
+nalgebra 	= "0.31.2"
 
 # Rendering
 
@@ -22,9 +22,9 @@ raw-window-handle 	= "0.4.2"
 
 # ECS
 
-hecs = "0.7.7"
-hecs-schedule = "0.6.2"
-hecs-hierarchy = "0.11.7"
+hecs 			= "0.7.7"
+hecs-schedule 	= "0.6.2"
+hecs-hierarchy 	= "0.11.7"
 
 # Physics
 
