@@ -1,6 +1,12 @@
 use ash::vk;
-use winit::event::{Event, WindowEvent};
 use hecs_schedule::*;
+use winit::{
+	event::{
+		Event,
+		WindowEvent
+	},
+	platform::run_return::EventLoopExtRunReturn,
+};
 
 use crate::render::renderer::Renderer;
 use crate::engine::{
@@ -14,11 +20,19 @@ use crate::engine::{
 };
 
 pub(crate) fn eventloop_system(
-	renderer: Read<Renderer>,
-	world: SubWorld<(&Camera, &Transform<f32>)>,
+	renderer: Write<Renderer>,
+	mut camera_world: SubWorld<(&mut Camera, &Transform)>,
 ){
-// TODO: reorganize eventloop
-	renderer.eventloop.unwrap().run(move |event, _, controlflow| match event {
+	// Reassign `Renderer` and `SubWorld`
+	let mut renderer = renderer;
+	let camera_world = &mut camera_world;
+	
+	// Unwrap `EventLoop`
+	let mut el = None;
+	std::mem::swap(&mut el, &mut renderer.eventloop);
+	let mut eventloop = el.unwrap();
+	
+	eventloop.run_return(move |event, _, controlflow| match event {
 		Event::WindowEvent {
 			event: WindowEvent::CloseRequested,
 			..
@@ -39,13 +53,13 @@ pub(crate) fn eventloop_system(
 				winit::event::VirtualKeyCode::F5 => {
 					let path = "screenshots";
 					let name = "name";
-					renderer.screenshot(format!("{}/{}.jpg", path, name).as_str());
+					renderer.screenshot(format!("{}/{}.jpg", path, name).as_str()).expect("Cannot create screenshot");
 				}
 				winit::event::VirtualKeyCode::F11 => {
-					texture_storage.textures.swap(0, 1);
+					renderer.texture_storage.textures.swap(0, 1);
 				}
 				winit::event::VirtualKeyCode::Right => {
-					for (_, camera) in &mut world.query::<&Camera>(){
+					for (_, camera) in &mut camera_world.query::<&mut Camera>(){
 						if camera.is_active {
 							camera.turn_right(0.05);
 						}
@@ -94,19 +108,14 @@ pub(crate) fn eventloop_system(
 			}
 			
 			// Update active camera's buffer
-			for (_, camera) in &mut world.query::<&Camera>(){
+			for (_, camera) in &mut camera_world.query::<&Camera>(){
 				if camera.is_active {		
-					camera.update_buffer(
-						&renderer.device, 
-						&mut renderer.allocator, 
-						&mut renderer.uniformbuffer
-					).expect("Cannot update uniformbuffer");
+					camera.update_buffer(&mut renderer).expect("Cannot update uniformbuffer");
 				}
 			}
 			
-// TODO: Query<Texture>	descriptors	
 			// Get image descriptor info
-			let imageinfos = texture_storage.get_descriptor_image_info();
+			let imageinfos = renderer.texture_storage.get_descriptor_image_info();
 			let descriptorwrite_image = vk::WriteDescriptorSet::builder()
 				.dst_set(renderer.descriptor_sets_texture[renderer.swapchain.current_image])
 				.dst_binding(0)
@@ -115,15 +124,15 @@ pub(crate) fn eventloop_system(
 				.image_info(&imageinfos)
 				.build();
 
-				// Update descriptors
+			// Update descriptors
 			unsafe {
 				renderer
 					.device
 					.update_descriptor_sets(&[descriptorwrite_image], &[]);
 			}
-// TODO: update commandbuffers to `Renderer`; Query<Model>				
+
 			renderer.update_commandbuffer(
-				world,
+				camera_world,
 				image_index as usize,
 			).expect("Cannot update CommandBuffer");
 			
@@ -161,20 +170,16 @@ pub(crate) fn eventloop_system(
 					.queue_present(renderer.queues.graphics_queue, &present_info)
 					.expect("queue presentation")
 				{
-					renderer.recreate_swapchain().expect("swapchain recreation");
+					renderer.recreate_swapchain().expect("Cannot recreate swapchain");
 					
-					for (_, camera) in &mut world.query::<&Camera>(){
+					for (_, camera) in &mut camera_world.query::<&mut Camera>(){
 						if camera.is_active {
 							camera.set_aspect(
 								renderer.swapchain.extent.width as f32
 									/ renderer.swapchain.extent.height as f32,
 							);
 
-							camera.update_buffer(
-								&renderer.device, 
-								&mut renderer.allocator, 
-								&mut renderer.uniformbuffer
-							).expect("camera buffer update");
+							camera.update_buffer(&mut renderer).expect("Cannot update camera buffer");
 						}
 					}
 				}
@@ -188,23 +193,12 @@ pub(crate) fn eventloop_system(
 }
 
 pub(crate) fn init_models_system(
-	renderer: Read<Renderer>,
+	mut renderer: Write<Renderer>,
 	world: SubWorld<&Model<TexturedVertexData, TexturedInstanceData>>,
 ){
-	for (_, model) in &mut world.query::<&Model<TexturedVertexData, TexturedInstanceData>>() {
-		model.update_vertexbuffer(
-			&renderer.device, 
-			&mut renderer.allocator
-		).expect("Cannot update vertexbuffer");
-		
-		model.update_instancebuffer(
-			&renderer.device, 
-			&mut renderer.allocator
-		).expect("Cannot update instancebuffer");
-		
-		model.update_indexbuffer(
-			&renderer.device,
-			&mut renderer.allocator
-		).expect("Cannot update indexbuffer");
+	for (_, model) in &mut world.query::<&mut Model<TexturedVertexData, TexturedInstanceData>>() {
+		model.update_vertexbuffer(&mut renderer).expect("Cannot update vertexbuffer");	
+		model.update_instancebuffer(&mut renderer).expect("Cannot update instancebuffer");
+		model.update_indexbuffer(&mut renderer).expect("Cannot update indexbuffer");
 	}
 }

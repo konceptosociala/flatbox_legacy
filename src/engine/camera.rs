@@ -1,9 +1,8 @@
 use ash::vk;
-use gpu_allocator::vulkan::*;
 use nalgebra as na;
 use hecs::*;
 
-use crate::render::buffer::Buffer;
+use crate::render::renderer::Renderer;
 use crate::engine::transform::Transform;
 
 pub struct Camera {
@@ -73,12 +72,14 @@ impl Camera {
 	
 	pub fn update_buffer(
 		&self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
-		buffer:	&mut Buffer,
+		renderer: &mut Renderer,
 	) -> Result<(), vk::Result>{
+		let logical_device = &renderer.device;
+		let allocator = &mut renderer.allocator;
+		let buffer = &mut renderer.uniformbuffer;
+		
 		let data: [[[f32; 4]; 4]; 2] = [self.viewmatrix.into(), self.projectionmatrix.into()];
-		buffer.fill(logical_device, allocator, &data)?;
+		buffer.fill(&logical_device, allocator, &data)?;
 		Ok(())
 	}
 	
@@ -224,5 +225,5 @@ impl CameraBuilder {
 #[derive(Bundle)]
 pub struct CameraBundle {
 	pub camera: Camera,
-	pub transform: Transform<f32>,
+	pub transform: Transform,
 }

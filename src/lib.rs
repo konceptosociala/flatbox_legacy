@@ -31,9 +31,9 @@ use crate::engine::{
 };
 
 pub struct Despero {
-	pub world: World,
-	pub schedule: ScheduleBuilder,
-	pub renderer: Renderer,
+	world: World,
+	schedule: ScheduleBuilder,
+	renderer: Renderer,
 }
 
 impl Despero {	
@@ -63,22 +63,6 @@ impl Despero {
 				.execute((&mut self.world, &mut self.renderer))
 				.expect("Cannot execute schedule");
 	}
-	
-// TODO: replace textures' vec with hecs ECS
-	/*pub fn texture_from_file<P: AsRef<std::path::Path>>(
-		&mut self,
-		path: P,
-		filter: Filter,
-	) -> Result<usize, Box<dyn std::error::Error>> {
-		self.texture_storage.new_texture_from_file(
-			path,
-			filter,
-			&self.renderer.device,
-			&mut self.renderer.allocator,
-			&self.renderer.commandbuffer_pools.commandpool_graphics,
-			&self.renderer.queues.graphics_queue,
-		)
-	}*/
 }
 
 impl Drop for Despero {
@@ -86,7 +70,8 @@ impl Drop for Despero {
 		unsafe {
 			self.renderer.device.device_wait_idle().expect("Error halting device");	
 			// Destroy TextureStorage
-			self.texture_storage.cleanup(&self.renderer.device, &mut self.renderer.allocator);
+			self.renderer.texture_storage.cleanup(&self.renderer.device, &mut self.renderer.allocator);
+			// Destroy DescriptorPool
 			self.renderer.device.destroy_descriptor_pool(self.renderer.descriptor_pool, None);
 			// Destroy UniformBuffer
 			self.renderer.device.destroy_buffer(self.renderer.uniformbuffer.buffer, None);
@@ -94,7 +79,7 @@ impl Drop for Despero {
 			// Destroy LightBuffer
 			self.renderer.device.destroy_buffer(self.renderer.lightbuffer.buffer, None);
 			// Models clean
-			for (_, m) in self.world.query_mut::<&Model<TexturedVertexData, TexturedInstanceData>>() {
+			for (_, m) in self.world.query_mut::<&mut Model<TexturedVertexData, TexturedInstanceData>>() {
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
 					let mut alloc: Option<Allocation> = None;

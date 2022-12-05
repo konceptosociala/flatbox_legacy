@@ -29,10 +29,16 @@ use crate::render::{
 	buffer::Buffer,
 	debug::Debug,
 };
-use crate::engine::model::{
-	Model,
-	TexturedInstanceData,
-	TexturedVertexData
+use crate::engine::{
+	model::{
+		Model,
+		TexturedInstanceData,
+		TexturedVertexData
+	},
+	texture::{
+		TextureStorage,
+		Filter,
+	},
 };
 
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 393210;
@@ -60,7 +66,8 @@ pub struct Renderer {
 	pub descriptor_pool: vk::DescriptorPool,
 	pub descriptor_sets_camera: Vec<vk::DescriptorSet>, 
 	pub descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	//pub descriptor_sets_light: Vec<vk::DescriptorSet>, 
+	//pub descriptor_sets_light: Vec<vk::DescriptorSet>,
+	pub texture_storage: TextureStorage, 
 }
 
 impl Renderer {
@@ -259,6 +266,7 @@ impl Renderer {
 			descriptor_sets_camera,
 			descriptor_sets_texture,
 			//descriptor_sets_light,
+			texture_storage: TextureStorage::new(),
 		})
 	}
 	
@@ -535,9 +543,24 @@ impl Renderer {
 		Ok(())
 	}
 	
+	pub fn texture_from_file<P: AsRef<std::path::Path>>(
+		&mut self,
+		path: P,
+		filter: Filter,
+	) -> Result<usize, Box<dyn std::error::Error>> {
+		self.texture_storage.new_texture_from_file(
+			path,
+			filter,
+			&self.device,
+			&mut self.allocator,
+			&self.commandbuffer_pools.commandpool_graphics,
+			&self.queues.graphics_queue,
+		)
+	}
+	
 	pub fn update_commandbuffer<W: borrow::ComponentBorrow>(
 		&mut self,
-		world: SubWorld<W>,
+		world: &mut SubWorld<W>,
 		index: usize
 	) -> Result<(), vk::Result> {
 		let commandbuffer = self.commandbuffers[index];

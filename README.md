@@ -6,6 +6,7 @@ Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komp
 
 # Tasklisto
 
+- [ ] `Prelude`
 - [ ] Reorganizi `InstanceData` (Material) kaj `VertexData` (Mesh)
 - [ ] Biblioteka privateco
 - [x] Enteni ĉefan ĉiklon (eventloop) al Despero struct

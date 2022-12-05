@@ -1,24 +1,27 @@
 use winit::window::WindowBuilder;
-use hecs_schedule::SubWorld;
+use hecs_schedule::*;
 use despero::prelude::*;
 
 fn main() {
 	Despero::init(WindowBuilder::new().with_title("The Game"))
-		.add_system(print_system1)
-		.add_system(print_system2)
+		.add_system(create_models)
+		.add_system(create_camera)
 		.run();
 }
 
-fn print_system1(w: SubWorld<(& &'static str, &i32)>){
-	loop{
-		Debug::info("1");
-	}
+fn create_models(
+	cmd: CommandBuffer,
+){
+	//
 }
 
-fn print_system2(w: SubWorld<(& &'static str, &i32)>){
-	loop{
-		Debug::info("2");
-	}
+fn create_camera(
+	cmd: CommandBuffer,
+){
+	cmd.spawn(CameraBundle{
+		camera: Camera::builder().build(),
+		transform: Transform::default(),
+	});
 }
 
 

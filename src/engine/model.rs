@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::mem::size_of;
-use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 use nalgebra as na;
 
 type Handle = usize;
 
-use crate::render::buffer::Buffer;
+use crate::render::{
+	buffer::Buffer,
+	renderer::Renderer,
+};
 
 // InvalidHandle custom error
 #[derive(Debug, Clone)]
@@ -269,14 +271,15 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 	// Update VertexBuffer
 	pub fn update_vertexbuffer(
 		&mut self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
+		renderer: &mut Renderer,
 	) -> Result<(), vk::Result> {
+		let logical_device = &renderer.device;
+		let mut allocator = &mut renderer.allocator;
 		// Check whether the buffer exists
 		if let Some(buffer) = &mut self.vertexbuffer {
 			buffer.fill(
-				logical_device,
-				allocator,
+				&logical_device,
+				&mut allocator,
 				&self.vertexdata
 			)?;
 			Ok(())
@@ -285,7 +288,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			let bytes = (self.vertexdata.len() * size_of::<V>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
-				allocator,
+				&mut allocator,
 				bytes,
 				vk::BufferUsageFlags::VERTEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -294,7 +297,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			
 			buffer.fill(
 				&logical_device,
-				allocator,
+				&mut allocator,
 				&self.vertexdata
 			)?;
 			self.vertexbuffer = Some(buffer);
@@ -305,13 +308,15 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 	// Update InstanceBuffer
 	pub fn update_instancebuffer(
 		&mut self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
+		renderer: &mut Renderer,
 	) -> Result<(), vk::Result> {
+		let logical_device = &renderer.device;
+		let mut allocator = &mut renderer.allocator;
+		
 		if let Some(buffer) = &mut self.instancebuffer {
 			buffer.fill(
-				logical_device,
-				allocator,
+				&logical_device,
+				&mut allocator,
 				&self.instances[0..self.first_invisible]
 			)?;
 			Ok(())
@@ -319,7 +324,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			let bytes = (self.first_invisible * size_of::<I>()) as u64; 
 			let mut buffer = Buffer::new(
 				&logical_device,
-				allocator,
+				&mut allocator,
 				bytes,
 				vk::BufferUsageFlags::VERTEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -327,8 +332,8 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			)?;
 			
 			buffer.fill(
-				logical_device,
-				allocator,
+				&logical_device,
+				&mut allocator,
 				&self.instances[0..self.first_invisible]
 			)?;
 			self.instancebuffer = Some(buffer);
@@ -339,14 +344,15 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 	// Update IndexBuffer
 	pub fn update_indexbuffer(
 		&mut self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
+		renderer: &mut Renderer,
 	) -> Result<(), vk::Result> {
+		let logical_device = &renderer.device;
+		let mut allocator = &mut renderer.allocator;
 		// Check whether the buffer exists
 		if let Some(buffer) = &mut self.indexbuffer {
 			buffer.fill(
-				logical_device,
-				allocator,
+				&logical_device,
+				&mut allocator,
 				&self.indexdata,
 			)?;
 			Ok(())
@@ -355,7 +361,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			let bytes = (self.indexdata.len() * size_of::<u32>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
-				allocator,
+				&mut allocator,
 				bytes,
 				vk::BufferUsageFlags::INDEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -364,7 +370,7 @@ impl<V, I: std::fmt::Debug> Model<V, I> {
 			
 			buffer.fill(
 				&logical_device,
-				allocator,
+				&mut allocator,
 				&self.indexdata
 			)?;
 			self.indexbuffer = Some(buffer);
