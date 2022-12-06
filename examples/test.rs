@@ -10,16 +10,29 @@ fn main() {
 }
 
 fn create_models(
-	cmd: CommandBuffer,
+	mut cmd: Write<CommandBuffer>,
+	mut renderer: Write<Renderer>,
 ){
-	//
+	let _t1 = renderer.texture_from_file("assets/image.jpg", Filter::LINEAR).expect("Cannot create texture");
+	
+	let mut quad = Model::quad();
+	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
+        Matrix4::new_translation(&Vector3::new(2.0, 0., 0.3)),
+        _t1,
+    ));
+	let transform = Transform::default();
+	
+	cmd.spawn((quad, transform));
 }
 
 fn create_camera(
-	cmd: CommandBuffer,
+	mut cmd: Write<CommandBuffer>,
 ){
 	cmd.spawn(CameraBundle{
-		camera: Camera::builder().build(),
+		camera: 
+			Camera::builder()
+				.is_active(true)
+				.build(),
 		transform: Transform::default(),
 	});
 }
@@ -46,31 +59,7 @@ fn create_camera(
 
 
 
-/*
-	// Textures
-	let texture_id = despero.texture_from_file("assets/image.jpg", Filter::LINEAR)?;
-	let second_texture_id = despero.texture_from_file("assets/image2.jpg", Filter::LINEAR)?;
-	let third_texture_id = despero.texture_from_file("assets/image.jpg", Filter::NEAREST)?;
-	
-	//Models
-	let mut quad = Model::quad();
-	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
-		na::Matrix4::identity(),
-		texture_id,
-	));
-	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
-        na::Matrix4::new_translation(&na::Vector3::new(2.0, 0., 0.3)),
-        second_texture_id,
-    ));
-	quad.insert_visibly(TexturedInstanceData::from_matrix_and_texture(
-        na::Matrix4::new_translation(&na::Vector3::new(5.0, 0., 0.3)),
-        third_texture_id,
-    ));
-    
-    despero.models = vec![quad];
-    despero.run();
-    
-    Ok(())
+/*	    
 	
 	let mut sphere = Model::sphere(3);
 	for i in 0..10 {

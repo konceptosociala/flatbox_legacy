@@ -124,6 +124,7 @@ impl TexturedInstanceData {
 	}
 }
 
+#[derive(Debug)]
 // Model struct
 pub struct Model<V, I> {
 	// Model vertices

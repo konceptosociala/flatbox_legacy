@@ -8,10 +8,18 @@
 //                      __/ |     |/                               __/ |
 //                     |___/                                      |___/	
 //
+use ash::vk;
 use gpu_allocator::vulkan::*;
-use winit::window::WindowBuilder;
 use hecs::*;
 use hecs_schedule::*;
+use winit::{
+	event::{
+		Event,
+		WindowEvent
+	},
+	platform::run_return::EventLoopExtRunReturn,
+	window::WindowBuilder,
+};
 
 pub mod render;
 pub mod engine;
@@ -30,6 +38,7 @@ use crate::engine::{
 		TexturedInstanceData,
 		TexturedVertexData,
 	},
+	camera::Camera,
 };
 
 pub struct Despero {
@@ -57,13 +66,65 @@ impl Despero {
 	}
 	
 	pub fn run(mut self) {
-		self.
-			schedule
-				.add_system(eventloop_system)
-				.add_system(init_models_system)
-				.build()
-				.execute((&mut self.world, &mut self.renderer))
-				.expect("Cannot execute schedule");
+		// Unwrap `EventLoop`
+		let mut el = None;
+		std::mem::swap(&mut el, &mut self.renderer.eventloop);
+		let mut eventloop = el.unwrap();
+		// Run EventLoop
+		eventloop.run_return(move |event, _, controlflow| match event {			
+			Event::MainEventsCleared => {
+				self.renderer.window.request_redraw();
+			}
+			
+			Event::RedrawRequested(_) => {
+				self.
+					schedule
+						.add_system(init_models_system)
+						.add_system(rendering_system)
+						.build()
+						.execute((&mut self.world, &mut self.renderer))
+						.expect("Cannot execute schedule");
+			}
+			_ => {}
+			
+			// Closing
+			Event::WindowEvent {
+				event: WindowEvent::CloseRequested,
+				..
+			} => {
+				*controlflow = winit::event_loop::ControlFlow::Exit;
+			}
+			
+			Event::WindowEvent {
+				event: WindowEvent::KeyboardInput {input, ..},
+				..
+			} => match input {
+				winit::event::KeyboardInput {
+					state: winit::event::ElementState::Pressed,
+					virtual_keycode: Some(keycode),
+					..
+				} => match keycode {
+					// System
+					winit::event::VirtualKeyCode::F5 => {
+						let path = "screenshots";
+						let name = "name";
+						self.renderer.screenshot(format!("{}/{}.jpg", path, name).as_str()).expect("Cannot create screenshot");
+					}
+					winit::event::VirtualKeyCode::F11 => {
+						self.renderer.texture_storage.textures.swap(0, 1);
+					}
+					winit::event::VirtualKeyCode::Right => {
+						for (_, camera) in self.world.query_mut::<&mut Camera>(){
+							if camera.is_active {
+								camera.turn_right(0.05);
+							}
+						}
+					}
+					_ => {}
+				},
+				_ => {}
+			},
+		});
 	}
 }
 
@@ -118,5 +179,13 @@ impl Drop for Despero {
 			std::mem::ManuallyDrop::drop(&mut self.renderer.debug);
 			self.renderer.instance.destroy_instance(None);
 		};
+	}
+}
+
+pub trait Extract {
+	fn extract<T>(option: &mut Option<T>) -> T {
+		let mut empty: Option<T> = None;
+		std::mem::swap(&mut empty, option);
+		return empty.unwrap();
 	}
 }

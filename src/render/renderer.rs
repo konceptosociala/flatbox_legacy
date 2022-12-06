@@ -41,7 +41,7 @@ use crate::engine::{
 	},
 };
 
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 393210;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024;
 
 pub struct Renderer {
 	pub eventloop: Option<EventLoop<()>>,
@@ -619,6 +619,7 @@ impl Renderer {
 				],
 				&[],
 			);
+			
 			for (_, model) in &mut world.query::<&Model<TexturedVertexData, TexturedInstanceData>>(){
 				model.draw(
 					&self.device,
