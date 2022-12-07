@@ -8,8 +8,6 @@
 //                      __/ |     |/                               __/ |
 //                     |___/                                      |___/	
 //
-use ash::vk;
-use gpu_allocator::vulkan::*;
 use hecs::*;
 use hecs_schedule::*;
 use winit::{
@@ -43,56 +41,78 @@ use crate::engine::{
 
 pub struct Despero {
 	world: World,
-	schedule: ScheduleBuilder,
+	systems: ScheduleBuilder,
+	setup_systems: ScheduleBuilder,
+	
 	renderer: Renderer,
 }
 
 impl Despero {	
+	/// Initialize Despero application
 	pub fn init(window_builder: WindowBuilder) -> Despero {
 		let renderer = Renderer::init(window_builder).expect("Cannot create renderer");
 		Despero {
 			world: World::new(),
-			schedule: Schedule::builder(),
+			setup_systems: Schedule::builder(),
+			systems: Schedule::builder(),
 			renderer,
 		}
 	}
 	
+	/// Add cyclical system to schedule
 	pub fn add_system<Args, Ret, S>(mut self, system: S) -> Self 
 	where
         S: 'static + System<Args, Ret> + Send,
 	{
-		self.schedule.add_system(system);
+		self.systems.add_system(system);
 		self
 	}
 	
+	/// Add setup system to schedule
+	pub fn add_setup_system<Args, Ret, S>(mut self, system: S) -> Self 
+	where
+        S: 'static + System<Args, Ret> + Send,
+	{
+		self.setup_systems.add_system(system);
+		self
+	}
+	
+	/// Run main event loop
 	pub fn run(mut self) {
-		// Unwrap `EventLoop`
-		let mut el = None;
-		std::mem::swap(&mut el, &mut self.renderer.eventloop);
-		let mut eventloop = el.unwrap();
+		// Init setup-systems Schedule
+		let mut setup_systems = self.
+				setup_systems
+					//.add_system(init_models_system)
+					.build();
+		// Init systems Schedule
+		let mut systems = self.systems
+			.add_system(init_models_system)
+			.add_system(rendering_system)
+			.build();
+		// Execute setup-systems Schedule
+		setup_systems
+			.execute((&mut self.world, &mut self.renderer))
+			.expect("Cannot execute setup schedule");
+		// Extract `EventLoop` from `Renderer`
+		let mut eventloop = extract(&mut self.renderer.eventloop);
 		// Run EventLoop
-		eventloop.run_return(move |event, _, controlflow| match event {			
-			Event::MainEventsCleared => {
-				self.renderer.window.request_redraw();
-			}
-			
-			Event::RedrawRequested(_) => {
-				self.
-					schedule
-						.add_system(init_models_system)
-						.add_system(rendering_system)
-						.build()
-						.execute((&mut self.world, &mut self.renderer))
-						.expect("Cannot execute schedule");
-			}
-			_ => {}
-			
-			// Closing
+		eventloop.run_return(move |event, _, controlflow| match event {	
 			Event::WindowEvent {
 				event: WindowEvent::CloseRequested,
 				..
 			} => {
 				*controlflow = winit::event_loop::ControlFlow::Exit;
+			}
+					
+			Event::MainEventsCleared => {
+				self.renderer.window.request_redraw();
+			}
+			
+			Event::RedrawRequested(_) => {
+				// Execute loop schedule	
+				systems
+					.execute((&mut self.world, &mut self.renderer))
+					.expect("Cannot execute loop schedule");
 			}
 			
 			Event::WindowEvent {
@@ -123,7 +143,9 @@ impl Despero {
 					_ => {}
 				},
 				_ => {}
-			},
+			}
+			
+			_ => {}
 		});
 	}
 }
@@ -145,27 +167,21 @@ impl Drop for Despero {
 			for (_, m) in self.world.query_mut::<&mut Model<TexturedVertexData, TexturedInstanceData>>() {
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
-					let mut alloc: Option<Allocation> = None;
-					std::mem::swap(&mut alloc, &mut vb.allocation);
-					let alloc = alloc.unwrap();
+					let alloc = extract(&mut vb.allocation);
 					self.renderer.allocator.free(alloc).unwrap();
 					self.renderer.device.destroy_buffer(vb.buffer, None);
 				}
 				
 				if let Some(xb) = &mut m.indexbuffer {
 					// Reassign IndexBuffer allocation to remove
-					let mut alloc: Option<Allocation> = None;
-					std::mem::swap(&mut alloc, &mut xb.allocation);
-					let alloc = alloc.unwrap();
+					let alloc = extract(&mut xb.allocation);
 					self.renderer.allocator.free(alloc).unwrap();
 					self.renderer.device.destroy_buffer(xb.buffer, None);
 				}
 				
 				if let Some(ib) = &mut m.instancebuffer {
 					// Reassign IndexBuffer allocation to remove
-					let mut alloc: Option<Allocation> = None;
-					std::mem::swap(&mut alloc, &mut ib.allocation);
-					let alloc = alloc.unwrap();
+					let alloc = extract(&mut ib.allocation);
 					self.renderer.allocator.free(alloc).unwrap();
 					self.renderer.device.destroy_buffer(ib.buffer, None);
 				}
@@ -182,10 +198,12 @@ impl Drop for Despero {
 	}
 }
 
-pub trait Extract {
-	fn extract<T>(option: &mut Option<T>) -> T {
-		let mut empty: Option<T> = None;
-		std::mem::swap(&mut empty, option);
-		return empty.unwrap();
-	}
+// Extract `Option` variable from struct
+pub fn extract<T>(option: &mut Option<T>) -> T {
+	// Create `None` option
+	let mut empty: Option<T> = None;
+	// Swap variable and `None`
+	std::mem::swap(&mut empty, option);
+	// Return unwrapped option
+	empty.unwrap()
 }

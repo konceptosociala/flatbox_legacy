@@ -4,9 +4,19 @@ use despero::prelude::*;
 
 fn main() {
 	Despero::init(WindowBuilder::new().with_title("The Game"))
-		.add_system(create_models)
-		.add_system(create_camera)
+		.add_setup_system(create_models)
+		.add_setup_system(create_camera)
+		.add_setup_system(setup_test)
+		.add_system(loop_test)
 		.run();
+}
+
+fn loop_test(){
+	Debug::info("hello");
+}
+
+fn setup_test(){
+	Debug::warn("bye");
 }
 
 fn create_models(

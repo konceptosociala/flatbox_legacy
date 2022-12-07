@@ -14,8 +14,8 @@ use crate::engine::{
 
 pub(crate) fn rendering_system(
 	mut renderer: Write<Renderer>,
-	mut camera_world: SubWorld<(&mut Camera, &Transform)>,
 	mut model_world: SubWorld<(&mut Model<TexturedVertexData, TexturedInstanceData>, &Transform)>,
+	camera_world: SubWorld<(&mut Camera, &Transform)>,
 ){
 	// Get image of swapchain
 	let (image_index, _) = unsafe {
