@@ -1,9 +1,6 @@
-use crate::Renderer;
 use ash::vk;
-use gpu_allocator::vulkan::Allocator;
 use nalgebra as na;
-
-use crate::render::buffer::Buffer;
+use crate::Renderer;
 
 pub struct DirectionalLight {
 	pub direction: na::Vector3<f32>,
@@ -69,9 +66,9 @@ impl LightManager {
 		renderer: &mut Renderer,
 	) -> Result<(), vk::Result> {
 		let logical_device = &renderer.device;
-		let mut allocator = &mut renderer.allocator;
-		let mut buffer = &mut renderer.lightbuffer;
-		let mut descriptor_sets_light = &mut renderer.descriptor_sets_light;
+		let allocator = &mut renderer.allocator;
+		let buffer = &mut renderer.lightbuffer;
+		let descriptor_sets_light = &mut renderer.descriptor_sets_light;
 		
 		let mut data: Vec<f32> = vec![];
 		data.push(self.directional_lights.len() as f32);

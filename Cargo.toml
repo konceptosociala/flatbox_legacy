@@ -7,6 +7,7 @@ edition = "2021"
 
 # Misc
 
+thiserror 	= "1.0.38"
 colored 	= "2.0.0"
 nalgebra 	= "0.31.2"
 
@@ -25,6 +26,7 @@ raw-window-handle 	= "0.4.2"
 hecs 			= "0.7.7"
 hecs-schedule 	= "0.6.2"
 hecs-hierarchy 	= "0.11.7"
+event-listener 	= "2.5.3"
 
 # Physics
 

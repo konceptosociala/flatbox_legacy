@@ -123,6 +123,11 @@ impl Despero {
 					state: winit::event::ElementState::Pressed,
 					virtual_keycode: Some(keycode),
 					..
+			//	} => {
+			//	
+			//	send event with `keycode` and read it later
+			//	
+			//	}	
 				} => match keycode {
 					// System
 					winit::event::VirtualKeyCode::F5 => {

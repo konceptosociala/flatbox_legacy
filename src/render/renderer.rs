@@ -18,10 +18,7 @@ use crate::render::{
 		init_device_and_queues,
 		init_physical_device_and_properties,
 	},
-	pipeline::{
-		GraphicsPipeline,
-		init_renderpass,
-	},
+	pipeline::Pipeline,
 	commandbuffers::{
 		CommandBufferPools,
 		create_commandbuffers,
@@ -29,6 +26,7 @@ use crate::render::{
 	buffer::Buffer,
 	debug::Debug,
 };
+
 use crate::engine::{
 	model::{
 		Model,
@@ -58,7 +56,7 @@ pub struct Renderer {
 	pub device: ash::Device,
 	pub swapchain: Swapchain,
 	pub renderpass: vk::RenderPass,
-	pub pipeline: GraphicsPipeline,
+	pub pipeline: Pipeline,
 	pub commandbuffer_pools: CommandBufferPools,
 	pub commandbuffers: Vec<vk::CommandBuffer>,
 	pub allocator: gpu_allocator::vulkan::Allocator,
@@ -113,9 +111,9 @@ impl Renderer {
 		)?;
 		
 		// RenderPass, Pipeline
-		let renderpass = init_renderpass(&logical_device, physical_device, &surfaces)?;
+		let renderpass = Pipeline::init_renderpass(&logical_device, physical_device, &surfaces)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
-		let pipeline = GraphicsPipeline::init_textured(&logical_device, &swapchain, &renderpass)?;
+		let pipeline = Pipeline::init(&logical_device, &swapchain, &renderpass)?;
 		
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
@@ -655,7 +653,7 @@ impl Renderer {
 		
 		// Recreate Pipeline
 		self.pipeline.cleanup(&self.device);
-		self.pipeline = GraphicsPipeline::init(
+		self.pipeline = Pipeline::init(
 			&self.device, 
 			&self.swapchain, 
 			&self.renderpass
