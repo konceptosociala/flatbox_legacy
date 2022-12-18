@@ -1,3 +1,4 @@
+use crate::Renderer;
 use ash::vk;
 use gpu_allocator::vulkan::Allocator;
 use nalgebra as na;
@@ -65,11 +66,13 @@ impl LightManager {
 	// Push lights to buffer
 	pub fn update_buffer(
 		&self,
-		logical_device: &ash::Device,
-		allocator: &mut Allocator,
-		buffer:	&mut Buffer,
-		descriptor_sets_light: &mut [vk::DescriptorSet],
+		renderer: &mut Renderer,
 	) -> Result<(), vk::Result> {
+		let logical_device = &renderer.device;
+		let mut allocator = &mut renderer.allocator;
+		let mut buffer = &mut renderer.lightbuffer;
+		let mut descriptor_sets_light = &mut renderer.descriptor_sets_light;
+		
 		let mut data: Vec<f32> = vec![];
 		data.push(self.directional_lights.len() as f32);
         data.push(self.point_lights.len() as f32);

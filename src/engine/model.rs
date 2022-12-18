@@ -90,6 +90,7 @@ impl VertexData {
 #[derive(Copy, Clone, Debug)]
 pub struct TexturedVertexData {
 	pub position: [f32; 3],
+	pub normal: [f32; 3],
 	pub texcoord: [f32; 2],
 }
 
@@ -100,26 +101,23 @@ pub struct TexturedInstanceData {
 	pub modelmatrix: [[f32; 4]; 4],
 	pub inverse_modelmatrix: [[f32; 4]; 4],
 	pub texture_id: u32,
+	pub metallic: f32,
+	pub roughness: f32,
 }
 
 impl TexturedInstanceData {
-	pub fn from_matrix(
-		modelmatrix: na::Matrix4<f32>
-	) -> TexturedInstanceData {
-		TexturedInstanceData {
-			modelmatrix: modelmatrix.into(),
-			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
-			texture_id: 0,
-		}
-	}
-	pub fn from_matrix_and_texture(
+	pub fn new(
 		modelmatrix: na::Matrix4<f32>,
 		texture_id: usize,
+		metallic: f32,
+		roughness: f32,
 	) -> TexturedInstanceData {
 		TexturedInstanceData {
 			modelmatrix: modelmatrix.into(),
 			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),
 			texture_id: texture_id as u32,
+			metallic,
+			roughness,
 		}
 	}
 }
@@ -645,18 +643,22 @@ impl Model<TexturedVertexData, TexturedInstanceData> {
 	pub fn quad() -> Self {
 		let lb = TexturedVertexData {
 			position: [-1.0, 1.0, 0.0],
+			normal: VertexData::normalize([-1.0, 1.0, 0.0]),
 			texcoord: [0.0, 1.0],
 		};
 		let lt = TexturedVertexData {
 			position: [-1.0, -1.0, 0.0],
+			normal: VertexData::normalize([-1.0, -1.0, 0.0]),
 			texcoord: [0.0, 0.0],
 		};
 		let rb = TexturedVertexData {
 			position: [1.0, 1.0, 0.0],
+			normal: VertexData::normalize([1.0, 1.0, 0.0]),
 			texcoord: [1.0, 1.0],
 		};
 		let rt = TexturedVertexData {
 			position: [1.0, -1.0, 0.0],
+			normal: VertexData::normalize([1.0, -1.0, 0.0]),
 			texcoord: [1.0, 0.0],
 		};
 		
