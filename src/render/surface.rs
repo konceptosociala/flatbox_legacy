@@ -1,12 +1,12 @@
 use ash::vk;
 
-pub struct Surface {
-	pub surface: vk::SurfaceKHR,
-	pub surface_loader: ash::extensions::khr::Surface,
+pub(crate) struct Surface {
+	pub(crate) surface: vk::SurfaceKHR,
+	pub(crate) surface_loader: ash::extensions::khr::Surface,
 }
 
 impl Surface {
-	pub fn init(
+	pub(crate) fn init(
 		window: &winit::window::Window,
 		entry: &ash::Entry,
 		instance: &ash::Instance,
@@ -26,7 +26,7 @@ impl Surface {
 		})
 	}
 	
-	pub fn get_capabilities(
+	pub(crate) fn get_capabilities(
 		&self,
 		physical_device: vk::PhysicalDevice,
 	) -> Result<vk::SurfaceCapabilitiesKHR, vk::Result> {
@@ -35,7 +35,8 @@ impl Surface {
 		}
 	}
 	
-	pub fn get_present_modes(
+	#[allow(dead_code)]
+	pub(crate) fn get_present_modes(
 		&self,
 		physical_device: vk::PhysicalDevice,
 	) -> Result<Vec<vk::PresentModeKHR>, vk::Result> {
@@ -45,7 +46,7 @@ impl Surface {
 		}
 	}
 	
-	pub fn get_formats(
+	pub(crate) fn get_formats(
 		&self,
 		physical_device: vk::PhysicalDevice,
 	) -> Result<Vec<vk::SurfaceFormatKHR>, vk::Result> {
@@ -55,7 +56,7 @@ impl Surface {
 		}
 	}
 	
-	pub fn get_physical_device_surface_support(
+	pub(crate) fn get_physical_device_surface_support(
 		&self,
 		physical_device: vk::PhysicalDevice,
 		queuefamilyindex: usize,

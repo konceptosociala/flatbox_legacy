@@ -6,16 +6,16 @@ use crate::render::renderer::Renderer;
 use crate::engine::transform::Transform;
 
 pub struct Camera {
-	pub viewmatrix: na::Matrix4<f32>,
-	pub projectionmatrix: na::Matrix4<f32>,
-	pub position: na::Vector3<f32>,
-	pub view_direction: na::Unit<na::Vector3<f32>>,
-	pub down_direction: na::Unit<na::Vector3<f32>>,
-	pub fovy: f32,
-	pub aspect: f32,
-	pub near: f32,
-	pub far: f32,
-	pub is_active: bool,
+	pub(crate) viewmatrix: na::Matrix4<f32>,
+	pub(crate) projectionmatrix: na::Matrix4<f32>,
+	pub(crate) position: na::Vector3<f32>,
+	pub(crate) view_direction: na::Unit<na::Vector3<f32>>,
+	pub(crate) down_direction: na::Unit<na::Vector3<f32>>,
+	pub(crate) fovy: f32,
+	pub(crate) aspect: f32,
+	pub(crate) near: f32,
+	pub(crate) far: f32,
+	pub(crate) is_active: bool,
 }
 
 impl Camera {
@@ -70,7 +70,7 @@ impl Camera {
 		);
 	}
 	
-	pub fn update_buffer(
+	pub(crate) fn update_buffer(
 		&self,
 		renderer: &mut Renderer,
 	) -> Result<(), vk::Result>{

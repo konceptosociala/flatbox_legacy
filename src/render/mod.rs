@@ -1,8 +1,8 @@
-pub mod surface;
-pub mod swapchain;
-pub mod queues;
-pub mod pipeline;
-pub mod commandbuffers;
-pub mod buffer;
+pub(crate) mod surface;
+pub(crate) mod swapchain;
+pub(crate) mod queues;
+pub(crate) mod pipeline;
+pub(crate) mod commandbuffers;
+pub(crate) mod buffer;
 pub mod renderer;
 pub mod debug;

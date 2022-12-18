@@ -6,13 +6,15 @@ use crate::render::{
 };
 
 // QueueFamilies
-pub struct QueueFamilies {
-	pub graphics_q_index: Option<u32>,
-	pub transfer_q_index: Option<u32>,
+pub(crate) struct QueueFamilies {
+	#[allow(dead_code)]
+	pub(crate) graphics_q_index: Option<u32>,
+	#[allow(dead_code)]
+	pub(crate) transfer_q_index: Option<u32>,
 }
 
 impl QueueFamilies {
-	pub fn init(
+	pub(crate) fn init(
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
 		surfaces: &Surface,
@@ -45,13 +47,13 @@ impl QueueFamilies {
 }
 
 // Queues
-pub struct Queues {
-	pub graphics_queue: vk::Queue,
-	pub transfer_queue: vk::Queue,
+pub(crate) struct Queues {
+	pub(crate) graphics_queue: vk::Queue,
+	pub(crate) transfer_queue: vk::Queue,
 }
 
 // Create Instance
-pub fn init_instance(
+pub(crate) fn init_instance(
 	entry: &ash::Entry,
 	layer_names: &[&str],
 	app_title: String,
@@ -109,7 +111,7 @@ pub fn init_instance(
 }
 
 // Create LogicalDevice and Queues
-pub fn init_device_and_queues(
+pub(crate) fn init_device_and_queues(
 	instance: &ash::Instance,
 	physical_device: vk::PhysicalDevice,
 	queue_families: &QueueFamilies,
@@ -172,7 +174,7 @@ pub fn init_device_and_queues(
 }
 
 // Create PhysicalDevice and PhysicalDeviceProperties
-pub fn init_physical_device_and_properties(
+pub(crate) fn init_physical_device_and_properties(
 	instance: &ash::Instance
 ) -> Result<(vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures), vk::Result> {
 	let phys_devs = unsafe { instance.enumerate_physical_devices()? };

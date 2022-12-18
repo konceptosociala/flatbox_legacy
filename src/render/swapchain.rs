@@ -7,29 +7,30 @@ use crate::render::{
 	queues,
 };
 
-pub struct Swapchain {
-	pub swapchain_loader: ash::extensions::khr::Swapchain,
-	pub swapchain: vk::SwapchainKHR,
-	pub images: Vec<vk::Image>,
-	pub imageviews: Vec<vk::ImageView>,
+pub(crate) struct Swapchain {
+	pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
+	pub(crate) swapchain: vk::SwapchainKHR,
+	pub(crate) images: Vec<vk::Image>,
+	pub(crate) imageviews: Vec<vk::ImageView>,
 	// Depth buffer
-	pub depth_image: vk::Image,							  
-	pub depth_image_allocation: Option<Allocation>,		  
-	pub depth_imageview: vk::ImageView,
-	pub framebuffers: Vec<vk::Framebuffer>,
-	pub surface_format: vk::SurfaceFormatKHR,
-	pub extent: vk::Extent2D,
+	pub(crate) depth_image: vk::Image,							  
+	pub(crate) depth_image_allocation: Option<Allocation>,		  
+	pub(crate) depth_imageview: vk::ImageView,
+	pub(crate) framebuffers: Vec<vk::Framebuffer>,
+	#[allow(dead_code)]
+	pub(crate) surface_format: vk::SurfaceFormatKHR,
+	pub(crate) extent: vk::Extent2D,
 	// Fence
-	pub may_begin_drawing: Vec<vk::Fence>,
+	pub(crate) may_begin_drawing: Vec<vk::Fence>,
 	// Semaphores
-	pub image_available: Vec<vk::Semaphore>,
-	pub rendering_finished: Vec<vk::Semaphore>,
-	pub amount_of_images: u32,
-	pub current_image: usize,
+	pub(crate) image_available: Vec<vk::Semaphore>,
+	pub(crate) rendering_finished: Vec<vk::Semaphore>,
+	pub(crate) amount_of_images: u32,
+	pub(crate) current_image: usize,
 }
 
 impl Swapchain {
-	pub fn init(
+	pub(crate) fn init(
 		instance: &ash::Instance,
 		physical_device: vk::PhysicalDevice,
 		logical_device: &ash::Device,
@@ -178,7 +179,7 @@ impl Swapchain {
 	}
 	
 	// Create FBs for the swapchain
-	pub fn create_framebuffers(
+	pub(crate) fn create_framebuffers(
 		&mut self,
 		logical_device: &ash::Device,
 		renderpass: vk::RenderPass,
@@ -197,7 +198,7 @@ impl Swapchain {
 		Ok(())
 	}
 	
-	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
+	pub(crate) unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
 		// Free Depth Image allocation
 		let mut alloc: Option<Allocation> = None;
 		std::mem::swap(&mut alloc, &mut self.depth_image_allocation);

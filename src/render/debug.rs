@@ -7,7 +7,7 @@ pub struct Debug {
 }
 
 impl Debug {
-	pub fn init(
+	pub(crate) fn init(
 		entry: &ash::Entry,
 		instance: &ash::Instance,
 	) -> Result<Debug, vk::Result> {
@@ -43,7 +43,7 @@ impl Debug {
 		println!("[DesperØ][{}][debug] {}", format!("error").red(), msg);
 	}
 	
-	pub unsafe extern "system" fn vulkan_debug_utils_callback(
+	pub(crate) unsafe extern "system" fn vulkan_debug_utils_callback(
 		message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
 		message_type: vk::DebugUtilsMessageTypeFlagsEXT,
 		p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,

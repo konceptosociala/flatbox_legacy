@@ -7,15 +7,16 @@ use crate::render::buffer::Buffer;
 pub type Filter = vk::Filter; 
 
 pub struct Texture {
-	pub image: image::RgbaImage,
-	pub vk_image: vk::Image,
-	pub image_allocation: Option<Allocation>,
-	pub imageview: vk::ImageView,
-	pub sampler: vk::Sampler,
+	#[allow(dead_code)]
+	pub(crate) image: image::RgbaImage,
+	pub(crate) vk_image: vk::Image,
+	pub(crate) image_allocation: Option<Allocation>,
+	pub(crate) imageview: vk::ImageView,
+	pub(crate) sampler: vk::Sampler,
 }
 
 impl Texture {
-	pub fn from_file<P: AsRef<std::path::Path>>(
+	pub(crate) fn from_file<P: AsRef<std::path::Path>>(
 		path: P, 
 		filter: Filter,
 		logical_device: &ash::Device,
@@ -245,11 +246,11 @@ pub struct TextureStorage {
 }
 
 impl TextureStorage {
-	pub fn new() -> Self {
+	pub(crate) fn new() -> Self {
 		TextureStorage { textures: vec![] }
 	}
 	
-	pub fn cleanup(
+	pub(crate) fn cleanup(
 		&mut self,
 		logical_device: &ash::Device,
 		allocator: &mut Allocator,
@@ -271,7 +272,7 @@ impl TextureStorage {
 		}
 	}
 	
-	pub fn new_texture_from_file<P: AsRef<std::path::Path>>(
+	pub(crate) fn new_texture_from_file<P: AsRef<std::path::Path>>(
 		&mut self,
 		path: P,
 		filter: Filter,
@@ -293,15 +294,17 @@ impl TextureStorage {
 		Ok(new_id)
 	}
 	
-	pub fn get(&self, index: usize) -> Option<&Texture> {
+	#[allow(dead_code)]
+	pub(crate) fn get(&self, index: usize) -> Option<&Texture> {
 		self.textures.get(index)
 	}
 	
-	pub fn get_mut(&mut self, index: usize) -> Option<&mut Texture> {
+	#[allow(dead_code)]
+	pub(crate) fn get_mut(&mut self, index: usize) -> Option<&mut Texture> {
 		self.textures.get_mut(index)
 	}
 	
-	pub fn get_descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
+	pub(crate) fn get_descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
 		self.textures
 			.iter()
 			.map(|t| vk::DescriptorImageInfo {

@@ -3,13 +3,13 @@ use ash::vk;
 use crate::render::queues::QueueFamilies;
 
 // CommandBuffers Pools
-pub struct CommandBufferPools {
-	pub commandpool_graphics: vk::CommandPool,
-	pub commandpool_transfer: vk::CommandPool,
+pub(crate) struct CommandBufferPools {
+	pub(crate) commandpool_graphics: vk::CommandPool,
+	pub(crate) commandpool_transfer: vk::CommandPool,
 }
 
 impl CommandBufferPools {
-	pub fn init(
+	pub(crate) fn init(
 		logical_device: &ash::Device,
 		queue_families: &QueueFamilies,
 	) -> Result<CommandBufferPools, vk::Result> {
@@ -33,22 +33,22 @@ impl CommandBufferPools {
 		})
 	}
 	
-	pub fn cleanup(&self, logical_device: &ash::Device) {
+	// Create CommandBuffers
+	pub(crate) fn create_commandbuffers(
+		logical_device: &ash::Device,
+		pools: &CommandBufferPools,
+		amount: usize,
+	) -> Result<Vec<vk::CommandBuffer>, vk::Result> {
+		let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
+			.command_pool(pools.commandpool_graphics)
+			.command_buffer_count(amount as u32);
+		unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
+	}
+	
+	pub(crate) fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
 			logical_device.destroy_command_pool(self.commandpool_graphics, None);
 			logical_device.destroy_command_pool(self.commandpool_transfer, None);
 		}
 	}
-}
-
-// Create CommandBuffers
-pub fn create_commandbuffers(
-	logical_device: &ash::Device,
-	pools: &CommandBufferPools,
-	amount: usize,
-) -> Result<Vec<vk::CommandBuffer>, vk::Result> {
-	let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-		.command_pool(pools.commandpool_graphics)
-		.command_buffer_count(amount as u32);
-	unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
 }

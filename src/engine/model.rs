@@ -140,9 +140,9 @@ pub struct Model<V, I> {
 	// Next handle to use
 	pub next_handle: usize,
 	// Buffers
-	pub vertexbuffer: Option<Buffer>,
-	pub instancebuffer: Option<Buffer>,
-	pub indexbuffer: Option<Buffer>,
+	pub(crate) vertexbuffer: Option<Buffer>,
+	pub(crate) instancebuffer: Option<Buffer>,
+	pub(crate) indexbuffer: Option<Buffer>,
 }
 
 impl<V, I: std::fmt::Debug> Model<V, I> {

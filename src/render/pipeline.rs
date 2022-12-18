@@ -7,7 +7,7 @@ use crate::render::{
 };
 
 // Pipeline
-pub struct Pipeline {
+pub(crate) struct Pipeline {
 	pub pipeline: vk::Pipeline,
 	pub layout: vk::PipelineLayout,
 	pub descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,

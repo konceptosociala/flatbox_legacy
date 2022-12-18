@@ -19,10 +19,7 @@ use crate::render::{
 		init_physical_device_and_properties,
 	},
 	pipeline::Pipeline,
-	commandbuffers::{
-		CommandBufferPools,
-		create_commandbuffers,
-	},
+	commandbuffers::CommandBufferPools,
 	buffer::Buffer,
 	debug::Debug,
 };
@@ -43,34 +40,36 @@ use crate::engine::{
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 1;
 
 pub struct Renderer {
-	pub eventloop: Option<EventLoop<()>>,
-	pub window: winit::window::Window,
-	pub entry: ash::Entry,
-	pub instance: ash::Instance,
-	pub debug: std::mem::ManuallyDrop<Debug>,
-	pub surfaces: std::mem::ManuallyDrop<Surface>,
-	pub physical_device: vk::PhysicalDevice,
-	pub physical_device_properties: vk::PhysicalDeviceProperties,
-	pub queue_families: QueueFamilies,
-	pub queues: Queues,
-	pub device: ash::Device,
-	pub swapchain: Swapchain,
-	pub renderpass: vk::RenderPass,
-	pub pipeline: Pipeline,
-	pub commandbuffer_pools: CommandBufferPools,
-	pub commandbuffers: Vec<vk::CommandBuffer>,
-	pub allocator: gpu_allocator::vulkan::Allocator,
-	pub uniformbuffer: Buffer,
-	pub lightbuffer: Buffer,
-	pub descriptor_pool: vk::DescriptorPool,
-	pub descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	pub descriptor_sets_light: Vec<vk::DescriptorSet>,
+	pub(crate) eventloop: Option<EventLoop<()>>,
+	pub(crate) window: winit::window::Window,
+	#[allow(dead_code)]
+	pub(crate) entry: ash::Entry,
+	pub(crate) instance: ash::Instance,
+	pub(crate) debug: std::mem::ManuallyDrop<Debug>,
+	pub(crate) surfaces: std::mem::ManuallyDrop<Surface>,
+	pub(crate) physical_device: vk::PhysicalDevice,
+	#[allow(dead_code)]
+	pub(crate) physical_device_properties: vk::PhysicalDeviceProperties,
+	pub(crate) queue_families: QueueFamilies,
+	pub(crate) queues: Queues,
+	pub(crate) device: ash::Device,
+	pub(crate) swapchain: Swapchain,
+	pub(crate) renderpass: vk::RenderPass,
+	pub(crate) pipeline: Pipeline,
+	pub(crate) commandbuffer_pools: CommandBufferPools,
+	pub(crate) commandbuffers: Vec<vk::CommandBuffer>,
+	pub(crate) allocator: gpu_allocator::vulkan::Allocator,
+	pub(crate) uniformbuffer: Buffer,
+	pub(crate) lightbuffer: Buffer,
+	pub(crate) descriptor_pool: vk::DescriptorPool,
+	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
+	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
+	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
 	pub texture_storage: TextureStorage, 
 }
 
 impl Renderer {
-	pub fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
+	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
 		// Get window title
 		let app_title = window_builder.window.title.clone();
 		// Eventloop
@@ -117,7 +116,7 @@ impl Renderer {
 		
 		// CommandBufferPools and CommandBuffers
 		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
-		let commandbuffers = create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
+		let commandbuffers = CommandBufferPools::create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
 		
 		// Uniform buffer
 		let mut uniformbuffer = Buffer::new(
@@ -557,7 +556,7 @@ impl Renderer {
 		)
 	}
 	
-	pub fn update_commandbuffer<W: borrow::ComponentBorrow>(
+	pub(crate) fn update_commandbuffer<W: borrow::ComponentBorrow>(
 		&mut self,
 		world: &mut SubWorld<W>,
 		index: usize
@@ -631,7 +630,7 @@ impl Renderer {
 		Ok(())
 	}
 	
-	pub fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+	pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
 		unsafe {
 			self.device
 				.device_wait_idle()

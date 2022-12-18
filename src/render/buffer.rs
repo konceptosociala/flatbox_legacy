@@ -5,17 +5,17 @@ use ash::vk;
 
 // Buffer
 #[derive(Debug)]
-pub struct Buffer {
-	pub buffer: vk::Buffer,
-	pub allocation: Option<Allocation>,
-	pub allocation_name: String,
-	pub size_in_bytes: u64,
-	pub buffer_usage: vk::BufferUsageFlags,
-	pub memory_location: MemoryLocation,
+pub(crate) struct Buffer {
+	pub(crate) buffer: vk::Buffer,
+	pub(crate) allocation: Option<Allocation>,
+	pub(crate) allocation_name: String,
+	pub(crate) size_in_bytes: u64,
+	pub(crate) buffer_usage: vk::BufferUsageFlags,
+	pub(crate) memory_location: MemoryLocation,
 }
 
 impl Buffer {
-	pub fn new(
+	pub(crate) fn new(
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,
 		size_in_bytes: u64,
@@ -58,7 +58,7 @@ impl Buffer {
 		})
 	}
 	
-	pub fn fill<T: Sized>(
+	pub(crate) fn fill<T: Sized>(
 		&mut self,
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,
