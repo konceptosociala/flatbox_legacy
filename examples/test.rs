@@ -1,7 +1,6 @@
 use winit::window::WindowBuilder;
 use hecs_schedule::*;
 use despero::prelude::*;
-use despero::engine::light::*;
 use nalgebra as na;
 
 fn main() {
@@ -16,14 +15,14 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Model
-	let texture = renderer.texture_from_file("assets/image.jpg", Filter::LINEAR).expect("Cannot create texture");
+	let texture = renderer.texture_from_file("assets/image.jpg", Filter::LINEAR);
 	let mut quad = Model::quad();
 	quad.insert_visibly(TexturedInstanceData::new(
-        Matrix4::new_translation(&Vector3::new(2.0, 0., 0.3)),
-        texture,
-        0.0,
-        1.0,
-    ));
+		Matrix4::new_translation(&Vector3::new(2.0, 0., 0.3)),
+		texture,
+		0.0,
+		1.0,
+	));
 	let transform = Transform::default();
 	cmd.spawn((quad, transform));
 	

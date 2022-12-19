@@ -1,15 +1,14 @@
+#![allow(dead_code)]
 use ash::vk;
 
 use crate::render::{
-	surface::Surface,
 	debug::Debug,
+	backend::surface::Surface,
 };
 
 // QueueFamilies
 pub(crate) struct QueueFamilies {
-	#[allow(dead_code)]
 	pub(crate) graphics_q_index: Option<u32>,
-	#[allow(dead_code)]
 	pub(crate) transfer_q_index: Option<u32>,
 }
 

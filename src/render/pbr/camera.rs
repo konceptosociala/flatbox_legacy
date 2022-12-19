@@ -2,8 +2,10 @@ use ash::vk;
 use nalgebra as na;
 use hecs::*;
 
-use crate::render::renderer::Renderer;
-use crate::engine::transform::Transform;
+use crate::render::{
+	renderer::Renderer,
+	transform::Transform,
+};
 
 pub struct Camera {
 	pub(crate) viewmatrix: na::Matrix4<f32>,

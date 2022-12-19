@@ -1,6 +1,6 @@
 use ash::vk;
 
-use crate::render::queues::QueueFamilies;
+use crate::render::backend::queues::QueueFamilies;
 
 // CommandBuffers Pools
 pub(crate) struct CommandBufferPools {

@@ -7,8 +7,8 @@ use nalgebra as na;
 type Handle = usize;
 
 use crate::render::{
-	buffer::Buffer,
 	renderer::Renderer,
+	backend::buffer::Buffer,
 };
 
 // InvalidHandle custom error

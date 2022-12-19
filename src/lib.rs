@@ -13,30 +13,34 @@ use hecs_schedule::*;
 use winit::{
 	event::{
 		Event,
-		WindowEvent
+		WindowEvent,
+		VirtualKeyCode,
 	},
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
 };
 
 pub mod render;
-pub mod engine;
 pub mod ecs;
 pub mod physics;
 pub mod scripting;
-
 pub mod prelude;
-pub mod prelude_eo;
 
-use crate::ecs::systems::*;
-use crate::render::renderer::Renderer;
-use crate::engine::{
-	model::{
-		Model,
-		TexturedInstanceData,
-		TexturedVertexData,
+use crate::ecs::{
+	systems::*,
+	event::*,
+};
+
+use crate::render::{
+	renderer::Renderer,
+	pbr::{
+		model::{
+			Model,
+			TexturedInstanceData,
+			TexturedVertexData,
+		},
+		camera::Camera,
 	},
-	camera::Camera,
 };
 
 pub struct Despero {
@@ -45,6 +49,7 @@ pub struct Despero {
 	setup_systems: ScheduleBuilder,
 	
 	renderer: Renderer,
+	event_handler: EventHandler,
 }
 
 impl Despero {	
@@ -56,6 +61,7 @@ impl Despero {
 			setup_systems: Schedule::builder(),
 			systems: Schedule::builder(),
 			renderer,
+			event_handler: EventHandler::new(),
 		}
 	}
 	
@@ -91,7 +97,7 @@ impl Despero {
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
-			.execute((&mut self.world, &mut self.renderer))
+			.execute((&mut self.world, &mut self.renderer, &mut self.event_handler))
 			.expect("Cannot execute setup schedule");
 		// Extract `EventLoop` from `Renderer`
 		let mut eventloop = extract(&mut self.renderer.eventloop);
@@ -111,43 +117,15 @@ impl Despero {
 			Event::RedrawRequested(_) => {
 				// Execute loop schedule	
 				systems
-					.execute((&mut self.world, &mut self.renderer))
+					.execute((&mut self.world, &mut self.renderer, &mut self.event_handler))
 					.expect("Cannot execute loop schedule");
 			}
 			
 			Event::WindowEvent {
 				event: WindowEvent::KeyboardInput {input, ..},
 				..
-			} => match input {
-				winit::event::KeyboardInput {
-					state: winit::event::ElementState::Pressed,
-					virtual_keycode: Some(keycode),
-					..
-			//	} => {
-			//	
-			//	send event with `keycode` and read it later
-			//	
-			//	}	
-				} => match keycode {
-					// System
-					winit::event::VirtualKeyCode::F5 => {
-						let path = "screenshots";
-						let name = "name";
-						self.renderer.screenshot(format!("{}/{}.jpg", path, name).as_str()).expect("Cannot create screenshot");
-					}
-					winit::event::VirtualKeyCode::F11 => {
-						self.renderer.texture_storage.textures.swap(0, 1);
-					}
-					winit::event::VirtualKeyCode::Right => {
-						for (_, camera) in self.world.query_mut::<&mut Camera>(){
-							if camera.is_active {
-								camera.turn_right(0.05);
-							}
-						}
-					}
-					_ => {}
-				},
-				_ => {}
+			} => {
+				self.event_handler.send(input);
 			}
 			
 			_ => {}

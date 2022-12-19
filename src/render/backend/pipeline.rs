@@ -1,9 +1,11 @@
 use ash::vk;
 
 use crate::render::{
-	surface::Surface,
-	swapchain::Swapchain,
 	renderer::MAX_NUMBER_OF_TEXTURES,
+	backend::{
+		surface::Surface,
+		swapchain::Swapchain,
+	},
 };
 
 // Pipeline

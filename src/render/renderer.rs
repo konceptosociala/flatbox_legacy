@@ -9,34 +9,28 @@ use winit::{
 use hecs_schedule::*;
 
 use crate::render::{
-	surface::Surface,
-	swapchain::Swapchain,
-	queues::{
-		QueueFamilies,
-		Queues,
-		init_instance,
-		init_device_and_queues,
-		init_physical_device_and_properties,
+	backend::{
+		surface::Surface,
+		swapchain::Swapchain,
+		queues::*,
+		pipeline::Pipeline,
+		commandbuffers::CommandBufferPools,
+		buffer::Buffer,
 	},
-	pipeline::Pipeline,
-	commandbuffers::CommandBufferPools,
-	buffer::Buffer,
+	pbr::{
+		model::{
+			Model,
+			TexturedInstanceData,
+			TexturedVertexData
+		},
+		texture::{
+			TextureStorage,
+			Filter,
+		},
+	},
 	debug::Debug,
 };
 
-use crate::engine::{
-	model::{
-		Model,
-		TexturedInstanceData,
-		TexturedVertexData
-	},
-	texture::{
-		TextureStorage,
-		Filter,
-	},
-};
-
-//pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024;
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 1;
 
 pub struct Renderer {
@@ -545,7 +539,7 @@ impl Renderer {
 		&mut self,
 		path: P,
 		filter: Filter,
-	) -> Result<usize, Box<dyn std::error::Error>> {
+	) -> usize {
 		self.texture_storage.new_texture_from_file(
 			path,
 			filter,
@@ -553,7 +547,7 @@ impl Renderer {
 			&mut self.allocator,
 			&self.commandbuffer_pools.commandpool_graphics,
 			&self.queues.graphics_queue,
-		)
+		).expect("Cannot create texture")
 	}
 	
 	pub(crate) fn update_commandbuffer<W: borrow::ComponentBorrow>(

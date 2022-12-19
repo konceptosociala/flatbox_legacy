@@ -1,6 +1,6 @@
 use ash::vk;
 use nalgebra as na;
-use crate::Renderer;
+use crate::render::renderer::Renderer;
 
 pub struct DirectionalLight {
 	pub direction: na::Vector3<f32>,

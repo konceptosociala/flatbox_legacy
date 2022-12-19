@@ -1,14 +1,16 @@
 use ash::vk;
 use hecs_schedule::*;
 
-use crate::render::renderer::Renderer;
-use crate::engine::{
-	camera::Camera,
+use crate::render::{
+	renderer::Renderer,
 	transform::Transform,
-	model::{
-		Model,
-		TexturedInstanceData,
-		TexturedVertexData,
+	pbr::{
+		camera::Camera,
+		model::{
+			Model,
+			TexturedInstanceData,
+			TexturedVertexData,
+		},
 	},
 };
 

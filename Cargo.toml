@@ -8,6 +8,7 @@ edition = "2021"
 # Misc
 
 thiserror 	= "1.0.38"
+readonly 	= "0.2.3"
 colored 	= "2.0.0"
 nalgebra 	= "0.31.2"
 
@@ -23,10 +24,12 @@ raw-window-handle 	= "0.4.2"
 
 # ECS
 
+event-listener 	= "2.5.3"
+warmy 			= "0.13.0"
 hecs 			= "0.7.7"
 hecs-schedule 	= "0.6.2"
 hecs-hierarchy 	= "0.11.7"
-event-listener 	= "2.5.3"
+hecs-query-tracker = { path = "hecs-query-tracker" }
 
 # Physics
 

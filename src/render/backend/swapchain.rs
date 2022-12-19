@@ -2,7 +2,7 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
-use crate::render::{
+use crate::render::backend::{
 	surface,
 	queues,
 };
