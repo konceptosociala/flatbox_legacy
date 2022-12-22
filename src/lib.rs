@@ -14,7 +14,6 @@ use winit::{
 	event::{
 		Event,
 		WindowEvent,
-		VirtualKeyCode,
 	},
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
@@ -39,7 +38,6 @@ use crate::render::{
 			TexturedInstanceData,
 			TexturedVertexData,
 		},
-		camera::Camera,
 	},
 };
 
@@ -49,7 +47,7 @@ pub struct Despero {
 	setup_systems: ScheduleBuilder,
 	
 	renderer: Renderer,
-	event_handler: EventHandler,
+	event_writer: EventWriter<u32>,
 }
 
 impl Despero {	
@@ -61,7 +59,7 @@ impl Despero {
 			setup_systems: Schedule::builder(),
 			systems: Schedule::builder(),
 			renderer,
-			event_handler: EventHandler::new(),
+			event_writer: EventWriter::new(),
 		}
 	}
 	
@@ -70,6 +68,7 @@ impl Despero {
 	where
         S: 'static + System<Args, Ret> + Send,
 	{
+		//~ system.add_reader(EventReader::new(&mut self.event_writer));
 		self.systems.add_system(system);
 		self
 	}
@@ -79,6 +78,7 @@ impl Despero {
 	where
         S: 'static + System<Args, Ret> + Send,
 	{
+		//~ system.add_reader(EventReader::new(&mut self.event_writer));
 		self.setup_systems.add_system(system);
 		self
 	}
@@ -97,7 +97,7 @@ impl Despero {
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
-			.execute((&mut self.world, &mut self.renderer, &mut self.event_handler))
+			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
 			.expect("Cannot execute setup schedule");
 		// Extract `EventLoop` from `Renderer`
 		let mut eventloop = extract(&mut self.renderer.eventloop);
@@ -117,7 +117,7 @@ impl Despero {
 			Event::RedrawRequested(_) => {
 				// Execute loop schedule	
 				systems
-					.execute((&mut self.world, &mut self.renderer, &mut self.event_handler))
+					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
 					.expect("Cannot execute loop schedule");
 			}
 			
@@ -125,7 +125,7 @@ impl Despero {
 				event: WindowEvent::KeyboardInput {input, ..},
 				..
 			} => {
-				self.event_handler.send(input);
+				self.event_writer.send(15u32).expect("Event send error");
 			}
 			
 			_ => {}

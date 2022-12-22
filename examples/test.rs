@@ -1,13 +1,28 @@
 use winit::window::WindowBuilder;
 use hecs_schedule::*;
 use despero::prelude::*;
+use despero::ecs::event::*;
 use nalgebra as na;
 
 fn main() {
 	Despero::init(WindowBuilder::new().with_title("The Game"))
 		.add_setup_system(create_models)
 		.add_setup_system(create_camera)
+		.add_system(handle_keyboard)
+		.add_system(handle_keyboard2)
 		.run();
+}
+
+fn handle_keyboard(
+	//~ mut event_handler: Write<EventReader<u32>>
+){
+	todo!();
+}
+
+fn handle_keyboard2(
+	//~ mut event_handler: Write<EventReader<u32>>
+){
+	todo!();
 }
 
 fn create_models(

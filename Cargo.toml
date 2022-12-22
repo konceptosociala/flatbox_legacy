@@ -24,7 +24,7 @@ raw-window-handle 	= "0.4.2"
 
 # ECS
 
-event-listener 	= "2.5.3"
+bus 			= "2.3.0"
 warmy 			= "0.13.0"
 hecs 			= "0.7.7"
 hecs-schedule 	= "0.6.2"
