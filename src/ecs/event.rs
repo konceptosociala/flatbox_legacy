@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use winit::event::KeyboardInput;
 use thiserror::Error;
-use bus::*;
 use hecs_schedule::System;
+use bus::*;
 use crate::Despero;
 
 /// Universal trait for all events
@@ -50,7 +50,7 @@ pub struct EventReader<E: Clone + Sync> {
 }
 
 impl<E: Clone + Sync> EventReader<E> {
-	pub(crate) fn new(event_writer: &mut EventWriter<E>) -> Self {
+	pub fn new(event_writer: &mut EventWriter<E>) -> Self {
 		Self { 
 			reader: event_writer.writer.add_rx(),
 		}
@@ -70,7 +70,7 @@ pub trait AddEventReader<E: Clone + Sync> {
 }
 
 impl<E: Clone + Sync, F: FnOnce()> AddEventReader<E> for F {
-	fn add_reader(&mut self, event_reader: EventReader<E>){
+	fn add_reader(&mut self, _event_reader: EventReader<E>){
 		
 	}
 }

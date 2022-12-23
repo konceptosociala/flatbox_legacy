@@ -45,9 +45,9 @@ pub struct Despero {
 	world: World,
 	systems: ScheduleBuilder,
 	setup_systems: ScheduleBuilder,
+	pub event_writer: EventWriter<u32>,
 	
 	renderer: Renderer,
-	event_writer: EventWriter<u32>,
 }
 
 impl Despero {	
@@ -58,8 +58,8 @@ impl Despero {
 			world: World::new(),
 			setup_systems: Schedule::builder(),
 			systems: Schedule::builder(),
-			renderer,
 			event_writer: EventWriter::new(),
+			renderer,
 		}
 	}
 	
@@ -68,7 +68,6 @@ impl Despero {
 	where
         S: 'static + System<Args, Ret> + Send,
 	{
-		//~ system.add_reader(EventReader::new(&mut self.event_writer));
 		self.systems.add_system(system);
 		self
 	}
@@ -78,7 +77,6 @@ impl Despero {
 	where
         S: 'static + System<Args, Ret> + Send,
 	{
-		//~ system.add_reader(EventReader::new(&mut self.event_writer));
 		self.setup_systems.add_system(system);
 		self
 	}
@@ -122,7 +120,7 @@ impl Despero {
 			}
 			
 			Event::WindowEvent {
-				event: WindowEvent::KeyboardInput {input, ..},
+				event: WindowEvent::KeyboardInput {input: _, ..},
 				..
 			} => {
 				self.event_writer.send(15u32).expect("Event send error");

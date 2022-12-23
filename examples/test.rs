@@ -4,25 +4,29 @@ use despero::prelude::*;
 use despero::ecs::event::*;
 use nalgebra as na;
 
-fn main() {
-	Despero::init(WindowBuilder::new().with_title("The Game"))
+fn main() {	
+	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"))
 		.add_setup_system(create_models)
-		.add_setup_system(create_camera)
-		.add_system(handle_keyboard)
-		.add_system(handle_keyboard2)
+		.add_setup_system(create_camera);
+		
+	let mut reader = EventReader::new(&mut despero.event_writer);
+	let handling1 = move || {
+		while let Ok(event) = reader.read() {
+			println!("HANDLER 1: {:?}", event);
+		}
+	};
+		
+	let mut reader = EventReader::new(&mut despero.event_writer);
+	let handling2 = move || {
+		while let Ok(event) = reader.read() {
+			println!("HANDLER 2: {:?}", event);
+		}
+	};
+	
+	despero
+		.add_system(handling1)
+		.add_system(handling2)
 		.run();
-}
-
-fn handle_keyboard(
-	//~ mut event_handler: Write<EventReader<u32>>
-){
-	todo!();
-}
-
-fn handle_keyboard2(
-	//~ mut event_handler: Write<EventReader<u32>>
-){
-	todo!();
 }
 
 fn create_models(
