@@ -63,14 +63,3 @@ impl<E: Clone + Sync> EventReader<E> {
 		}
 	}
 }
-
-/// Trait for adding [`EventReader`] to context
-pub trait AddEventReader<E: Clone + Sync> {
-	fn add_reader(&mut self, event_reader: EventReader<E>);
-}
-
-impl<E: Clone + Sync, F: FnOnce()> AddEventReader<E> for F {
-	fn add_reader(&mut self, _event_reader: EventReader<E>){
-		
-	}
-}

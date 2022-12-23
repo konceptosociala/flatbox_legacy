@@ -45,7 +45,7 @@ pub struct Despero {
 	world: World,
 	systems: ScheduleBuilder,
 	setup_systems: ScheduleBuilder,
-	pub event_writer: EventWriter<u32>,
+	pub event_writer: EventWriter<winit::event::KeyboardInput>,
 	
 	renderer: Renderer,
 }
@@ -79,6 +79,10 @@ impl Despero {
 	{
 		self.setup_systems.add_system(system);
 		self
+	}
+	
+	pub fn add_event_reader(&mut self) -> EventReader<winit::event::KeyboardInput> {
+		EventReader::new(&mut self.event_writer)
 	}
 	
 	/// Run main event loop
@@ -120,10 +124,10 @@ impl Despero {
 			}
 			
 			Event::WindowEvent {
-				event: WindowEvent::KeyboardInput {input: _, ..},
+				event: WindowEvent::KeyboardInput {input, ..},
 				..
 			} => {
-				self.event_writer.send(15u32).expect("Event send error");
+				self.event_writer.send(input).expect("Event send error");
 			}
 			
 			_ => {}

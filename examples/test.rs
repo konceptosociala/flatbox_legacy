@@ -5,28 +5,24 @@ use despero::ecs::event::*;
 use nalgebra as na;
 
 fn main() {	
-	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"))
-		.add_setup_system(create_models)
-		.add_setup_system(create_camera);
-		
-	let mut reader = EventReader::new(&mut despero.event_writer);
-	let handling1 = move || {
-		while let Ok(event) = reader.read() {
-			println!("HANDLER 1: {:?}", event);
-		}
-	};
-		
-	let mut reader = EventReader::new(&mut despero.event_writer);
-	let handling2 = move || {
-		while let Ok(event) = reader.read() {
-			println!("HANDLER 2: {:?}", event);
-		}
-	};
+	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
+	let reader = despero.add_event_reader();
 	
 	despero
-		.add_system(handling1)
-		.add_system(handling2)
+		.add_setup_system(create_models)
+		.add_setup_system(create_camera)
+		.add_system(handling(reader))
 		.run();
+}
+
+fn handling(
+	mut event_reader: EventReader<winit::event::KeyboardInput>
+) -> impl FnMut() {
+	move || {
+		if let Ok(event) = event_reader.read() {
+			println!("SAAS: {:?}", event);
+		}
+	}
 }
 
 fn create_models(
