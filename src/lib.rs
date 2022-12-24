@@ -8,12 +8,14 @@
 //                      __/ |     |/                               __/ |
 //                     |___/                                      |___/	
 //
+use std::sync::Arc;
 use hecs::*;
 use hecs_schedule::*;
 use winit::{
 	event::{
 		Event,
 		WindowEvent,
+		KeyboardInput,
 	},
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
@@ -45,7 +47,7 @@ pub struct Despero {
 	world: World,
 	systems: ScheduleBuilder,
 	setup_systems: ScheduleBuilder,
-	pub event_writer: EventWriter<winit::event::KeyboardInput>,
+	pub event_writer: EventWriter,
 	
 	renderer: Renderer,
 }
@@ -81,7 +83,7 @@ impl Despero {
 		self
 	}
 	
-	pub fn add_event_reader(&mut self) -> EventReader<winit::event::KeyboardInput> {
+	pub fn add_event_reader(&mut self) -> EventReader {
 		EventReader::new(&mut self.event_writer)
 	}
 	
@@ -127,7 +129,9 @@ impl Despero {
 				event: WindowEvent::KeyboardInput {input, ..},
 				..
 			} => {
-				self.event_writer.send(input).expect("Event send error");
+				self.event_writer.send::<KeyboardInput>(
+					Arc::new(input)
+				).expect("Event send error");
 			}
 			
 			_ => {}

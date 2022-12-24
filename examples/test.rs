@@ -1,4 +1,5 @@
 use winit::window::WindowBuilder;
+use winit::event::KeyboardInput;
 use hecs_schedule::*;
 use despero::prelude::*;
 use despero::ecs::event::*;
@@ -16,11 +17,11 @@ fn main() {
 }
 
 fn handling(
-	mut event_reader: EventReader<winit::event::KeyboardInput>
+	mut event_reader: EventReader
 ) -> impl FnMut() {
 	move || {
-		if let Ok(event) = event_reader.read() {
-			println!("SAAS: {:?}", event);
+		if let Ok(event) = event_reader.read::<KeyboardInput>() {
+			println!("Keyboard events: {:?}", event);
 		}
 	}
 }
