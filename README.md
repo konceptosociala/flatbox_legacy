@@ -6,17 +6,17 @@ Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komp
 
 # Tasklisto
 
-- [ ] Change backend implementation: set `Renderer` as universal parameter
 - [x] `Prelude`
-- [ ] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
+- [x] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
 - [ ] Resource processing (as hecs ECS)
 	- [ ] `Texture`
 	- [ ] `Material`
-	- [ ] `Mesh`
-- [ ] Warmy rudimental feature
+		- [x] `DefaultMat`
+		- [ ] Universal `Material`
+	- [x] `Mesh`
 - [ ] ECS
 	- [ ] `Light`
-	- [ ] `ModelBundle`
+	- [x] `ModelBundle`
 	- [x] `Camera`
 - [ ] Loading models
 - [ ] `RenderTexture`

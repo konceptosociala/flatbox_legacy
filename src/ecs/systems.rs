@@ -144,7 +144,7 @@ pub(crate) fn rendering_system(
 	//~ }
 //~ }
 
-pub(crate) fn init_models_system(
+pub(crate) fn update_models_system(
 	mut renderer: Write<Renderer>,
 	world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
 ) -> Result<(), vk::Result> {

@@ -6,6 +6,7 @@ use winit::{
 	event_loop::EventLoop,
 	window::WindowBuilder,
 };
+use hecs::World;
 use hecs_schedule::*;
 
 use crate::render::{
@@ -24,6 +25,8 @@ use crate::render::{
 	debug::Debug,
 	transform::Transform,
 };
+
+use crate::extract;
 
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 1;
 
@@ -682,6 +685,54 @@ impl Renderer {
 		)?;
 		
 		Ok(())
+	}
+	
+	/// Function to destroy renderer. Used in [`Despero`]'s ['Drop'] function
+	pub(crate) fn cleanup(&mut self, world: &mut World){
+		unsafe {
+			// Wait for device stop
+			self.device.device_wait_idle().expect("Error halting device");	
+			// Destroy TextureStorage
+			self.texture_storage.cleanup(&self.device, &mut self.allocator);
+			// Destroy DescriptorPool
+			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
+			// Destroy UniformBuffer
+			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
+			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
+			// Destroy LightBuffer
+			self.device.destroy_buffer(self.lightbuffer.buffer, None);
+			// Models clean
+			for (_, m) in &mut world.query::<&mut Mesh>(){
+				if let Some(vb) = &mut m.vertexbuffer {
+					// Reassign VertexBuffer allocation to remove
+					let alloc = extract(&mut vb.allocation);
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(vb.buffer, None);
+				}
+				
+				if let Some(xb) = &mut m.indexbuffer {
+					// Reassign IndexBuffer allocation to remove
+					let alloc = extract(&mut xb.allocation);
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(xb.buffer, None);
+				}
+				
+				if let Some(ib) = &mut m.instancebuffer {
+					// Reassign IndexBuffer allocation to remove
+					let alloc = extract(&mut ib.allocation);
+					self.allocator.free(alloc).unwrap();
+					self.device.destroy_buffer(ib.buffer, None);
+				}
+			}
+			self.commandbuffer_pools.cleanup(&self.device);
+			self.pipeline.cleanup(&self.device);
+			self.device.destroy_render_pass(self.renderpass, None);
+			self.swapchain.cleanup(&self.device, &mut self.allocator);
+			self.device.destroy_device(None);
+			std::mem::ManuallyDrop::drop(&mut self.surfaces);
+			std::mem::ManuallyDrop::drop(&mut self.debug);
+			self.instance.destroy_instance(None);
+		};
 	}
 	
 	fn bgra_to_rgba(data: &Vec<u8>) -> Vec<u8> {

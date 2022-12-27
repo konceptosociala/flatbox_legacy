@@ -91,16 +91,16 @@ impl Despero {
 		// Init setup-systems Schedule
 		let mut setup_systems = self.
 				setup_systems
-					//.add_system(init_models_system)
+				//
 					.build();
 		// Init systems Schedule
 		let mut systems = self.systems
-			.add_system(init_models_system)
+			.add_system(update_models_system)
 			.add_system(rendering_system)
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
-			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
+			.execute((&mut self.world, &mut self.event_writer))
 			.expect("Cannot execute setup schedule");
 		// Extract `EventLoop` from `Renderer`
 		let mut eventloop = extract(&mut self.renderer.eventloop);
@@ -141,53 +141,13 @@ impl Despero {
 impl Drop for Despero {
 	fn drop(&mut self) {
 		unsafe {
-			self.renderer.device.device_wait_idle().expect("Error halting device");	
-			// Destroy TextureStorage
-			self.renderer.texture_storage.cleanup(&self.renderer.device, &mut self.renderer.allocator);
-			// Destroy DescriptorPool
-			self.renderer.device.destroy_descriptor_pool(self.renderer.descriptor_pool, None);
-			// Destroy UniformBuffer
-			self.renderer.device.destroy_buffer(self.renderer.uniformbuffer.buffer, None);
-			self.renderer.device.free_memory(self.renderer.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
-			// Destroy LightBuffer
-			self.renderer.device.destroy_buffer(self.renderer.lightbuffer.buffer, None);
-			// Models clean
-			/*for (_, m) in self.world.query_mut::<&mut Model<Vertex, DefaultMat>>() {
-				if let Some(vb) = &mut m.vertexbuffer {
-					// Reassign VertexBuffer allocation to remove
-					let alloc = extract(&mut vb.allocation);
-					self.renderer.allocator.free(alloc).unwrap();
-					self.renderer.device.destroy_buffer(vb.buffer, None);
-				}
-				
-				if let Some(xb) = &mut m.indexbuffer {
-					// Reassign IndexBuffer allocation to remove
-					let alloc = extract(&mut xb.allocation);
-					self.renderer.allocator.free(alloc).unwrap();
-					self.renderer.device.destroy_buffer(xb.buffer, None);
-				}
-				
-				if let Some(ib) = &mut m.instancebuffer {
-					// Reassign IndexBuffer allocation to remove
-					let alloc = extract(&mut ib.allocation);
-					self.renderer.allocator.free(alloc).unwrap();
-					self.renderer.device.destroy_buffer(ib.buffer, None);
-				}
-			}*/
-			self.renderer.commandbuffer_pools.cleanup(&self.renderer.device);
-			self.renderer.pipeline.cleanup(&self.renderer.device);
-			self.renderer.device.destroy_render_pass(self.renderer.renderpass, None);
-			self.renderer.swapchain.cleanup(&self.renderer.device, &mut self.renderer.allocator);
-			self.renderer.device.destroy_device(None);
-			std::mem::ManuallyDrop::drop(&mut self.renderer.surfaces);
-			std::mem::ManuallyDrop::drop(&mut self.renderer.debug);
-			self.renderer.instance.destroy_instance(None);
+			self.renderer.cleanup(&mut self.world);
 		};
 	}
 }
 
 // Extract `Option` variable from struct
-pub fn extract<T>(option: &mut Option<T>) -> T {
+pub(crate) fn extract<T>(option: &mut Option<T>) -> T {
 	// Create `None` option
 	let mut empty: Option<T> = None;
 	// Swap variable and `None`
