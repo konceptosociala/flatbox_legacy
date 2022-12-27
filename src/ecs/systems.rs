@@ -1,4 +1,6 @@
 use ash::vk;
+use std::mem::size_of;
+use gpu_allocator::MemoryLocation;
 use hecs_schedule::*;
 
 use crate::render::{
@@ -6,17 +8,14 @@ use crate::render::{
 	transform::Transform,
 	pbr::{
 		camera::Camera,
-		model::{
-			Model,
-			TexturedInstanceData,
-			TexturedVertexData,
-		},
+		model::*,
 	},
+	backend::buffer::Buffer,
 };
 
 pub(crate) fn rendering_system(
 	mut renderer: Write<Renderer>,
-	mut model_world: SubWorld<(&mut Model<TexturedVertexData, TexturedInstanceData>, &Transform)>,
+	mut model_world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
 	camera_world: SubWorld<(&mut Camera, &Transform)>,
 ){
 	// Get image of swapchain
@@ -134,13 +133,116 @@ pub(crate) fn rendering_system(
 		(renderer.swapchain.current_image + 1) % renderer.swapchain.amount_of_images as usize;
 }
 
+//~ pub(crate) fn init_models_system(
+	//~ mut renderer: Write<Renderer>,
+	//~ world: SubWorld<(&mut Model<Vertex, DefaultMat>, &Transform)>,
+//~ ){
+	//~ for (_, model) in &mut world.query::<&mut Model<Vertex, DefaultMat>>() {
+		//~ model.update_vertexbuffer(&mut renderer).expect("Cannot update vertexbuffer");	
+		//~ model.update_instancebuffer(&mut renderer).expect("Cannot update instancebuffer");
+		//~ model.update_indexbuffer(&mut renderer).expect("Cannot update indexbuffer");
+	//~ }
+//~ }
+
 pub(crate) fn init_models_system(
 	mut renderer: Write<Renderer>,
-	world: SubWorld<(&mut Model<TexturedVertexData, TexturedInstanceData>, &Transform)>,
-){
-	for (_, model) in &mut world.query::<&mut Model<TexturedVertexData, TexturedInstanceData>>() {
-		model.update_vertexbuffer(&mut renderer).expect("Cannot update vertexbuffer");	
-		model.update_instancebuffer(&mut renderer).expect("Cannot update instancebuffer");
-		model.update_indexbuffer(&mut renderer).expect("Cannot update indexbuffer");
+	world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
+) -> Result<(), vk::Result> {
+	for (_, (mesh, material, transform)) in &mut world.query::<(
+		&mut Mesh, &mut DefaultMat, &mut Transform,
+	)>(){
+		let logical_device = renderer.device.clone();
+		let mut allocator = &mut renderer.allocator;
+		// Update vertex buffer
+		//
+		//
+		// Check whether the buffer exists
+		if let Some(buffer) = &mut mesh.vertexbuffer {
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				&mesh.vertexdata
+			)?;
+		} else {
+			// Set buffer size
+			let bytes = (mesh.vertexdata.len() * size_of::<Vertex>()) as u64;		
+			let mut buffer = Buffer::new(
+				&logical_device,
+				&mut allocator,
+				bytes,
+				vk::BufferUsageFlags::VERTEX_BUFFER,
+				MemoryLocation::CpuToGpu,
+				"Model vertex buffer"
+			)?;
+			
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				&mesh.vertexdata
+			)?;
+			mesh.vertexbuffer = Some(buffer);
+		}
+		
+		// Update InstanceBuffer
+		//
+		//		
+		let mat_ptr = material as *const _ as *const u8;
+		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of::<DefaultMat>())};
+		if let Some(buffer) = &mut mesh.instancebuffer {
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				mat_slice,
+			)?;
+		} else {
+			let bytes = size_of::<DefaultMat>() as u64; 
+			let mut buffer = Buffer::new(
+				&logical_device,
+				&mut allocator,
+				bytes,
+				vk::BufferUsageFlags::VERTEX_BUFFER,
+				MemoryLocation::CpuToGpu,
+				"Model instance buffer"
+			)?;
+			
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				mat_slice
+			)?;
+			mesh.instancebuffer = Some(buffer);
+		}
+
+		// Update IndexBuffer
+		//
+		//
+		// Check whether the buffer exists
+		if let Some(buffer) = &mut mesh.indexbuffer {
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				&mesh.indexdata,
+			)?;
+		} else {
+			// Set buffer size
+			let bytes = (mesh.indexdata.len() * size_of::<u32>()) as u64;		
+			let mut buffer = Buffer::new(
+				&logical_device,
+				&mut allocator,
+				bytes,
+				vk::BufferUsageFlags::INDEX_BUFFER,
+				MemoryLocation::CpuToGpu,
+				"Model buffer of vertex indices"
+			)?;
+			
+			buffer.fill(
+				&logical_device,
+				&mut allocator,
+				&mesh.indexdata
+			)?;
+			mesh.indexbuffer = Some(buffer);
+		}
 	}
+	
+	return Ok(());
 }

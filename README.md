@@ -6,21 +6,33 @@ Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komp
 
 # Tasklisto
 
-- [ ] `Prelude`
-- [ ] Reorganizi `InstanceData` (Material) kaj `VertexData` (Mesh)
-- [x] Biblioteka privateco
-- [x] Enteni ĉefan ĉiklon (eventloop) al Despero struct
-- [ ] Refari (universaligi)
-- [x] Reorganizi `Despero struct`:
-```rust
-struct Despero {
-	renderer: Renderer,
-}
-```
-- [ ] Realigi EKS
-	- [x] main
-	- [x] lib.rs
-	- [ ] light.rs
-	- [ ] model.rs
-	- [ ] camera.rs
-	- [ ] texture.rs
+- [ ] Change backend implementation: set `Renderer` as universal parameter
+- [x] `Prelude`
+- [ ] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
+- [ ] Resource processing (as hecs ECS)
+	- [ ] `Texture`
+	- [ ] `Material`
+	- [ ] `Mesh`
+- [ ] Warmy rudimental feature
+- [ ] ECS
+	- [ ] `Light`
+	- [ ] `ModelBundle`
+	- [x] `Camera`
+- [ ] Loading models
+- [ ] `RenderTexture`
+- [ ] Realistic lights
+- [ ] Shadows
+	- [ ] Simple
+	- [ ] Soft
+- [ ] UI (egui)
+- [ ] Physics (rapier3d)
+- [ ] Scripting (mlua)
+	- [ ] Simple scripts
+	- [ ] Script as resource
+- [ ] GLTF Scenes
+	- [ ] Processing
+	- [ ] GLTFExtras custom parameters
+	- [ ] Animation
+- [ ] Particle Systems
+- [ ] Game Settings
+- [ ] Conditional systems

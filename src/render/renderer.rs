@@ -18,17 +18,11 @@ use crate::render::{
 		buffer::Buffer,
 	},
 	pbr::{
-		model::{
-			Model,
-			TexturedInstanceData,
-			TexturedVertexData
-		},
-		texture::{
-			TextureStorage,
-			Filter,
-		},
+		model::*,
+		texture::*,
 	},
 	debug::Debug,
+	transform::Transform,
 };
 
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 1;
@@ -612,12 +606,47 @@ impl Renderer {
 				&[],
 			);
 			
-			for (_, model) in &mut world.query::<&Model<TexturedVertexData, TexturedInstanceData>>(){
-				model.draw(
-					&self.device,
-					commandbuffer,
-				);
+			for (_, (mesh, material, transform)) in &mut world.query::<(
+				&Mesh, &DefaultMat, &Transform,
+			)>(){
+				if let Some(vertexbuffer) = &mesh.vertexbuffer {
+					if let Some(instancebuffer) = &mesh.instancebuffer {
+						if let Some(indexbuffer) = &mesh.indexbuffer {
+							// Bind position buffer						
+							self.device.cmd_bind_index_buffer(
+								commandbuffer,
+								indexbuffer.buffer,
+								0,
+								vk::IndexType::UINT32,
+							);
+							
+							self.device.cmd_bind_vertex_buffers(
+								commandbuffer,
+								0,
+								&[vertexbuffer.buffer],
+								&[0],
+							);
+							
+							self.device.cmd_bind_vertex_buffers(
+								commandbuffer,
+								1,
+								&[instancebuffer.buffer],
+								&[0],
+							);
+							
+							self.device.cmd_draw_indexed(
+								commandbuffer,
+								mesh.indexdata.len() as u32,
+								1,
+								0,
+								0,
+								0,
+							);
+						}
+					}
+				}
 			}
+			
 			self.device.cmd_end_render_pass(commandbuffer);
 			self.device.end_command_buffer(commandbuffer)?;
 		}

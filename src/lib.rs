@@ -36,9 +36,8 @@ use crate::render::{
 	renderer::Renderer,
 	pbr::{
 		model::{
-			Model,
-			TexturedInstanceData,
-			TexturedVertexData,
+			DefaultMat,
+			Vertex,
 		},
 	},
 };
@@ -153,7 +152,7 @@ impl Drop for Despero {
 			// Destroy LightBuffer
 			self.renderer.device.destroy_buffer(self.renderer.lightbuffer.buffer, None);
 			// Models clean
-			for (_, m) in self.world.query_mut::<&mut Model<TexturedVertexData, TexturedInstanceData>>() {
+			/*for (_, m) in self.world.query_mut::<&mut Model<Vertex, DefaultMat>>() {
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
 					let alloc = extract(&mut vb.allocation);
@@ -174,7 +173,7 @@ impl Drop for Despero {
 					self.renderer.allocator.free(alloc).unwrap();
 					self.renderer.device.destroy_buffer(ib.buffer, None);
 				}
-			}
+			}*/
 			self.renderer.commandbuffer_pools.cleanup(&self.renderer.device);
 			self.renderer.pipeline.cleanup(&self.renderer.device);
 			self.renderer.device.destroy_render_pass(self.renderer.renderpass, None);
