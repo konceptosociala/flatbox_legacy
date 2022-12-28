@@ -100,7 +100,7 @@ impl Despero {
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
-			.execute((&mut self.world, &mut self.event_writer))
+			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
 			.expect("Cannot execute setup schedule");
 		// Extract `EventLoop` from `Renderer`
 		let mut eventloop = extract(&mut self.renderer.eventloop);
