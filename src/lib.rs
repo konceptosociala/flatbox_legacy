@@ -89,8 +89,7 @@ impl Despero {
 	/// Run main event loop
 	pub fn run(mut self) {
 		// Init setup-systems Schedule
-		let mut setup_systems = self.
-				setup_systems
+		let mut setup_systems = self.setup_systems
 				//
 					.build();
 		// Init systems Schedule
