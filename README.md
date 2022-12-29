@@ -9,13 +9,13 @@ Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komp
 - [x] `Prelude`
 - [x] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
 - [ ] Resource processing (as hecs ECS)
-	- [ ] `Texture`
+	- [x] `Texture`
 	- [ ] `Material`
 		- [x] `DefaultMat`
 		- [ ] Universal `Material`
 	- [x] `Mesh`
-- [ ] ECS
-	- [ ] `Light`
+- [x] ECS
+	- [x] `Light`
 	- [x] `ModelBundle`
 	- [x] `Camera`
 - [ ] Loading models

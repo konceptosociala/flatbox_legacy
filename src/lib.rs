@@ -96,6 +96,7 @@ impl Despero {
 		let mut systems = self.systems
 			.add_system(update_models_system)
 			.add_system(rendering_system)
+			.add_system(update_lights)
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems

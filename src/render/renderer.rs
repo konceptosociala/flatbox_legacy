@@ -532,7 +532,7 @@ impl Renderer {
 		Ok(())
 	}
 	
-	pub fn texture_from_file<P: AsRef<std::path::Path>>(
+	pub fn create_texture<P: AsRef<std::path::Path>>(
 		&mut self,
 		path: P,
 		filter: Filter,

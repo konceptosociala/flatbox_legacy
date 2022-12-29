@@ -26,7 +26,7 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Create texture
-	let texture = renderer.texture_from_file("assets/image.jpg", Filter::LINEAR);
+	let texture = renderer.create_texture("assets/image.jpg", Filter::LINEAR);
 	// Create model
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::plane(),
@@ -44,7 +44,8 @@ fn create_models(
 		direction: Vector3::new(-1., -1., 0.),
 		illuminance: [0.5, 0.5, 0.5],
 	});
-	lights.update_buffer(&mut renderer).expect("Cannot update lights");
+	cmd.spawn((lights,));
+	//lights.update_buffer(&mut renderer).expect("Cannot update lights");
 	
 	// Lights
 	//~ lights.add_light(PointLight {

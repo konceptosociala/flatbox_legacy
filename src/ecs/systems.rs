@@ -9,6 +9,7 @@ use crate::render::{
 	pbr::{
 		camera::Camera,
 		model::*,
+		light::*,
 	},
 	backend::buffer::Buffer,
 };
@@ -245,4 +246,13 @@ pub(crate) fn update_models_system(
 	}
 	
 	return Ok(());
+}
+
+pub fn update_lights(
+	light_world: SubWorld<&mut LightManager>,
+	mut renderer: Write<Renderer>,
+){
+	for (_, lights) in &mut light_world.query::<&mut LightManager>() {
+		lights.update_buffer(&mut renderer).expect("Cannot update lights");
+	}
 }
