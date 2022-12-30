@@ -8,6 +8,36 @@
 //                      __/ |     |/                               __/ |
 //                     |___/                                      |___/	
 // 
+//
+//! ![banner](https://raw.githubusercontent.com/konceptosociala/despero/main/banner.svg)
+//! Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
+//! which implements paradigm of ECS and provides developers with
+//! appropriate toolkit to develop PBR games with advanced technologies
+//!
+//! # Simple example
+//!
+//! ```rust
+//! use despero::prelude::*;
+//! 
+//! fn main(){
+//! 	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
+//! 
+//! 	despero
+//! 		.add_setup_system(s1)
+//! 		.add_system(s2)
+//! 		.run()
+//! }
+//! 
+//! fn s1(){
+//! 	Debug::info("I run only once!");
+//! }
+//! 
+//! fn s2(){
+//! 	Debug::info("I run in loop!");
+//! } 
+//! ```
+//! 
+
 use std::sync::Arc;
 use hecs::*;
 use hecs_schedule::*;
@@ -20,15 +50,15 @@ use winit::{
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
 };
-///
+/// Contains submodules and structures to work with graphics
 pub mod render;
-///
+/// Contains ECS implementations
 pub mod ecs;
-///
+/// Contains [Rapier3D](https://crates.io/crates/rapier3d) implementations
 pub mod physics;
-///
+/// Contains [mlua](https://crates.io/crates/mlua) scripting implementations
 pub mod scripting;
-///
+/// Bundle of all essential components of the engine
 pub mod prelude;
 
 use crate::ecs::{
@@ -38,6 +68,7 @@ use crate::ecs::{
 
 use crate::render::renderer::Renderer;
 
+/// Main engine struct
 pub struct Despero {
 	world: World,
 	systems: ScheduleBuilder,

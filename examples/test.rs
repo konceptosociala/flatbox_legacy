@@ -26,13 +26,24 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Create texture
-	let texture = renderer.create_texture("assets/image.jpg", Filter::LINEAR);
+	let texture = renderer.create_texture("assets/image2.jpg", Filter::LINEAR);
+	let texture2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR);
 	// Create model
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::plane(),
 		material: DefaultMat::new(
-			Matrix4::new_translation(&Vector3::new(0.0, 0., 0.3)),
+			Matrix4::new_translation(&Vector3::new(1.5, 0., 0.3)),
 			texture,
+			0.0,
+			1.0,
+		),
+		transform: Transform::default(),
+	});
+	cmd.spawn(ModelBundle {
+		mesh: Mesh::plane(),
+		material: DefaultMat::new(
+			Matrix4::new_translation(&Vector3::new(-1.5, 0., 0.3)),
+			texture2,
 			0.0,
 			1.0,
 		),

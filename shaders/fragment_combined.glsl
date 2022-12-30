@@ -113,4 +113,5 @@ void main(){
 	}
 
 	theColour=vec4(L/(1+L),1.0);
+	theColour=texture(texturesamplers[texture_id], uv);
 }
