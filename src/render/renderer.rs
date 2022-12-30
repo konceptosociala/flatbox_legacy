@@ -609,7 +609,7 @@ impl Renderer {
 				&[],
 			);
 			
-			for (_, (mesh, material, transform)) in &mut world.query::<(
+			for (_, (mesh, _material, _transform)) in &mut world.query::<(
 				&Mesh, &DefaultMat, &Transform,
 			)>(){
 				if let Some(vertexbuffer) = &mesh.vertexbuffer {
@@ -684,6 +684,14 @@ impl Renderer {
 			&self.renderpass
 		)?;
 		
+		Ok(())
+	}
+	
+	pub(crate) fn fill_lightbuffer<T: Sized>(
+		&mut self,
+		data: &[T],
+	) -> Result<(), vk::Result>{
+		self.lightbuffer.fill(&self.device, &mut self.allocator, data)?;
 		Ok(())
 	}
 	

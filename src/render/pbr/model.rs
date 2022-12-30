@@ -1,10 +1,7 @@
-use ash::vk;
 use nalgebra as na;
-use thiserror::Error;
 use hecs::*;
 
 use crate::render::{
-	renderer::Renderer,
 	backend::buffer::Buffer,
 	transform::Transform,
 };

@@ -39,27 +39,15 @@ fn create_models(
 		transform: Transform::default(),
 	});
 	// Add light
-	let mut lights = LightManager::default();
-	lights.add_light(DirectionalLight {
+	cmd.spawn((DirectionalLight {
 		direction: Vector3::new(-1., -1., 0.),
 		illuminance: [0.5, 0.5, 0.5],
-	});
-	cmd.spawn((lights,));
-	//lights.update_buffer(&mut renderer).expect("Cannot update lights");
+	},));
 	
-	// Lights
-	//~ lights.add_light(PointLight {
-		//~ position: na::Point3::new(0.1, -3.0, -3.0),
-		//~ luminous_flux: [100.0, 100.0, 100.0],
-	//~ });
-	//~ lights.add_light(PointLight {
-		//~ position: na::Point3::new(0.1, -3.0, -3.0),
-		//~ luminous_flux: [100.0, 100.0, 100.0],
-	//~ });
-	//~ lights.add_light(PointLight {
-		//~ position: na::Point3::new(0.1, -3.0, -3.0),
-		//~ luminous_flux: [100.0, 100.0, 100.0],
-	//~ });
+	cmd.spawn((PointLight {
+		position: nalgebra::Point3::new(0.1, -3.0, -3.0),
+		luminous_flux: [100.0, 100.0, 100.0],
+	},));
 }
 
 fn create_camera(

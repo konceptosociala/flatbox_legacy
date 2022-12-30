@@ -249,10 +249,60 @@ pub(crate) fn update_models_system(
 }
 
 pub fn update_lights(
-	light_world: SubWorld<&mut LightManager>,
+	plight_world: SubWorld<&PointLight>,
+	dlight_world: SubWorld<&DirectionalLight>,
 	mut renderer: Write<Renderer>,
-){
-	for (_, lights) in &mut light_world.query::<&mut LightManager>() {
-		lights.update_buffer(&mut renderer).expect("Cannot update lights");
+) -> Result<(), vk::Result> {
+	let directional_lights = dlight_world.query::<&DirectionalLight>()
+		.into_iter()
+		.map(|(_, l)| l.clone())
+		.collect::<Vec<DirectionalLight>>();
+		
+	let point_lights = plight_world.query::<&PointLight>()
+		.into_iter()
+		.map(|(_, l)| l.clone())
+		.collect::<Vec<PointLight>>();
+	
+	let mut data: Vec<f32> = vec![];
+	data.push(directional_lights.len() as f32);
+	data.push(point_lights.len() as f32);
+	data.push(0.0);
+	data.push(0.0);
+	for dl in directional_lights {
+		data.push(dl.direction.x);
+		data.push(dl.direction.y);
+		data.push(dl.direction.z);
+		data.push(0.0);
+		data.push(dl.illuminance[0]);
+		data.push(dl.illuminance[1]);
+		data.push(dl.illuminance[2]);
+		data.push(0.0);
 	}
+	for pl in point_lights {
+		data.push(pl.position.x);
+		data.push(pl.position.y);
+		data.push(pl.position.z);
+		data.push(0.0);
+		data.push(pl.luminous_flux[0]);
+		data.push(pl.luminous_flux[1]);
+		data.push(pl.luminous_flux[2]);
+		data.push(0.0);
+	}
+	renderer.fill_lightbuffer(&data)?;
+	// Update descriptor_sets
+	for descset in &renderer.descriptor_sets_light {
+		let buffer_infos = [vk::DescriptorBufferInfo {
+			buffer: renderer.lightbuffer.buffer,
+			offset: 0,
+			range: 4 * data.len() as u64,
+		}];
+		let desc_sets_write = [vk::WriteDescriptorSet::builder()
+			.dst_set(*descset)
+			.dst_binding(0)
+			.descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+			.buffer_info(&buffer_infos)
+			.build()];
+		unsafe { renderer.device.update_descriptor_sets(&desc_sets_write, &[]) };
+	}
+	Ok(())
 }

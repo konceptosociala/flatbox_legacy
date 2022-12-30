@@ -1,4 +1,4 @@
-//
+// 
 //   _____                             _____   _                                    _ 
 //  / ____|                           |_   _| | |                                  | |
 // | (___   ___  _ __  _   _  __ _      | |   | | _____   _____   _   _  ___  _   _| |
@@ -7,7 +7,7 @@
 // |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
 //                      __/ |     |/                               __/ |
 //                     |___/                                      |___/	
-//
+// 
 use std::sync::Arc;
 use hecs::*;
 use hecs_schedule::*;
@@ -20,11 +20,15 @@ use winit::{
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
 };
-
+///
 pub mod render;
+///
 pub mod ecs;
+///
 pub mod physics;
+///
 pub mod scripting;
+///
 pub mod prelude;
 
 use crate::ecs::{
@@ -32,15 +36,7 @@ use crate::ecs::{
 	event::*,
 };
 
-use crate::render::{
-	renderer::Renderer,
-	pbr::{
-		model::{
-			DefaultMat,
-			Vertex,
-		},
-	},
-};
+use crate::render::renderer::Renderer;
 
 pub struct Despero {
 	world: World,
@@ -140,9 +136,7 @@ impl Despero {
 
 impl Drop for Despero {
 	fn drop(&mut self) {
-		unsafe {
-			self.renderer.cleanup(&mut self.world);
-		};
+		self.renderer.cleanup(&mut self.world);
 	}
 }
 
