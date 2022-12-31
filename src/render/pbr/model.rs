@@ -20,7 +20,7 @@ pub struct Vertex {
 
 impl Vertex {
 	/// Get middle point between two vertices
-	fn midpoint(a: &Vertex, b: &Vertex) -> Vertex {
+	pub fn midpoint(a: &Vertex, b: &Vertex) -> Vertex {
 		Vertex {
 			position: [
 				0.5 * (a.position[0] + b.position[0]),
@@ -40,7 +40,7 @@ impl Vertex {
 	}
 	
 	/// Normalize vector/vertex. Returns vector with the same direction and `1` lenght
-	fn normalize(v: [f32; 3]) -> [f32; 3] {
+	pub fn normalize(v: [f32; 3]) -> [f32; 3] {
 		let l = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
 		[v[0] / l, v[1] / l, v[2] / l]
 	}
@@ -87,6 +87,80 @@ impl Mesh {
 			instancebuffer: None,
 			indexbuffer: None,
 		}
+	}
+	
+	/// Load model from `.obj` file
+	pub fn load_obj<P>(path: P) -> Vec<Mesh>
+	where 
+		P: AsRef<std::path::Path> + std::fmt::Debug
+	{
+		let (models, _) = tobj::load_obj(
+			path,
+			&tobj::LoadOptions::default(),
+		).expect("Cannot load OBJ file");
+		
+		let mut meshes = Vec::<Mesh>::new();
+		
+		for m in models {
+			let mut vertexdata = Vec::<Vertex>::new();
+			let indexdata = m.mesh.indices;
+			
+			for i in 0..m.mesh.positions.len() / 3 {				
+				let normal: [f32; 3];
+				let texcoord: [f32; 2];
+				
+				let position = [
+					m.mesh.positions[i*3],
+					m.mesh.positions[i*3+1],
+					m.mesh.positions[i*3+2],
+				];
+				
+				if i*3 < m.mesh.normals.len() {
+					normal = [
+						m.mesh.normals[i*3],
+						m.mesh.normals[i*3+1],
+						m.mesh.normals[i*3+2],
+					];
+				} else {
+					normal = Vertex::normalize(position);
+				}
+				
+				if i*3 < m.mesh.texcoords.len() {
+					texcoord = [
+						m.mesh.texcoords[i*2],
+						m.mesh.texcoords[i*2+1],
+					];
+				} else {
+					texcoord = [0.0; 2];
+				}
+				
+				vertexdata.push(Vertex {
+					position,
+					normal,
+					texcoord,
+				});
+			}
+			
+			meshes.push(Mesh {
+				vertexdata,
+				indexdata,
+				
+				vertexbuffer: None,
+				instancebuffer: None,
+				indexbuffer: None,
+			});
+		}
+		
+		return meshes;
+	}
+}
+
+impl std::fmt::Debug for Mesh {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("Mesh")
+			.field("vertexdata", &self.vertexdata)
+			.field("indexdata", &self.indexdata)
+			.finish()
 	}
 }
 

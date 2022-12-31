@@ -134,22 +134,11 @@ pub(crate) fn rendering_system(
 		(renderer.swapchain.current_image + 1) % renderer.swapchain.amount_of_images as usize;
 }
 
-//~ pub(crate) fn init_models_system(
-	//~ mut renderer: Write<Renderer>,
-	//~ world: SubWorld<(&mut Model<Vertex, DefaultMat>, &Transform)>,
-//~ ){
-	//~ for (_, model) in &mut world.query::<&mut Model<Vertex, DefaultMat>>() {
-		//~ model.update_vertexbuffer(&mut renderer).expect("Cannot update vertexbuffer");	
-		//~ model.update_instancebuffer(&mut renderer).expect("Cannot update instancebuffer");
-		//~ model.update_indexbuffer(&mut renderer).expect("Cannot update indexbuffer");
-	//~ }
-//~ }
-
 pub(crate) fn update_models_system(
 	mut renderer: Write<Renderer>,
 	world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
 ) -> Result<(), vk::Result> {
-	for (_, (mesh, material, transform)) in &mut world.query::<(
+	for (_, (mesh, material, _transform)) in &mut world.query::<(
 		&mut Mesh, &mut DefaultMat, &mut Transform,
 	)>(){
 		let logical_device = renderer.device.clone();

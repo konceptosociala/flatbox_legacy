@@ -26,23 +26,24 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Create texture
-	let texture = renderer.create_texture("assets/image2.jpg", Filter::LINEAR);
+	let texture1 = renderer.create_texture("assets/image2.jpg", Filter::LINEAR);
 	let texture2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR);
-	// Create model
+	// Create textured plane
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::plane(),
 		material: DefaultMat::new(
 			Matrix4::new_translation(&Vector3::new(1.5, 0., 0.3)),
-			texture,
+			texture1,
 			0.0,
 			1.0,
 		),
 		transform: Transform::default(),
 	});
+	// Load model from OBJ
 	cmd.spawn(ModelBundle {
-		mesh: Mesh::plane(),
+		mesh: despero::take(Mesh::load_obj("assets/model.obj"), 0).unwrap(),
 		material: DefaultMat::new(
-			Matrix4::new_translation(&Vector3::new(-1.5, 0., 0.3)),
+			Matrix4::new_translation(&Vector3::new(-1.5, 1.0, 1.3)),
 			texture2,
 			0.0,
 			1.0,
@@ -58,7 +59,7 @@ fn create_models(
 	cmd.spawn((PointLight {
 		position: nalgebra::Point3::new(0.1, -3.0, -3.0),
 		luminous_flux: [100.0, 100.0, 100.0],
-	},));
+	},));	
 }
 
 fn create_camera(

@@ -28,7 +28,7 @@ use crate::render::{
 
 use crate::extract;
 
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 1;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
 
 pub struct Renderer {
 	pub(crate) eventloop: Option<EventLoop<()>>,

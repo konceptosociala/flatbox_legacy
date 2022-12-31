@@ -8,19 +8,20 @@ repository = "https://github.com/konceptosociala/despero"
 
 [dependencies]
 # Misc
-thiserror 	= "1.0.38"
-readonly 	= "0.2.3"
 colored 	= "2.0.0"
 nalgebra 	= "0.31.2"
+readonly 	= "0.2.3"
+thiserror 	= "1.0.38"
 
 # Rendering
-image 				= "0.24.5"
 ash 				= "0.37.0"
-vk-shader-macros 	= "0.2.8"
-gpu-allocator	 	= "0.20.0"
-winit 				= "0.26.0"
 ash-window 			= "0.11.0"
+gpu-allocator	 	= "0.20.0"
+image 				= "0.24.5"
 raw-window-handle 	= "0.4.2"
+tobj 				= "3.2.3"
+vk-shader-macros 	= "0.2.8"
+winit 				= "0.26.0"
 
 # ECS
 bus 			= "2.3.0"

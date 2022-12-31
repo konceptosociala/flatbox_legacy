@@ -1,15 +1,21 @@
-// 
-//   _____                             _____   _                                    _ 
-//  / ____|                           |_   _| | |                                  | |
-// | (___   ___  _ __  _   _  __ _      | |   | | _____   _____   _   _  ___  _   _| |
-//  \___ \ / _ \| '_ \| | | |/ _` |     | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
-//  ____) | (_) | | | | |_| | (_| |_   _| |_  | | (_) \ V /  __/ | |_| | (_) | |_| |_|
-// |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
-//                      __/ |     |/                               __/ |
-//                     |___/                                      |___/	
-// 
-//
-//! ![banner](https://raw.githubusercontent.com/konceptosociala/despero/main/banner.svg)
+//! ```text
+//!                                                                             
+//!          8I                                                                 
+//!          8I                                                                 
+//!          8I                                                                 
+//!          8I                                                                 
+//!    ,gggg,8I   ,ggg,     ,g,     gg,gggg,     ,ggg,    ,gggggg,    ,ggggg,   
+//!   dP"  "Y8I  i8" "8i   ,8'8,    I8P"  "Yb   i8" "8i   dP""""8I   dP"  "Y8ggg
+//!  i8'    ,8I  I8, ,8I  ,8'  Yb   I8'    ,8i  I8, ,8I  ,8'    8I  i8'    ,8I  
+//! ,d8,   ,d8b, `YbadP' ,8'_   8) ,I8 _  ,d8'  `YbadP' ,dP     Y8,,d8,   ,d8'  
+//! P"Y8888P"`Y8888P"Y888P' "YY8P8PPI8 YY88888P888P"Y8888P      `Y8P"Y8888P"    
+//!                                 I8                                          
+//!                                 I8                                          
+//!                                 I8                                          
+//!                                 I8                                          
+//!                                 I8                                          
+//!                                 I8                                          
+//! ```
 //! Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
 //! which implements paradigm of ECS and provides developers with
 //! appropriate toolkit to develop PBR games with advanced technologies
@@ -37,6 +43,18 @@
 //! } 
 //! ```
 //! 
+
+// 
+//   _____                             _____   _                                    _ 
+//  / ____|                           |_   _| | |                                  | |
+// | (___   ___  _ __  _   _  __ _      | |   | | _____   _____   _   _  ___  _   _| |
+//  \___ \ / _ \| '_ \| | | |/ _` |     | |   | |/ _ \ \ / / _ \ | | | |/ _ \| | | | |
+//  ____) | (_) | | | | |_| | (_| |_   _| |_  | | (_) \ V /  __/ | |_| | (_) | |_| |_|
+// |_____/ \___/|_| |_|\__, |\__,_( ) |_____| |_|\___/ \_/ \___|  \__, |\___/ \__,_(_)
+//                      __/ |     |/                               __/ |
+//                     |___/                                      |___/	
+// 
+//
 
 use std::sync::Arc;
 use hecs::*;
@@ -179,4 +197,12 @@ pub(crate) fn extract<T>(option: &mut Option<T>) -> T {
 	std::mem::swap(&mut empty, option);
 	// Return unwrapped option
 	empty.unwrap()
+}
+
+pub fn take<T>(mut vec: Vec<T>, index: usize) -> Option<T> {
+    if vec.get(index).is_none() {
+        None
+    } else {
+        Some(vec.swap_remove(index))
+    }
 }
