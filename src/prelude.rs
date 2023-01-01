@@ -15,7 +15,11 @@ pub use crate::ecs::resource::*;
 pub use winit::window::WindowBuilder;
 pub use winit::event::*;
 pub use hecs_schedule::*;
+
+/// Math
 pub use nalgebra::{
 	Matrix4,
 	Vector3,
+	Rotation3,
+	Unit,
 };

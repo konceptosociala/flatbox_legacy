@@ -742,6 +742,7 @@ name = "hecs-query-tracker"
 version = "0.1.0"
 dependencies = [
  "hecs",
+ "hecs-schedule",
 ]
 
 [[package]]

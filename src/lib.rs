@@ -142,6 +142,7 @@ impl Despero {
 			.add_system(update_models_system)
 			.add_system(rendering_system)
 			.add_system(update_lights)
+			.add_system(process_transform)
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
@@ -197,12 +198,4 @@ pub(crate) fn extract<T>(option: &mut Option<T>) -> T {
 	std::mem::swap(&mut empty, option);
 	// Return unwrapped option
 	empty.unwrap()
-}
-
-pub fn take<T>(mut vec: Vec<T>, index: usize) -> Option<T> {
-    if vec.get(index).is_none() {
-        None
-    } else {
-        Some(vec.swap_remove(index))
-    }
 }

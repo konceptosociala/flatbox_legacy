@@ -4,6 +4,7 @@ use hecs::*;
 use crate::render::{
 	backend::buffer::Buffer,
 	transform::Transform,
+	debug::Debug,
 };
 
 /// Trait for materials to be used in [`ModelBundle`]
@@ -105,6 +106,13 @@ impl Mesh {
 			let mut vertexdata = Vec::<Vertex>::new();
 			let indexdata = m.mesh.indices;
 			
+			Debug::info(format!(
+				"Positions: {}; Normals: {}; Texcoords: {}",
+				m.mesh.positions.len(),
+				m.mesh.normals.len(),
+				m.mesh.texcoords.len(),
+			).as_str());
+			
 			for i in 0..m.mesh.positions.len() / 3 {				
 				let normal: [f32; 3];
 				let texcoord: [f32; 2];
@@ -115,17 +123,9 @@ impl Mesh {
 					m.mesh.positions[i*3+2],
 				];
 				
-				if i*3 < m.mesh.normals.len() {
-					normal = [
-						m.mesh.normals[i*3],
-						m.mesh.normals[i*3+1],
-						m.mesh.normals[i*3+2],
-					];
-				} else {
-					normal = Vertex::normalize(position);
-				}
+				normal = Vertex::normalize(position);
 				
-				if i*3 < m.mesh.texcoords.len() {
+				if i*2 < m.mesh.texcoords.len() {
 					texcoord = [
 						m.mesh.texcoords[i*2],
 						m.mesh.texcoords[i*2+1],
@@ -168,8 +168,8 @@ impl std::fmt::Debug for Mesh {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DefaultMat {
-	pub modelmatrix: [[f32; 4]; 4],
-	pub inverse_modelmatrix: [[f32; 4]; 4],
+	pub(crate) modelmatrix: [[f32; 4]; 4],
+	pub(crate) inverse_modelmatrix: [[f32; 4]; 4],
 	pub texture_id: u32,
 	pub metallic: f32,
 	pub roughness: f32,
@@ -178,11 +178,11 @@ pub struct DefaultMat {
 impl DefaultMat {
 	/// Create new instance of default material
 	pub fn new(
-		modelmatrix: na::Matrix4<f32>,
 		texture_id: usize,
 		metallic: f32,
 		roughness: f32,
 	) -> DefaultMat {
+		let modelmatrix = na::Matrix4::identity();
 		DefaultMat {
 			modelmatrix: modelmatrix.into(),
 			inverse_modelmatrix: modelmatrix.try_inverse().unwrap().into(),

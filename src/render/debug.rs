@@ -14,7 +14,7 @@ impl Debug {
 		let debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
 			.message_severity(
 				//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
-				vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
+				//vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
 				vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
 				vk::DebugUtilsMessageSeverityFlagsEXT::INFO
 			)

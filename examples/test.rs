@@ -8,7 +8,16 @@ fn main() {
 		.add_setup_system(create_models)
 		.add_setup_system(create_camera)
 		.add_system(handling(reader))
+		.add_system(ecs_change)
 		.run();
+}
+
+fn ecs_change(
+	world: SubWorld<&mut Transform>
+){	
+	for (_, t) in &mut world.query::<&mut Transform>() {
+		t.rotation = Rotation3::from_axis_angle(&Vector3::y_axis(), t.rotation.angle() + 0.05);
+	}
 }
 
 fn handling(
@@ -26,14 +35,12 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Create texture
-	let texture1 = renderer.create_texture("assets/image2.jpg", Filter::LINEAR);
-	let texture2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR);
+	let texture = renderer.create_texture("assets/uv.jpg", Filter::LINEAR);
 	// Create textured plane
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::plane(),
 		material: DefaultMat::new(
-			Matrix4::new_translation(&Vector3::new(1.5, 0., 0.3)),
-			texture1,
+			texture,
 			0.0,
 			1.0,
 		),
@@ -41,10 +48,9 @@ fn create_models(
 	});
 	// Load model from OBJ
 	cmd.spawn(ModelBundle {
-		mesh: despero::take(Mesh::load_obj("assets/model.obj"), 0).unwrap(),
+		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
 		material: DefaultMat::new(
-			Matrix4::new_translation(&Vector3::new(-1.5, 1.0, 1.3)),
-			texture2,
+			texture,
 			0.0,
 			1.0,
 		),
@@ -56,10 +62,10 @@ fn create_models(
 		illuminance: [0.5, 0.5, 0.5],
 	},));
 	
-	cmd.spawn((PointLight {
-		position: nalgebra::Point3::new(0.1, -3.0, -3.0),
-		luminous_flux: [100.0, 100.0, 100.0],
-	},));	
+	//~ cmd.spawn((PointLight {
+		//~ position: nalgebra::Point3::new(0.1, -3.0, -3.0),
+		//~ luminous_flux: [100.0, 100.0, 100.0],
+	//~ },));	
 }
 
 fn create_camera(
