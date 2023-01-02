@@ -13,10 +13,10 @@ fn main() {
 }
 
 fn ecs_change(
-	world: SubWorld<&mut Transform>
-){	
+	world: SubWorld<&mut Transform>,
+){
 	for (_, t) in &mut world.query::<&mut Transform>() {
-		t.rotation = Rotation3::from_axis_angle(&Vector3::y_axis(), t.rotation.angle() + 0.05);
+		t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
 	}
 }
 
@@ -36,16 +36,6 @@ fn create_models(
 ){
 	// Create texture
 	let texture = renderer.create_texture("assets/uv.jpg", Filter::LINEAR);
-	// Create textured plane
-	cmd.spawn(ModelBundle {
-		mesh: Mesh::plane(),
-		material: DefaultMat::new(
-			texture,
-			0.0,
-			1.0,
-		),
-		transform: Transform::default(),
-	});
 	// Load model from OBJ
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
@@ -60,12 +50,7 @@ fn create_models(
 	cmd.spawn((DirectionalLight {
 		direction: Vector3::new(-1., -1., 0.),
 		illuminance: [0.5, 0.5, 0.5],
-	},));
-	
-	//~ cmd.spawn((PointLight {
-		//~ position: nalgebra::Point3::new(0.1, -3.0, -3.0),
-		//~ luminous_flux: [100.0, 100.0, 100.0],
-	//~ },));	
+	},));	
 }
 
 fn create_camera(

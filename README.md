@@ -2,9 +2,16 @@
 
 # Despero
 
-Rustlingva ludmotoro, uzata API Vulkan kaj realigata koncepton de EKS (ento-komponanto-sistemo)
+Rusty game engine, using API Vulkan and implementing paradigm of ECS
 
 # Tasklisto
+## To fix:
+- Texture coordinates
+- Event reading (`dyn Event` -> `generic E`)
+- Reorganize `Renderer`
+- Multithreading (`Arc`) for `Renderer`
+
+## To implement:
 
 - [x] `Prelude`
 - [x] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)

@@ -22,4 +22,5 @@ pub use nalgebra::{
 	Vector3,
 	Rotation3,
 	Unit,
+	UnitQuaternion,
 };

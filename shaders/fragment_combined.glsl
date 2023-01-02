@@ -83,34 +83,46 @@ vec3 compute_radiance(
 }
 
 void main(){
-	vec3 L = vec3(0);
-	vec3 direction_to_camera = normalize(camera_coordinates - worldpos);
-	vec3 normal = normalize(normal);
+	//~ vec3 L = vec3(0);
+	//~ vec3 direction_to_camera = normalize(camera_coordinates - worldpos);
+	//~ vec3 normal = normalize(normal);
 	
-	int number_directional = int(sbo.num_directional);
-	int number_point = int(sbo.num_point);
+	//~ int number_directional = int(sbo.num_directional);
+	//~ int number_point = int(sbo.num_point);
 
 	// Directional lights
-	for (int i = 0; i < number_directional; i++){
-		vec3 direction = sbo.data[2 * i];
-		vec3 illuminance = sbo.data[2 * i + 1];
-		DirectionalLight dlight = DirectionalLight(normalize(direction), illuminance);
+	//~ for (int i = 0; i < number_directional; i++){
+		//~ vec3 direction = sbo.data[2 * i];
+		//~ vec3 illuminance = sbo.data[2 * i + 1];
+		//~ DirectionalLight dlight = DirectionalLight(normalize(direction), illuminance);
 
-		L += compute_radiance(dlight.irradiance, dlight.direction_to_light, normal, direction_to_camera, vec3(texture(texturesamplers[texture_id], uv)));
-	}
+		//~ L += compute_radiance(dlight.irradiance, dlight.direction_to_light, normal, direction_to_camera, vec3(texture(texturesamplers[texture_id], uv)));
+	//~ }
 
-	// Point lights
-	for (int i = 0; i < number_point; i++){
-		vec3 position = sbo.data[2 * i + 2 * number_point];
-		vec3 luminous_flux = sbo.data[2 * i + 1 + 2 * number_point];
-		PointLight light = PointLight(position, luminous_flux);
+	//~ // Point lights
+	//~ for (int i = 0; i < number_point; i++){
+		//~ vec3 position = sbo.data[2 * i + 2 * number_point];
+		//~ vec3 luminous_flux = sbo.data[2 * i + 1 + 2 * number_point];
+		//~ PointLight light = PointLight(position, luminous_flux);
 		
-		vec3 direction_to_light = normalize(light.position - worldpos);
-		float d = length(worldpos - light.position);
-		vec3 irradiance = light.luminous_flux/(4*PI*d*d);
+		//~ vec3 direction_to_light = normalize(light.position - worldpos);
+		//~ float d = length(worldpos - light.position);
+		//~ vec3 irradiance = light.luminous_flux/(4*PI*d*d);
 
-		L += compute_radiance(irradiance, direction_to_light, normal, direction_to_camera, vec3(texture(texturesamplers[texture_id], uv)));
-	}
+		//~ L += compute_radiance(irradiance, direction_to_light, normal, direction_to_camera, vec3(texture(texturesamplers[texture_id], uv)));
+	//~ }
 
-	theColour=vec4(L/(1+L),1.0);
+	//~ theColour=vec4(L/(1+L),1.0);
+	vec3 lightColor = vec3(1.0);
+	
+	float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * lightColor;
+    	
+	vec3 norm = normalize(normal);
+	vec3 lightDir = normalize(sbo.data[0]);
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec3 diffuse = diff * lightColor;
+	vec3 result = (ambient + diffuse) * vec3(texture(texturesamplers[texture_id], uv));
+	
+	theColour = vec4(result, 1.0);
 }
