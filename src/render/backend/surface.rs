@@ -2,7 +2,6 @@ use ash::vk;
 use crate::render::{
 	backend::{
 		instance::Instance,
-		window::Window,
 	},
 };
 

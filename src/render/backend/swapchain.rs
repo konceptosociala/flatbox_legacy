@@ -43,7 +43,7 @@ impl Swapchain {
 		let surface_format = *surfaces.get_formats(physical_device)?.first().unwrap();
 		
 		// Get graphics queue family
-		let queuefamilies = [queue_families.graphics_q_index.unwrap()];
+		let queuefamilies = [queue_families.graphics_index.unwrap()];
 		// Swapchain creation
 		let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
 			.surface(surfaces.surface)

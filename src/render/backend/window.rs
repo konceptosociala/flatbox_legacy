@@ -12,7 +12,6 @@ use crate::render::{
 		instance::Instance,
 		surface::Surface,
 	},
-	debug::Debug,
 	renderer::extract_option,
 };
 
@@ -42,7 +41,7 @@ impl Window {
 		self.window.request_redraw();
 	}
 	
-	pub(crate) fn cleanup() {
-		
+	pub(crate) unsafe fn cleanup(&mut self) {
+		ManuallyDrop::drop(&mut self.surface);
 	}
 }

@@ -16,14 +16,14 @@ impl CommandBufferPools {
 		// Creating Graphics CommandPool
 		let graphics_commandpool_info = vk::CommandPoolCreateInfo::builder()
 			// Select QueueFamily
-			.queue_family_index(queue_families.graphics_q_index.unwrap())
+			.queue_family_index(queue_families.graphics_index.unwrap())
 			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 		let commandpool_graphics = unsafe { logical_device.create_command_pool(&graphics_commandpool_info, None) }?;
 		
 		// Creating Transfer CommandPool
 		let transfer_commandpool_info = vk::CommandPoolCreateInfo::builder()
 			// Select QueueFamily
-			.queue_family_index(queue_families.transfer_q_index.unwrap())
+			.queue_family_index(queue_families.transfer_index.unwrap())
 			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 		let commandpool_transfer = unsafe { logical_device.create_command_pool(&transfer_commandpool_info, None) }?;
 

@@ -57,7 +57,7 @@ impl Debug {
 		};
 		
 		if severity == format!("info").green() {
-			let msg = message.to_str().expect("An error occurred in Vulkan debug utils callback. What kind of not-String are you handing me?");
+			let msg = message.to_str().expect("An error occurred in Vulkan debug utils callback");
 			if msg.contains("DEBUG-PRINTF") {
 				let msg = msg
 					.to_string()

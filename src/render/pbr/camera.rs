@@ -5,6 +5,7 @@ use hecs::*;
 use crate::render::{
 	renderer::Renderer,
 	transform::Transform,
+	debug::Debug,
 };
 
 pub struct Camera {
@@ -57,13 +58,9 @@ impl Camera {
 	}
 	
 	fn update_viewmatrix(&mut self) {
-		// Vector in `right` direction
-		let r = na::Unit::new_normalize(self.down_direction.cross(&self.view_direction));
-		// Vector in `down` direction
-		let d = self.down_direction;
-		// Vector in `forward` direction
-		let v = self.view_direction;
-		// Update view matrix
+		let r = na::Unit::new_normalize(self.down_direction.cross(&self.view_direction)); // Right
+		let d = self.down_direction; // Down
+		let v = self.view_direction; // Forward
 		self.viewmatrix = na::Matrix4::new(
 			r.x, r.y, r.z, -r.dot(&self.position),
 			d.x, d.y, d.z, -d.dot(&self.position),
@@ -75,13 +72,9 @@ impl Camera {
 	pub(crate) fn update_buffer(
 		&self,
 		renderer: &mut Renderer,
-	) -> Result<(), vk::Result>{
-		let logical_device = &renderer.device;
-		let allocator = &mut renderer.allocator;
-		let buffer = &mut renderer.uniformbuffer;
-		
+	) -> Result<(), vk::Result>{		
 		let data: [[[f32; 4]; 4]; 2] = [self.viewmatrix.into(), self.projectionmatrix.into()];
-		buffer.fill(&logical_device, allocator, &data)?;
+		renderer.uniformbuffer.fill(&renderer.device, &mut renderer.allocator, &data)?;
 		Ok(())
 	}
 	
@@ -147,10 +140,10 @@ pub struct CameraBuilder {
 impl CameraBuilder {
 	pub fn build(self) -> Camera {
 		if self.far < self.near {
-			panic!(
+			Debug::error(format!(
 				"Far plane (at {}) is closer than near plane (at {})!",
 				self.far, self.near
-			);
+			));
 		}
 		
 		let mut cam = Camera {
@@ -194,7 +187,7 @@ impl CameraBuilder {
 	
 	pub fn near(mut self, near: f32) -> CameraBuilder {
 		if near <= 0.0 {
-			panic!("Near plane ({}) can't be negative!", near);
+			Debug::error(format!("Near plane ({}) can't be negative!", near));
 		}
 		self.near = near;
 		self
@@ -202,7 +195,7 @@ impl CameraBuilder {
 	
 	pub fn far(mut self, far: f32) -> CameraBuilder {
 		if far <= 0.0 {
-			panic!("Far plane ({}) can't be negative!", far);
+			Debug::error(format!("Far plane ({}) can't be negative!", far));
 		}
 		self.far = far;
 		self

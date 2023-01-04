@@ -68,6 +68,14 @@ use winit::{
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
 };
+
+use crate::ecs::{
+	systems::*,
+	event::*,
+};
+
+use crate::render::renderer::Renderer;
+
 /// Contains submodules and structures to work with graphics
 pub mod render;
 /// Contains ECS implementations
@@ -78,13 +86,6 @@ pub mod physics;
 pub mod scripting;
 /// Bundle of all essential components of the engine
 pub mod prelude;
-
-use crate::ecs::{
-	systems::*,
-	event::*,
-};
-
-use crate::render::renderer::Renderer;
 
 /// Main engine struct
 pub struct Despero {

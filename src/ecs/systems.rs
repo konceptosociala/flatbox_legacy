@@ -97,7 +97,7 @@ pub(crate) fn rendering_system(
 		renderer
 			.device
 			.queue_submit(
-				renderer.queues.graphics_queue,
+				renderer.queue_families.graphics_queue,
 				&submit_info,
 				renderer.swapchain.may_begin_drawing[renderer.swapchain.current_image],
 			)
@@ -113,7 +113,7 @@ pub(crate) fn rendering_system(
 		if renderer
 			.swapchain
 			.swapchain_loader
-			.queue_present(renderer.queues.graphics_queue, &present_info)
+			.queue_present(renderer.queue_families.graphics_queue, &present_info)
 			.expect("queue presentation")
 		{
 			renderer.recreate_swapchain().expect("Cannot recreate swapchain");

@@ -1,10 +1,8 @@
-use std::mem::ManuallyDrop;
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
 use winit::{
-	event_loop::EventLoop,
 	window::WindowBuilder,
 };
 use hecs::World;
@@ -12,7 +10,6 @@ use hecs_schedule::*;
 
 use crate::render::{
 	backend::{
-		surface::Surface,
 		swapchain::Swapchain,
 		queues::*,
 		pipeline::Pipeline,
@@ -25,7 +22,6 @@ use crate::render::{
 		model::*,
 		texture::*,
 	},
-	debug::Debug,
 	transform::Transform,
 };
 
@@ -37,8 +33,8 @@ pub struct Renderer {
 	pub(crate) instance: Instance,
 	pub(crate) window: Window,
 	pub(crate) queue_families: QueueFamilies,
-	pub(crate) queues: Queues,
 	pub(crate) device: ash::Device,
+	
 	pub(crate) swapchain: Swapchain,
 	pub(crate) renderpass: vk::RenderPass,
 	pub(crate) pipeline: Pipeline,
@@ -56,17 +52,14 @@ pub struct Renderer {
 
 impl Renderer {
 	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
-		let instance 	= Instance::init(get_window_title(&window_builder))?;
-		let window		= Window::init(&instance, window_builder)?;
-		
-		// QueueFamilies, (Logical) Device, Queues
-		let queue_families = QueueFamilies::init(&instance, &window)?;
-		let (logical_device, queues) = init_device_and_queues(&instance.instance, instance.physical_device.clone(), &queue_families)?;
-		
+		let instance = Instance::init(get_window_title(&window_builder))?;
+		let window	= Window::init(&instance, window_builder)?;
+		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;	
+			
 		// Create memory allocator
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
 			instance: 				instance.instance.clone(),
-			device: 				logical_device.clone(),
+			device: 				device.clone(),
 			physical_device: 		instance.physical_device.clone(),
 			debug_settings: 		Default::default(),
 			buffer_device_address : true,
@@ -76,24 +69,24 @@ impl Renderer {
 		let mut swapchain = Swapchain::init(
 			&instance.instance, 
 			instance.physical_device.clone(), 
-			&logical_device, 
+			&device, 
 			&window.surface, 
 			&queue_families,
 			&mut allocator
 		)?;
 		
 		// RenderPass, Pipeline
-		let renderpass = Pipeline::init_renderpass(&logical_device, instance.physical_device.clone(), &window.surface)?;
-		swapchain.create_framebuffers(&logical_device, renderpass)?;
-		let pipeline = Pipeline::init(&logical_device, &swapchain, &renderpass)?;
+		let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
+		swapchain.create_framebuffers(&device, renderpass)?;
+		let pipeline = Pipeline::init(&device, &swapchain, &renderpass)?;
 		
 		// CommandBufferPools and CommandBuffers
-		let commandbuffer_pools = CommandBufferPools::init(&logical_device, &queue_families)?;
-		let commandbuffers = CommandBufferPools::create_commandbuffers(&logical_device, &commandbuffer_pools, swapchain.framebuffers.len())?;
+		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families)?;
+		let commandbuffers = CommandBufferPools::create_commandbuffers(&device, &commandbuffer_pools, swapchain.framebuffers.len())?;
 		
 		// Uniform buffer
 		let mut uniformbuffer = Buffer::new(
-			&logical_device,
+			&device,
 			&mut allocator,
 			128,
 			vk::BufferUsageFlags::UNIFORM_BUFFER,
@@ -103,21 +96,21 @@ impl Renderer {
 		
 		// Light buffer
 		let mut lightbuffer = Buffer::new(
-			&logical_device,
+			&device,
 			&mut allocator,
 			8,
 			vk::BufferUsageFlags::STORAGE_BUFFER,
 			MemoryLocation::CpuToGpu,
 			"Light buffer",
 		)?;
-		lightbuffer.fill(&logical_device, &mut allocator, &[0.,0.])?;
+		lightbuffer.fill(&device, &mut allocator, &[0.,0.])?;
 		
 		// Camera transform
 		let cameratransform: [[[f32; 4]; 4]; 2] = [
 			na::Matrix4::identity().into(),
 			na::Matrix4::identity().into(),
 		];
-		uniformbuffer.fill(&logical_device, &mut allocator, &cameratransform)?;
+		uniformbuffer.fill(&device, &mut allocator, &cameratransform)?;
 		
 		// Descriptor pool
 		//
@@ -142,7 +135,7 @@ impl Renderer {
 			.max_sets(3 * swapchain.amount_of_images)
 			// Size of pool
 			.pool_sizes(&pool_sizes); 
-		let descriptor_pool = unsafe { logical_device.create_descriptor_pool(&descriptor_pool_info, None) }?;
+		let descriptor_pool = unsafe { device.create_descriptor_pool(&descriptor_pool_info, None) }?;
 		
 		// Descriptor sets (Camera)
 		//
@@ -154,7 +147,7 @@ impl Renderer {
 			.descriptor_pool(descriptor_pool)
 			// Layouts
 			.set_layouts(&desc_layouts_camera);
-		let descriptor_sets_camera = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_camera) }?;
+		let descriptor_sets_camera = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_camera) }?;
 
 		// Fill descriptor sets (Camera)
 		for descset in &descriptor_sets_camera {
@@ -170,7 +163,7 @@ impl Renderer {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
+			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
 		
 		// Descriptor sets (Texture)
@@ -183,7 +176,7 @@ impl Renderer {
 			.descriptor_pool(descriptor_pool)
 			// Layouts
 			.set_layouts(&desc_layouts_texture);
-		let descriptor_sets_texture = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_texture) }?;
+		let descriptor_sets_texture = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_texture) }?;
 		
 		// Descriptor sets (Light)
 		//
@@ -195,7 +188,7 @@ impl Renderer {
 			.descriptor_pool(descriptor_pool)
 			// Layouts
 			.set_layouts(&desc_layouts_light);
-		let descriptor_sets_light = unsafe { logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_light) }?;
+		let descriptor_sets_light = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_light) }?;
 		// Fill descriptor sets (Light)
 		for descset in &descriptor_sets_light {
 			let buffer_infos = [vk::DescriptorBufferInfo {
@@ -210,15 +203,15 @@ impl Renderer {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
+			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
 		 
 		Ok(Renderer {
 			instance,
 			window,
 			queue_families,
-			queues,
-			device: logical_device,
+			device,
+			
 			swapchain,
 			renderpass,
 			pipeline,
@@ -449,7 +442,7 @@ impl Renderer {
 		}?;
 		// Submit
 		unsafe { self.device.queue_submit(
-			self.queues.graphics_queue, 
+			self.queue_families.graphics_queue, 
 			&submit_infos, 
 			fence
 		)? };
@@ -519,7 +512,7 @@ impl Renderer {
 			&self.device,
 			&mut self.allocator,
 			&self.commandbuffer_pools.commandpool_graphics,
-			&self.queues.graphics_queue,
+			&self.queue_families.graphics_queue,
 		).expect("Cannot create texture")
 	}
 	
@@ -674,16 +667,11 @@ impl Renderer {
 	/// Function to destroy renderer. Used in [`Despero`]'s ['Drop'] function
 	pub(crate) fn cleanup(&mut self, world: &mut World){
 		unsafe {
-			// Wait for device stop
 			self.device.device_wait_idle().expect("Error halting device");	
-			// Destroy TextureStorage
 			self.texture_storage.cleanup(&self.device, &mut self.allocator);
-			// Destroy DescriptorPool
 			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
-			// Destroy UniformBuffer
 			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
 			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
-			// Destroy LightBuffer
 			self.device.destroy_buffer(self.lightbuffer.buffer, None);
 			// Models clean
 			for (_, m) in &mut world.query::<&mut Mesh>(){
@@ -713,9 +701,8 @@ impl Renderer {
 			self.device.destroy_render_pass(self.renderpass, None);
 			self.swapchain.cleanup(&self.device, &mut self.allocator);
 			self.device.destroy_device(None);
-			ManuallyDrop::drop(&mut self.window.surface);
-			ManuallyDrop::drop(&mut self.instance.debugger);
-			self.instance.instance.destroy_instance(None);
+			self.window.cleanup();
+			self.instance.cleanup();
 		};
 	}
 }
