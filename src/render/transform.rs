@@ -1,4 +1,3 @@
-pub use std::f32::consts::PI;
 use nalgebra::*;
 
 pub struct Transform {

@@ -149,7 +149,7 @@ impl Despero {
 			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
 			.expect("Cannot execute setup schedule");
 		// Extract `EventLoop` from `Renderer`
-		let mut eventloop = extract(&mut self.renderer.eventloop);
+		let mut eventloop = self.renderer.window.get_event_loop();
 		// Run EventLoop
 		eventloop.run_return(move |event, _, controlflow| match event {	
 			Event::WindowEvent {
@@ -188,14 +188,4 @@ impl Drop for Despero {
 	fn drop(&mut self) {
 		self.renderer.cleanup(&mut self.world);
 	}
-}
-
-// Extract `Option` variable from struct
-pub(crate) fn extract<T>(option: &mut Option<T>) -> T {
-	// Create `None` option
-	let mut empty: Option<T> = None;
-	// Swap variable and `None`
-	std::mem::swap(&mut empty, option);
-	// Return unwrapped option
-	empty.unwrap()
 }

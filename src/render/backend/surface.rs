@@ -1,4 +1,10 @@
 use ash::vk;
+use crate::render::{
+	backend::{
+		instance::Instance,
+		window::Window,
+	},
+};
 
 pub(crate) struct Surface {
 	pub(crate) surface: vk::SurfaceKHR,
@@ -8,18 +14,16 @@ pub(crate) struct Surface {
 impl Surface {
 	pub(crate) fn init(
 		window: &winit::window::Window,
-		entry: &ash::Entry,
-		instance: &ash::Instance,
+		instance: &Instance,
 	) -> Result<Surface, vk::Result> {
-		// Creating surface from `raw` handles with `ash-window` crate
 		let surface = unsafe { ash_window::create_surface(
-			&entry, 
-			&instance, 
+			&instance.entry, 
+			&instance.instance, 
 			&window, 
 			None,
 		)? };
 		
-		let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
+		let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
 		Ok(Surface {
 			surface,
 			surface_loader,

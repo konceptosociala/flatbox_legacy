@@ -1,3 +1,4 @@
+use std::mem::ManuallyDrop;
 use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
@@ -17,6 +18,8 @@ use crate::render::{
 		pipeline::Pipeline,
 		commandbuffers::CommandBufferPools,
 		buffer::Buffer,
+		window::Window,
+		instance::Instance,
 	},
 	pbr::{
 		model::*,
@@ -26,21 +29,13 @@ use crate::render::{
 	transform::Transform,
 };
 
-use crate::extract;
+/// Maximum number of textures, which can be pushed to descriptor sets
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 65536;
 
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
-
+/// Main rendering collection, including Vulkan components
 pub struct Renderer {
-	pub(crate) eventloop: Option<EventLoop<()>>,
-	pub(crate) window: winit::window::Window,
-	#[allow(dead_code)]
-	pub(crate) entry: ash::Entry,
-	pub(crate) instance: ash::Instance,
-	pub(crate) debug: std::mem::ManuallyDrop<Debug>,
-	pub(crate) surfaces: std::mem::ManuallyDrop<Surface>,
-	pub(crate) physical_device: vk::PhysicalDevice,
-	#[allow(dead_code)]
-	pub(crate) physical_device_properties: vk::PhysicalDeviceProperties,
+	pub(crate) instance: Instance,
+	pub(crate) window: Window,
 	pub(crate) queue_families: QueueFamilies,
 	pub(crate) queues: Queues,
 	pub(crate) device: ash::Device,
@@ -56,52 +51,39 @@ pub struct Renderer {
 	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
 	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
 	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
-	pub texture_storage: TextureStorage, 
+	pub(crate) texture_storage: TextureStorage, 
 }
 
 impl Renderer {
 	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
-		// Get window title
-		let app_title = window_builder.window.title.clone();
-		// Eventloop
-		let eventloop = winit::event_loop::EventLoop::new();
-		// Build window
-		let window = window_builder.build(&eventloop)?;
-		// Create Entry
-		let entry = unsafe { ash::Entry::load()? };
-		// Instance, Debug, Surface
-		let layer_names = vec!["VK_LAYER_KHRONOS_validation"];
-		let instance = init_instance(&entry, &layer_names, app_title)?;
-		let debug = Debug::init(&entry, &instance)?;
-		let surfaces = Surface::init(&window, &entry, &instance)?;
+		let instance 	= Instance::init(get_window_title(&window_builder))?;
+		let window		= Window::init(&instance, window_builder)?;
 		
-		// PhysicalDevice and PhysicalDeviceProperties
-		let (physical_device, physical_device_properties, _) = init_physical_device_and_properties(&instance)?;
 		// QueueFamilies, (Logical) Device, Queues
-		let queue_families = QueueFamilies::init(&instance, physical_device, &surfaces)?;
-		let (logical_device, queues) = init_device_and_queues(&instance, physical_device, &queue_families, &layer_names)?;
+		let queue_families = QueueFamilies::init(&instance, &window)?;
+		let (logical_device, queues) = init_device_and_queues(&instance.instance, instance.physical_device.clone(), &queue_families)?;
 		
 		// Create memory allocator
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
-			instance: instance.clone(),
-			device: logical_device.clone(),
-			physical_device,
-			debug_settings: Default::default(),
-			buffer_device_address: true,
+			instance: 				instance.instance.clone(),
+			device: 				logical_device.clone(),
+			physical_device: 		instance.physical_device.clone(),
+			debug_settings: 		Default::default(),
+			buffer_device_address : true,
 		}).expect("Cannot create allocator");
 		
 		// Swapchain
 		let mut swapchain = Swapchain::init(
-			&instance, 
-			physical_device, 
+			&instance.instance, 
+			instance.physical_device.clone(), 
 			&logical_device, 
-			&surfaces, 
+			&window.surface, 
 			&queue_families,
 			&mut allocator
 		)?;
 		
 		// RenderPass, Pipeline
-		let renderpass = Pipeline::init_renderpass(&logical_device, physical_device, &surfaces)?;
+		let renderpass = Pipeline::init_renderpass(&logical_device, instance.physical_device.clone(), &window.surface)?;
 		swapchain.create_framebuffers(&logical_device, renderpass)?;
 		let pipeline = Pipeline::init(&logical_device, &swapchain, &renderpass)?;
 		
@@ -232,14 +214,8 @@ impl Renderer {
 		}
 		 
 		Ok(Renderer {
-			eventloop: Some(eventloop),
-			window,
-			entry,
 			instance,
-			debug: std::mem::ManuallyDrop::new(debug),
-			surfaces: std::mem::ManuallyDrop::new(surfaces),
-			physical_device,
-			physical_device_properties,
+			window,
 			queue_families,
 			queues,
 			device: logical_device,
@@ -514,7 +490,7 @@ impl Renderer {
 			);
 			data.set_len(image_size);
 		}
-		let data = Self::bgra_to_rgba(&data);
+		let data = bgra_to_rgba(&data);
 		// Destroy VulkanImage
 		self.allocator.free(allocation)?;
 		unsafe { self.device.destroy_image(image, None); }
@@ -665,10 +641,10 @@ impl Renderer {
 		}
 		// Recreate Swapchain
 		self.swapchain = Swapchain::init(
-			&self.instance,
-			self.physical_device,
+			&self.instance.instance,
+			self.instance.physical_device.clone(),
 			&self.device,
-			&self.surfaces,
+			&self.window.surface,
 			&self.queue_families,
 			&mut self.allocator,
 		)?;
@@ -713,21 +689,21 @@ impl Renderer {
 			for (_, m) in &mut world.query::<&mut Mesh>(){
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
-					let alloc = extract(&mut vb.allocation);
+					let alloc = extract_option(&mut vb.allocation);
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(vb.buffer, None);
 				}
 				
 				if let Some(xb) = &mut m.indexbuffer {
 					// Reassign IndexBuffer allocation to remove
-					let alloc = extract(&mut xb.allocation);
+					let alloc = extract_option(&mut xb.allocation);
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(xb.buffer, None);
 				}
 				
 				if let Some(ib) = &mut m.instancebuffer {
 					// Reassign IndexBuffer allocation to remove
-					let alloc = extract(&mut ib.allocation);
+					let alloc = extract_option(&mut ib.allocation);
 					self.allocator.free(alloc).unwrap();
 					self.device.destroy_buffer(ib.buffer, None);
 				}
@@ -737,24 +713,34 @@ impl Renderer {
 			self.device.destroy_render_pass(self.renderpass, None);
 			self.swapchain.cleanup(&self.device, &mut self.allocator);
 			self.device.destroy_device(None);
-			std::mem::ManuallyDrop::drop(&mut self.surfaces);
-			std::mem::ManuallyDrop::drop(&mut self.debug);
-			self.instance.destroy_instance(None);
+			ManuallyDrop::drop(&mut self.window.surface);
+			ManuallyDrop::drop(&mut self.instance.debugger);
+			self.instance.instance.destroy_instance(None);
 		};
-	}
-	
-	fn bgra_to_rgba(data: &Vec<u8>) -> Vec<u8> {
-		let mut rgba: Vec<u8> = data.clone();
-		for mut i in 0..data.len()/4 {
-			i = i*4;
-			rgba[i]   = data[i+2];
-			rgba[i+1] = data[i+1];
-			rgba[i+2] = data[i];
-			rgba[i+3] = data[i+3];
-		}
-		return rgba;
 	}
 }
 
-unsafe impl Sync for Renderer {}
+fn bgra_to_rgba(data: &Vec<u8>) -> Vec<u8> {
+	let mut rgba: Vec<u8> = data.clone();
+	for mut i in 0..data.len()/4 {
+		i = i*4;
+		rgba[i]   = data[i+2];
+		rgba[i+1] = data[i+1];
+		rgba[i+2] = data[i];
+		rgba[i+3] = data[i+3];
+	}
+	return rgba;
+}
+
+fn get_window_title(window_builder: &WindowBuilder) -> String {
+	String::from(window_builder.window.title.clone())
+}
+
+pub fn extract_option<T>(option: &mut Option<T>) -> T {
+	let mut empty: Option<T> = None;
+	std::mem::swap(&mut empty, option);
+	empty.unwrap()
+}
+
 unsafe impl Send for Renderer {}
+unsafe impl Sync for Renderer {}

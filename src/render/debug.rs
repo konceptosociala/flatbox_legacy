@@ -10,37 +10,32 @@ impl Debug {
 	pub(crate) fn init(
 		entry: &ash::Entry,
 		instance: &ash::Instance,
-	) -> Result<Debug, vk::Result> {
-		let debugcreateinfo = vk::DebugUtilsMessengerCreateInfoEXT::builder()
-			.message_severity(
-				//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
-				//vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
-				vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
-				vk::DebugUtilsMessageSeverityFlagsEXT::INFO
-			)
-			.message_type(
-				vk::DebugUtilsMessageTypeFlagsEXT::GENERAL |
-				vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
-				vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
-			)
-			.pfn_user_callback(Some(Self::vulkan_debug_utils_callback));
-		
+	) -> Result<Debug, vk::Result> {		
 		let loader = ash::extensions::ext::DebugUtils::new(&entry, &instance);
-		let messenger = unsafe { loader.create_debug_utils_messenger(&debugcreateinfo, None)? };
+		let messenger = unsafe { loader.create_debug_utils_messenger(&Debug::init_debug_info(), None)? };
 		
 		Ok(Debug {loader, messenger})
 	}
 	
-	pub fn info(msg: &str) {
-		println!("[DesperØ][{}][debug] {}", format!("info").green(), msg);
+	pub fn info<M>(msg: M)
+	where
+		String: From<M>,
+	{
+		println!("[DesperØ][{}][debug] {}", format!("info").green(), String::from(msg));
 	}
 	
-	pub fn warn(msg: &str) {
-		println!("[DesperØ][{}][debug] {}", format!("warning").yellow(), msg);
+	pub fn warning<M>(msg: M)
+	where
+		String: From<M>,
+	{
+		println!("[DesperØ][{}][debug] {}", format!("warning").yellow(), String::from(msg));
 	}
 	
-	pub fn error(msg: &str) {
-		println!("[DesperØ][{}][debug] {}", format!("error").red(), msg);
+	pub fn error<M>(msg: M)
+	where
+		String: From<M>,
+	{
+		println!("[DesperØ][{}][debug] {}", format!("error").red(), String::from(msg));
 	}
 	
 	pub(crate) unsafe extern "system" fn vulkan_debug_utils_callback(
@@ -74,6 +69,23 @@ impl Debug {
 		}
 		
 		vk::FALSE
+	}
+	
+	pub(crate) fn init_debug_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
+		vk::DebugUtilsMessengerCreateInfoEXT::builder()
+			.message_severity(
+				//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
+				//vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
+				vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
+				vk::DebugUtilsMessageSeverityFlagsEXT::INFO
+			)
+			.message_type(
+				vk::DebugUtilsMessageTypeFlagsEXT::GENERAL |
+				vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
+				vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+			)
+			.pfn_user_callback(Some(Debug::vulkan_debug_utils_callback))
+			.build()
 	}
 }
 

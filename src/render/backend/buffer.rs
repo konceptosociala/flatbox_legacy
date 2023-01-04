@@ -3,7 +3,6 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
-// Buffer
 #[derive(Debug)]
 pub(crate) struct Buffer {
 	pub(crate) buffer: vk::Buffer,
