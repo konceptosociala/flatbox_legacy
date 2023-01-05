@@ -92,7 +92,7 @@ pub struct Despero {
 	world: World,
 	systems: ScheduleBuilder,
 	setup_systems: ScheduleBuilder,
-	pub event_writer: EventWriter,
+	event_writer: EventWriter,
 	
 	renderer: Renderer,
 }

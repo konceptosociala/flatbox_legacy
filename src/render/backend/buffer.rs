@@ -7,10 +7,10 @@ use ash::vk;
 pub(crate) struct Buffer {
 	pub(crate) buffer: vk::Buffer,
 	pub(crate) allocation: Option<Allocation>,
-	pub(crate) allocation_name: String,
-	pub(crate) size_in_bytes: u64,
-	pub(crate) buffer_usage: vk::BufferUsageFlags,
-	pub(crate) memory_location: MemoryLocation,
+	allocation_name: String,
+	size_in_bytes: u64,
+	buffer_usage: vk::BufferUsageFlags,
+	memory_location: MemoryLocation,
 }
 
 impl Buffer {
