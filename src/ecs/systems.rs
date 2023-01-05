@@ -86,7 +86,7 @@ pub(crate) fn rendering_system(
 	let semaphores_available = [renderer.swapchain.image_available[renderer.swapchain.current_image]];
 	let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
 	let semaphores_finished = [renderer.swapchain.rendering_finished[renderer.swapchain.current_image]];
-	let commandbuffers = [renderer.commandbuffers[image_index as usize]];
+	let commandbuffers = [*renderer.commandbuffer_pools.get_commandbuffer(image_index as usize).unwrap()];
 	let submit_info = [vk::SubmitInfo::builder()
 		.wait_semaphores(&semaphores_available)
 		.wait_dst_stage_mask(&waiting_stages)

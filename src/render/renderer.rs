@@ -1,4 +1,5 @@
 use ash::vk;
+use ash::Device;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
@@ -10,13 +11,13 @@ use hecs_schedule::*;
 
 use crate::render::{
 	backend::{
+		instance::Instance,
+		window::Window,
+		queues::QueueFamilies,
 		swapchain::Swapchain,
-		queues::*,
 		pipeline::Pipeline,
 		commandbuffers::CommandBufferPools,
-		buffer::Buffer,
-		window::Window,
-		instance::Instance,
+		buffer::Buffer,		
 	},
 	pbr::{
 		model::*,
@@ -33,14 +34,15 @@ pub struct Renderer {
 	pub(crate) instance: Instance,
 	pub(crate) window: Window,
 	pub(crate) queue_families: QueueFamilies,
-	pub(crate) device: ash::Device,
-	
+	pub(crate) device: Device,
 	pub(crate) swapchain: Swapchain,
+	
 	pub(crate) renderpass: vk::RenderPass,
 	pub(crate) pipeline: Pipeline,
+	
 	pub(crate) commandbuffer_pools: CommandBufferPools,
-	pub(crate) commandbuffers: Vec<vk::CommandBuffer>,
-	pub(crate) allocator: gpu_allocator::vulkan::Allocator,
+	pub(crate) allocator: Allocator,
+	
 	pub(crate) uniformbuffer: Buffer,
 	pub(crate) lightbuffer: Buffer,
 	pub(crate) descriptor_pool: vk::DescriptorPool,
@@ -56,19 +58,16 @@ impl Renderer {
 		let window	= Window::init(&instance, window_builder)?;
 		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;	
 			
-		// Create memory allocator
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
-			instance: 				instance.instance.clone(),
-			device: 				device.clone(),
-			physical_device: 		instance.physical_device.clone(),
-			debug_settings: 		Default::default(),
-			buffer_device_address : true,
+			instance: instance.instance.clone(),
+			device: device.clone(),
+			physical_device: instance.physical_device.clone(),
+			debug_settings: Default::default(),
+			buffer_device_address: true,
 		}).expect("Cannot create allocator");
 		
-		// Swapchain
 		let mut swapchain = Swapchain::init(
-			&instance.instance, 
-			instance.physical_device.clone(), 
+			&instance, 
 			&device, 
 			&window.surface, 
 			&queue_families,
@@ -80,9 +79,7 @@ impl Renderer {
 		swapchain.create_framebuffers(&device, renderpass)?;
 		let pipeline = Pipeline::init(&device, &swapchain, &renderpass)?;
 		
-		// CommandBufferPools and CommandBuffers
-		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families)?;
-		let commandbuffers = CommandBufferPools::create_commandbuffers(&device, &commandbuffer_pools, swapchain.framebuffers.len())?;
+		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
 		
 		// Uniform buffer
 		let mut uniformbuffer = Buffer::new(
@@ -216,7 +213,6 @@ impl Renderer {
 			renderpass,
 			pipeline,
 			commandbuffer_pools,
-			commandbuffers,
 			allocator,
 			uniformbuffer,
 			lightbuffer,
@@ -521,7 +517,7 @@ impl Renderer {
 		world: &mut SubWorld<W>,
 		index: usize
 	) -> Result<(), vk::Result> {
-		let commandbuffer = self.commandbuffers[index];
+		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
 		
 		unsafe {
@@ -634,8 +630,7 @@ impl Renderer {
 		}
 		// Recreate Swapchain
 		self.swapchain = Swapchain::init(
-			&self.instance.instance,
-			self.instance.physical_device.clone(),
+			&self.instance,
 			&self.device,
 			&self.window.surface,
 			&self.queue_families,

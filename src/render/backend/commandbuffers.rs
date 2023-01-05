@@ -1,48 +1,41 @@
 use ash::vk;
 
-use crate::render::backend::queues::QueueFamilies;
+use crate::render::{
+	backend::{
+		queues::QueueFamilies,
+		swapchain::Swapchain,
+	},
+};
 
-// CommandBuffers Pools
+/// Contains commandbuffer pools and graphics commandbuffer
 pub(crate) struct CommandBufferPools {
 	pub(crate) commandpool_graphics: vk::CommandPool,
 	pub(crate) commandpool_transfer: vk::CommandPool,
+	pub(crate) commandbuffers: Vec<vk::CommandBuffer>,
 }
 
 impl CommandBufferPools {
 	pub(crate) fn init(
 		logical_device: &ash::Device,
 		queue_families: &QueueFamilies,
+		swapchain: &Swapchain,
 	) -> Result<CommandBufferPools, vk::Result> {
-		// Creating Graphics CommandPool
-		let graphics_commandpool_info = vk::CommandPoolCreateInfo::builder()
-			// Select QueueFamily
-			.queue_family_index(queue_families.graphics_index.unwrap())
-			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
-		let commandpool_graphics = unsafe { logical_device.create_command_pool(&graphics_commandpool_info, None) }?;
+		let commandpool_graphics = 
+			unsafe { Self::create_graphics_commandpool(&logical_device, &queue_families)? };
+		let commandpool_transfer = 
+			unsafe { Self::create_transfer_commandpool(&logical_device, &queue_families)? };
+		let commandbuffers = 
+			unsafe { Self::create_commandbuffers(&logical_device, &commandpool_graphics, swapchain.framebuffers_count())? };
 		
-		// Creating Transfer CommandPool
-		let transfer_commandpool_info = vk::CommandPoolCreateInfo::builder()
-			// Select QueueFamily
-			.queue_family_index(queue_families.transfer_index.unwrap())
-			.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
-		let commandpool_transfer = unsafe { logical_device.create_command_pool(&transfer_commandpool_info, None) }?;
-
 		Ok(CommandBufferPools {
 			commandpool_graphics,
 			commandpool_transfer,
+			commandbuffers,
 		})
 	}
 	
-	// Create CommandBuffers
-	pub(crate) fn create_commandbuffers(
-		logical_device: &ash::Device,
-		pools: &CommandBufferPools,
-		amount: usize,
-	) -> Result<Vec<vk::CommandBuffer>, vk::Result> {
-		let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-			.command_pool(pools.commandpool_graphics)
-			.command_buffer_count(amount as u32);
-		unsafe { logical_device.allocate_command_buffers(&commandbuf_allocate_info) }
+	pub(crate) fn get_commandbuffer(&self, index: usize) -> Option<&vk::CommandBuffer> {
+		self.commandbuffers.get(index)
 	}
 	
 	pub(crate) fn cleanup(&self, logical_device: &ash::Device) {
@@ -50,5 +43,39 @@ impl CommandBufferPools {
 			logical_device.destroy_command_pool(self.commandpool_graphics, None);
 			logical_device.destroy_command_pool(self.commandpool_transfer, None);
 		}
+	}
+	
+	unsafe fn create_graphics_commandpool(
+		logical_device: &ash::Device,
+		queue_families: &QueueFamilies,
+	) -> Result<vk::CommandPool, vk::Result> {
+		let graphics_commandpool_info = 
+			vk::CommandPoolCreateInfo::builder()
+				.queue_family_index(queue_families.graphics_index.unwrap())
+				.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+		logical_device.create_command_pool(&graphics_commandpool_info, None)
+	}
+	
+	unsafe fn create_transfer_commandpool(
+		logical_device: &ash::Device,
+		queue_families: &QueueFamilies,
+	) -> Result<vk::CommandPool, vk::Result> {
+		let transfer_commandpool_info = 
+			vk::CommandPoolCreateInfo::builder()
+				.queue_family_index(queue_families.transfer_index.unwrap())
+				.flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+		logical_device.create_command_pool(&transfer_commandpool_info, None)
+	}
+	
+	unsafe fn create_commandbuffers(
+		logical_device: &ash::Device,
+		commandpool_graphics: &vk::CommandPool,
+		amount: usize,
+	) -> Result<Vec<vk::CommandBuffer>, vk::Result> {
+		let commandbuf_allocate_info = 
+			vk::CommandBufferAllocateInfo::builder()
+				.command_pool(*commandpool_graphics)
+				.command_buffer_count(amount as u32);
+		logical_device.allocate_command_buffers(&commandbuf_allocate_info)
 	}
 }

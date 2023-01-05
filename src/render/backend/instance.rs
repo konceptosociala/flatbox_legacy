@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::mem::ManuallyDrop;
 use std::ffi::CString;
 use ash::vk;
