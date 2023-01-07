@@ -1,15 +1,48 @@
 use despero::prelude::*;
 
+struct MyMaterial {
+	integer: i32,
+}
+
+impl Material for MyMaterial {
+	fn pipeline(renderer: &Renderer) -> Pipeline {
+		let vertex_shader = vk::ShaderModuleCreateInfo::builder()
+			.code(vk_shader_macros::include_glsl!(
+				"./shaders/vertex_simple.glsl", 
+				kind: vert,
+			));
+		
+		let fragment_shader = vk::ShaderModuleCreateInfo::builder()
+			.code(vk_shader_macros::include_glsl!(
+				"./shaders/fragment_simple.glsl",
+				kind: frag,
+			));
+		
+		Pipeline::init(
+			&renderer,
+			&vertex_shader,
+			&fragment_shader,
+		)
+	}
+}
+
 fn main() {	
 	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
 	let reader = despero.add_event_reader();
 	
 	despero
+		.add_setup_system(bind_mat)
 		.add_setup_system(create_models)
 		.add_setup_system(create_camera)
 		.add_system(handling(reader))
 		.add_system(ecs_change)
 		.run();
+}
+
+fn bind_mat(
+	renderer: Write<Renderer>,
+){
+	renderer.bind_material::<MyMaterial>();
 }
 
 fn ecs_change(

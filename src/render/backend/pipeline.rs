@@ -16,36 +16,12 @@ pub(crate) struct Pipeline {
 }
 
 impl Pipeline {	
-	pub(crate) fn init(
-		logical_device: &ash::Device,
-		swapchain: &Swapchain,
-		renderpass: &vk::RenderPass,
+	pub(crate) unsafe fn init(
+		renderer: &Renderer,
+		vertex_shader: &vk::ShaderModuleCreateInfo,
+		fragment_shader: &vk::ShaderModuleCreateInfo,
 	) -> Result<Pipeline, vk::Result>{
-		// Include shaders
-		let vertexshader_createinfo = vk::ShaderModuleCreateInfo::builder().code(vk_shader_macros::include_glsl!(
-			"./shaders/vertex_combined.glsl", 
-			kind: vert,
-		));
-		let fragmentshader_createinfo = vk::ShaderModuleCreateInfo::builder().code(vk_shader_macros::include_glsl!(
-			"./shaders/fragment_combined.glsl",
-			kind: frag,
-		));
-		let vertexshader_module = unsafe { logical_device.create_shader_module(&vertexshader_createinfo, None)? };
-		let fragmentshader_module = unsafe { logical_device.create_shader_module(&fragmentshader_createinfo, None)? };
-		
-		// Set main function's name to `main`
-		let main_function = std::ffi::CString::new("main").unwrap();
-		
-		let vertexshader_stage = vk::PipelineShaderStageCreateInfo::builder()
-			.stage(vk::ShaderStageFlags::VERTEX)
-			.module(vertexshader_module)
-			.name(&main_function);
-		let fragmentshader_stage = vk::PipelineShaderStageCreateInfo::builder()
-			.stage(vk::ShaderStageFlags::FRAGMENT)
-			.module(fragmentshader_module)
-			.name(&main_function);
-			
-		let shader_stages = vec![vertexshader_stage.build(), fragmentshader_stage.build()];
+		let shader_stages = unsafe { Self::create_shader_stages(vertex_shader, fragment_shader, &renderer.device)? };
 		
 		// Vertex Input Info
 		// 
@@ -385,5 +361,28 @@ impl Pipeline {
 			.dependencies(&subpass_dependencies);
 		let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
 		Ok(renderpass)
+	}
+	
+	unsafe fn create_shader_stages(
+		vertex_shader: &vk::ShaderModuleCreateInfo,
+		fragment_shader: &vk::ShaderModuleCreateInfo,
+		logical_device: &ash::Device,
+	) -> Result<Vec<vk::PipelineShaderStage>, vk::Result> {
+		let vertexshader_module = logical_device.create_shader_module(vertex_shader, None)?;
+		let fragmentshader_module = logical_device.create_shader_module(fragment_shader, None)?;
+		
+		let main_function = CString::new("main").unwrap();
+		
+		let vertexshader_stage = vk::PipelineShaderStageCreateInfo::builder()
+			.stage(vk::ShaderStageFlags::VERTEX)
+			.module(vertexshader_module)
+			.name(&main_function);
+			
+		let fragmentshader_stage = vk::PipelineShaderStageCreateInfo::builder()
+			.stage(vk::ShaderStageFlags::FRAGMENT)
+			.module(fragmentshader_module)
+			.name(&main_function);
+			
+		Ok(vec![vertexshader_stage.build(), fragmentshader_stage.build()])
 	}
 }

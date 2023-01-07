@@ -76,6 +76,8 @@ use crate::ecs::{
 
 use crate::render::renderer::Renderer;
 
+/// Module of the main engine error handler [`Desperror`]
+pub mod error;
 /// Contains submodules and structures to work with graphics
 pub mod render;
 /// Contains ECS implementations

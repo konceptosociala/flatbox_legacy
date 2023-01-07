@@ -1,3 +1,5 @@
+use std::any::TypeId;
+use std::collections::HashMap;
 use ash::vk;
 use ash::Device;
 use gpu_allocator::vulkan::*;
@@ -24,6 +26,7 @@ use crate::render::{
 		texture::*,
 	},
 	transform::Transform,
+	error::Desperror,
 };
 
 /// Maximum number of textures, which can be pushed to descriptor sets
@@ -38,7 +41,7 @@ pub struct Renderer {
 	pub(crate) swapchain: Swapchain,
 	
 	pub(crate) renderpass: vk::RenderPass,
-	pub(crate) pipeline: Pipeline,
+	pub(crate) pipelines: HashMap<TypeId, Pipeline>,
 	
 	pub(crate) commandbuffer_pools: CommandBufferPools,
 	pub(crate) allocator: Allocator,
@@ -49,7 +52,7 @@ pub struct Renderer {
 	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
 	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
 	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
-	pub(crate) texture_storage: TextureStorage, 
+	pub(crate) texture_storage: TextureStorage,
 }
 
 impl Renderer {
@@ -222,6 +225,10 @@ impl Renderer {
 			descriptor_sets_light,
 			texture_storage: TextureStorage::new(),
 		})
+	}
+	
+	pub fn bind_material<M: Material>(){	
+		self.pipelines.insert(TypeId::of::<M>, material.pipeline(&self));
 	}
 	
 	pub fn screenshot(&mut self, full_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -512,7 +519,7 @@ impl Renderer {
 		).expect("Cannot create texture")
 	}
 	
-	pub(crate) fn update_commandbuffer<W: borrow::ComponentBorrow>(
+	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
 		&mut self,
 		world: &mut SubWorld<W>,
 		index: usize
@@ -520,24 +527,9 @@ impl Renderer {
 		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
 		
-		unsafe {
-			self.device
-				.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
-		}
+		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		
-		let clearvalues = [
-			vk::ClearValue {
-				color: vk::ClearColorValue {
-					float32: [0.0, 0.0, 0.0, 1.0],
-				},
-			},
-			vk::ClearValue {
-				depth_stencil: vk::ClearDepthStencilValue {
-					depth: 1.0,
-					stencil: 0,
-				},
-			},
-		];
+		let clear_values = Self::set_clear_values(Vector3::new(0.0, 0.0, 0.0));
 		
 		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
 			.render_pass(self.renderpass)
@@ -546,78 +538,78 @@ impl Renderer {
 				offset: vk::Offset2D { x: 0, y: 0 },
 				extent: self.swapchain.extent,
 			})
-			.clear_values(&clearvalues);
-		unsafe {
-			// Bind RenderPass
-			self.device.cmd_begin_render_pass(
-				commandbuffer,
-				&renderpass_begininfo,
-				vk::SubpassContents::INLINE,
-			);
-			// Bind Pipeline
-			self.device.cmd_bind_pipeline(
-				commandbuffer,
-				vk::PipelineBindPoint::GRAPHICS,
-				self.pipeline.pipeline,
-			);
-			// Bind DescriptorSets
-			self.device.cmd_bind_descriptor_sets(
-				commandbuffer,
-				vk::PipelineBindPoint::GRAPHICS,
-				self.pipeline.layout,
-				0,
-				&[
-					self.descriptor_sets_camera[index],
-					self.descriptor_sets_texture[index],
-					self.descriptor_sets_light[index],
-				],
-				&[],
-			);
+			.clear_values(&clear_values);
 			
-			for (_, (mesh, _material, _transform)) in &mut world.query::<(
-				&Mesh, &DefaultMat, &Transform,
-			)>(){
-				if let Some(vertexbuffer) = &mesh.vertexbuffer {
-					if let Some(instancebuffer) = &mesh.instancebuffer {
-						if let Some(indexbuffer) = &mesh.indexbuffer {
-							// Bind position buffer						
-							self.device.cmd_bind_index_buffer(
-								commandbuffer,
-								indexbuffer.buffer,
-								0,
-								vk::IndexType::UINT32,
-							);
-							
-							self.device.cmd_bind_vertex_buffers(
-								commandbuffer,
-								0,
-								&[vertexbuffer.buffer],
-								&[0],
-							);
-							
-							self.device.cmd_bind_vertex_buffers(
-								commandbuffer,
-								1,
-								&[instancebuffer.buffer],
-								&[0],
-							);
-							
-							self.device.cmd_draw_indexed(
-								commandbuffer,
-								mesh.indexdata.len() as u32,
-								1,
-								0,
-								0,
-								0,
-							);
-						}
+		// Bind RenderPass
+		self.device.cmd_begin_render_pass(
+			commandbuffer,
+			&renderpass_begininfo,
+			vk::SubpassContents::INLINE,
+		);
+		// Bind Pipeline
+		self.device.cmd_bind_pipeline(
+			commandbuffer,
+			vk::PipelineBindPoint::GRAPHICS,
+			self.pipeline.pipeline,
+		);
+		// Bind DescriptorSets
+		self.device.cmd_bind_descriptor_sets(
+			commandbuffer,
+			vk::PipelineBindPoint::GRAPHICS,
+			self.pipeline.layout,
+			0,
+			&[
+				self.descriptor_sets_camera[index],
+				self.descriptor_sets_texture[index],
+				self.descriptor_sets_light[index],
+			],
+			&[],
+		);
+		
+		for (_, (mesh, _material, _transform)) in &mut world.query::<(
+			&Mesh, &DefaultMat, &Transform,
+		)>(){
+			if let Some(vertexbuffer) = &mesh.vertexbuffer {
+				if let Some(instancebuffer) = &mesh.instancebuffer {
+					if let Some(indexbuffer) = &mesh.indexbuffer {
+						// Bind position buffer						
+						self.device.cmd_bind_index_buffer(
+							commandbuffer,
+							indexbuffer.buffer,
+							0,
+							vk::IndexType::UINT32,
+						);
+						
+						self.device.cmd_bind_vertex_buffers(
+							commandbuffer,
+							0,
+							&[vertexbuffer.buffer],
+							&[0],
+						);
+						
+						self.device.cmd_bind_vertex_buffers(
+							commandbuffer,
+							1,
+							&[instancebuffer.buffer],
+							&[0],
+						);
+						
+						self.device.cmd_draw_indexed(
+							commandbuffer,
+							mesh.indexdata.len() as u32,
+							1,
+							0,
+							0,
+							0,
+						);
 					}
 				}
 			}
-			
-			self.device.cmd_end_render_pass(commandbuffer);
-			self.device.end_command_buffer(commandbuffer)?;
 		}
+		
+		self.device.cmd_end_render_pass(commandbuffer);
+		self.device.end_command_buffer(commandbuffer)?;
+			
 		Ok(())
 	}
 	
@@ -699,6 +691,24 @@ impl Renderer {
 			self.window.cleanup();
 			self.instance.cleanup();
 		};
+	}
+	
+	fn set_clear_values(
+		color: Vector3<f32>
+	) -> [vk::ClearValue; 2] {
+		[
+			vk::ClearValue {
+				color: vk::ClearColorValue {
+					float32: Vector4::from(color).into(),
+				},
+			},
+			vk::ClearValue {
+				depth_stencil: vk::ClearDepthStencilValue {
+					depth: 1.0,
+					stencil: 0,
+				},
+			},
+		]
 	}
 }
 

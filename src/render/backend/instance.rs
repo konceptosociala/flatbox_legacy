@@ -6,7 +6,8 @@ use crate::render::{
 	debug::Debug,
 };
 
-pub(crate) struct Instance {
+/// Structure controlling Vulkan instance and physical device
+pub struct Instance {
 	pub(crate) entry: ash::Entry,
 	pub(crate) instance: ash::Instance,
 	pub(crate) debugger: ManuallyDrop<Debug>,
@@ -56,12 +57,12 @@ impl Instance {
 	}
 	
 	/// Get queue family properties of current physical device
-	pub(crate) unsafe fn get_queue_family_properties(&self) -> Vec<vk::QueueFamilyProperties> {
+	pub unsafe fn get_queue_family_properties(&self) -> Vec<vk::QueueFamilyProperties> {
 		self.instance.get_physical_device_queue_family_properties(self.physical_device)
 	}
 	
 	/// Destroy [`Instance`]
-	pub(crate) unsafe fn cleanup(&mut self) {
+	pub unsafe fn cleanup(&mut self) {
 		ManuallyDrop::drop(&mut self.debugger);
 		self.instance.destroy_instance(None);
 	}

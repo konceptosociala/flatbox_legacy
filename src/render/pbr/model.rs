@@ -1,3 +1,4 @@
+use std::any::Any;
 use nalgebra as na;
 use hecs::*;
 
@@ -8,7 +9,9 @@ use crate::render::{
 };
 
 /// Trait for materials to be used in [`ModelBundle`]
-pub trait Material {}
+pub trait Material {
+	fn pipeline(renderer: &Renderer) -> Pipeline;	
+}
 
 /// Struct that handles vertex information
 #[repr(C)]
@@ -193,7 +196,27 @@ impl DefaultMat {
 	}
 }
 
-impl Material for DefaultMat {}
+impl Material for DefaultMat {
+	fn pipeline(renderer: &Renderer) -> Pipeline {
+		let vertex_shader = vk::ShaderModuleCreateInfo::builder()
+			.code(vk_shader_macros::include_glsl!(
+				"./shaders/vertex_combined.glsl", 
+				kind: vert,
+			));
+		
+		let fragment_shader = vk::ShaderModuleCreateInfo::builder()
+			.code(vk_shader_macros::include_glsl!(
+				"./shaders/fragment_combined.glsl",
+				kind: frag,
+			));
+		
+		Pipeline::init(
+			&renderer,
+			&vertex_shader,
+			&fragment_shader,
+		)
+	}
+}
 
 /// ECS model bundle
 #[derive(Bundle)]

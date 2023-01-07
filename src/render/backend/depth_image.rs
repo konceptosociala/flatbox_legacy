@@ -4,14 +4,14 @@ use gpu_allocator::MemoryLocation;
 
 use crate::render::renderer::extract_option;
 
-pub(crate) struct DepthImage {
+pub struct DepthImage {
 	pub(crate) depth_image: vk::Image,							  
 	pub(crate) depth_image_allocation: Option<Allocation>,		  
 	pub(crate) depth_imageview: vk::ImageView,
 }
 
 impl DepthImage {
-	pub(crate) fn new(
+	pub fn new(
 		logical_device: &ash::Device,
 		allocator: &mut Allocator,
 		extent: &vk::Extent2D,
