@@ -240,9 +240,17 @@ impl Pipeline {
 			descriptorsetlayout2,
 		];
 		
+		// Push Constants
+		let push_constants = [vk::PushConstantRange::builder()
+			.stage_flags(vk::ShaderStageFlags::VERTEX)
+			.offset(0)
+			.size(128)
+			.build()];
+		
 		// Pipeline layout
 		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
-			.set_layouts(&desclayouts);
+			.set_layouts(&desclayouts)
+			.push_constant_ranges(&push_constants);
 			
 		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
 		
