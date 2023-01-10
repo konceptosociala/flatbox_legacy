@@ -20,6 +20,7 @@ use crate::render::{
 		pipeline::Pipeline,
 		commandbuffers::CommandBufferPools,
 		buffer::Buffer,		
+		descriptor_pool::DescriptorPool,
 	},
 	pbr::{
 		model::*,
@@ -47,10 +48,7 @@ pub struct Renderer {
 	pub(crate) uniformbuffer: Buffer,
 	pub(crate) lightbuffer: Buffer,
 	
-	pub(crate) descriptor_pool: vk::DescriptorPool,
-	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
+	pub(crate) descriptor_pool: DescriptorPool,
 	
 	pub(crate) texture_storage: TextureStorage,
 }

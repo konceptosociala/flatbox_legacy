@@ -112,13 +112,17 @@ impl Pipeline {
 		let shader_stages = unsafe { ShaderStages::create(vertex_shader, fragment_shader, &renderer.device)? };
 		let vertex_input_info = Self::create_vertex_input_info(&vertex_attributes, &vertex_bindings);
 		let input_assembly_info = Self::create_input_assembly();
-		let viewport_info = Self::create_viewport_info(&swapchain);
+		let viewport_info = Self::create_viewport_info(&renderer.swapchain);
 		let rasterizer_info = Self::create_rasterizer();
-		let multisampler_info = Self::create_multisampler();		
+		let multisampler_info = Self::create_multisampler();
 		let colourblend_info = Self::create_color_blend();
 		let depth_stencil_info = Self::create_depth_stencil();
 		let push_constants = Self::create_push_constants(vk::ShaderStageFlags::VERTEX, 0, 128);	
-		let layout = Self::create_pipeline_layout(&logical_device, &descriptor_set_layouts, &push_constants)?;
+		let layout = Self::create_pipeline_layout(
+			&renderer.logical_device, 
+			&renderer.descriptor_pool.descriptor_set_layouts, 
+			&push_constants
+		)?;
 		
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
 			.stages(&shader_stages.get_stages())
@@ -234,7 +238,7 @@ impl Pipeline {
 	
 	unsafe fn create_pipeline_layout(
 		logical_device: &ash::Device,
-		descriptor_set_layouts: &Vec<vk::DescriptorSetLayout>,
+		descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,
 		push_constants: &[vk::PushConstantRange],
 	) -> Result<vk::PipelineLayout, vk::Result> {
 		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()

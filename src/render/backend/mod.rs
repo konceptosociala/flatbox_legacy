@@ -8,3 +8,4 @@ pub(crate) mod pipeline;
 pub(crate) mod commandbuffers;
 pub(crate) mod buffer;
 pub(crate) mod shader;
+pub(crate) mod descriptor_pool;

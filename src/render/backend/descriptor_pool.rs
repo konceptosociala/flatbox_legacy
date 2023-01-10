@@ -10,19 +10,19 @@ use crate::render::{
 
 pub(crate) struct DescriptorPool {
 	pub(crate) descriptor_pool: vk::DescriptorPool,
+		
 	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub(crate) camera_set_layout: vk::DescriptorSetLayout,
 	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	pub(crate) texture_set_layout: vk::DescriptorSetLayout,
 	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
-	pub(crate) light_set_layout: vk::DescriptorSetLayout,
+	
+	pub(crate) descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,
 }
 
 impl DescriptorPool {
 	pub(crate) fn init(
 		logical_device: &ash::Device,
 		swapchain: &Swapchain,
-	) -> DescriptorPool {
+	) -> Result<DescriptorPool, vk::Result> {
 		let descriptor_pool = Self::create_descriptor_pool(&logical_device, &swapchain)?;
 		
 		let camera_set_layout = unsafe { Self::create_descriptor_set_layout(
@@ -101,6 +101,14 @@ impl DescriptorPool {
 			];
 			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
+		
+		Ok(DescriptorPool {
+			descriptor_pool,	
+			descriptor_sets_camera, 
+			descriptor_sets_texture,
+			descriptor_sets_light,
+			descriptor_set_layouts: vec![camera_set_layout, texture_set_layout, light_set_layout],
+		})
 	}
 	
 	unsafe fn create_descriptor_set_layout(
