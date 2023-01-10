@@ -1,7 +1,10 @@
 use despero::prelude::*;
+use ash::vk;
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 struct MyMaterial {
-	integer: i32,
+	colour: [f32; 3],
 }
 
 impl Material for MyMaterial {

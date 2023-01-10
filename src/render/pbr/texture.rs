@@ -1,5 +1,3 @@
-// texture = cmd.spawn((Texture::from_file(path),)); -> Entity
-
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;

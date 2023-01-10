@@ -39,19 +39,19 @@ pub struct Renderer {
 	pub(crate) queue_families: QueueFamilies,
 	pub(crate) device: Device,
 	pub(crate) swapchain: Swapchain,
-	
 	pub(crate) renderpass: vk::RenderPass,
 	pub(crate) pipelines: HashMap<TypeId, Pipeline>,
-	
 	pub(crate) commandbuffer_pools: CommandBufferPools,
 	pub(crate) allocator: Allocator,
 	
 	pub(crate) uniformbuffer: Buffer,
 	pub(crate) lightbuffer: Buffer,
+	
 	pub(crate) descriptor_pool: vk::DescriptorPool,
 	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
 	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
 	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
+	
 	pub(crate) texture_storage: TextureStorage,
 }
 
@@ -59,7 +59,8 @@ impl Renderer {
 	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
 		let instance = Instance::init(get_window_title(&window_builder))?;
 		let window	= Window::init(&instance, window_builder)?;
-		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;	
+		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
+		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;	
 			
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
 			instance: instance.instance.clone(),
@@ -77,15 +78,10 @@ impl Renderer {
 			&mut allocator
 		)?;
 		
-		// RenderPass, Pipeline
 		let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
 		swapchain.create_framebuffers(&device, renderpass)?;
-		let pipeline = Pipeline::init(&device, &swapchain, &renderpass)?;
 		
-		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
-		
-		// Uniform buffer
-		let mut uniformbuffer = Buffer::new(
+		let mut camera_buffer = Buffer::new(
 			&device,
 			&mut allocator,
 			128,
@@ -94,8 +90,13 @@ impl Renderer {
 			"Uniform buffer"
 		)?;
 		
-		// Light buffer
-		let mut lightbuffer = Buffer::new(
+		let camera_transform: [[[f32; 4]; 4]; 2] = [
+			na::Matrix4::identity().into(),
+			na::Matrix4::identity().into(),
+		];
+		camera_buffer.fill(&device, &mut allocator, &camera_transform)?;
+		
+		let mut light_buffer = Buffer::new(
 			&device,
 			&mut allocator,
 			8,
@@ -103,132 +104,187 @@ impl Renderer {
 			MemoryLocation::CpuToGpu,
 			"Light buffer",
 		)?;
-		lightbuffer.fill(&device, &mut allocator, &[0.,0.])?;
+		light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
 		
-		// Camera transform
-		let cameratransform: [[[f32; 4]; 4]; 2] = [
-			na::Matrix4::identity().into(),
-			na::Matrix4::identity().into(),
-		];
-		uniformbuffer.fill(&device, &mut allocator, &cameratransform)?;
-		
-		// Descriptor pool
-		//
-		// Set pool size
-		let pool_sizes = [
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::UNIFORM_BUFFER,
-				descriptor_count: swapchain.amount_of_images,
-			},
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-				descriptor_count: MAX_NUMBER_OF_TEXTURES * swapchain.amount_of_images,
-			},
-			vk::DescriptorPoolSize {
-				ty: vk::DescriptorType::STORAGE_BUFFER,
-				descriptor_count: swapchain.amount_of_images,
-			},
-		];
-		// PoolCreateInfo
-		let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
-			// Amount of descriptors
-			.max_sets(3 * swapchain.amount_of_images)
-			// Size of pool
-			.pool_sizes(&pool_sizes); 
-		let descriptor_pool = unsafe { device.create_descriptor_pool(&descriptor_pool_info, None) }?;
-		
-		// Descriptor sets (Camera)
-		//
-		// Descriptor layouts (Camera)
-		let desc_layouts_camera = vec![pipeline.descriptor_set_layouts[0]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Camera)
-		let descriptor_set_allocate_info_camera = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_camera);
-		let descriptor_sets_camera = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_camera) }?;
-
-		// Fill descriptor sets (Camera)
-		for descset in &descriptor_sets_camera {
-			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: uniformbuffer.buffer,
-				offset: 0,
-				range: 128,
-			}];
-			let desc_sets_write = [vk::WriteDescriptorSet::builder()
-				.dst_set(*descset)
-				.dst_binding(0)
-				.descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-				.buffer_info(&buffer_infos)
-				.build()
-			];
-			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
-		}
-		
-		// Descriptor sets (Texture)
-		//
-		// Descriptor layouts (Texture)
-		let desc_layouts_texture = vec![pipeline.descriptor_set_layouts[1]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Texture)
-		let descriptor_set_allocate_info_texture = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_texture);
-		let descriptor_sets_texture = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_texture) }?;
-		
-		// Descriptor sets (Light)
-		//
-		// Descriptor layouts (Light)
-		let desc_layouts_light = vec![pipeline.descriptor_set_layouts[2]; swapchain.amount_of_images as usize];
-		// SetAllocateInfo (Light)
-		let descriptor_set_allocate_info_light = vk::DescriptorSetAllocateInfo::builder()
-			// DescPool
-			.descriptor_pool(descriptor_pool)
-			// Layouts
-			.set_layouts(&desc_layouts_light);
-		let descriptor_sets_light = unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info_light) }?;
-		// Fill descriptor sets (Light)
-		for descset in &descriptor_sets_light {
-			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: lightbuffer.buffer,
-				offset: 0,
-				range: 8,
-			}];
-			let desc_sets_write = [vk::WriteDescriptorSet::builder()
-				.dst_set(*descset)
-				.dst_binding(0)
-				.descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-				.buffer_info(&buffer_infos)
-				.build()
-			];
-			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
-		}
+		let descriptor_pool = DescriptorPool::init()?;
 		 
 		Ok(Renderer {
 			instance,
 			window,
 			queue_families,
 			device,
-			
 			swapchain,
 			renderpass,
 			pipeline,
 			commandbuffer_pools,
 			allocator,
-			uniformbuffer,
-			lightbuffer,
+			camera_buffer,
+			light_buffer,
 			descriptor_pool,
-			descriptor_sets_camera,
-			descriptor_sets_texture,
-			descriptor_sets_light,
 			texture_storage: TextureStorage::new(),
 		})
 	}
 	
-	pub fn bind_material<M: Material>(){	
-		self.pipelines.insert(TypeId::of::<M>, material.pipeline(&self));
+	pub fn bind_material<M: Material>(&mut self){	
+		self.pipelines.insert(TypeId::of::<M>, M::pipeline(&self));
+	}
+	
+	pub fn create_texture<P: AsRef<std::path::Path>>(
+		&mut self,
+		path: P,
+		filter: Filter,
+	) -> usize {
+		self.texture_storage.new_texture_from_file(
+			path,
+			filter,
+			&self.device,
+			&mut self.allocator,
+			&self.commandbuffer_pools.commandpool_graphics,
+			&self.queue_families.graphics_queue,
+		).expect("Cannot create texture")
+	}
+	
+	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
+		&mut self,
+		world: &mut SubWorld<W>,
+		index: usize
+	) -> Result<(), vk::Result> {
+		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
+		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
+		
+		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
+		
+		let clear_values = Self::set_clear_values(Vector3::new(0.0, 0.0, 0.0));
+		
+		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
+			.render_pass(self.renderpass)
+			.framebuffer(self.swapchain.framebuffers[index])
+			.render_area(vk::Rect2D {
+				offset: vk::Offset2D { x: 0, y: 0 },
+				extent: self.swapchain.extent,
+			})
+			.clear_values(&clear_values);
+			
+		// Bind RenderPass
+		self.device.cmd_begin_render_pass(
+			commandbuffer,
+			&renderpass_begininfo,
+			vk::SubpassContents::INLINE,
+		);
+		// Bind Pipeline
+		self.device.cmd_bind_pipeline(
+			commandbuffer,
+			vk::PipelineBindPoint::GRAPHICS,
+			self.pipeline.pipeline,
+		);
+		// Bind DescriptorSets
+		self.device.cmd_bind_descriptor_sets(
+			commandbuffer,
+			vk::PipelineBindPoint::GRAPHICS,
+			self.pipeline.layout,
+			0,
+			&[
+				self.descriptor_sets_camera[index],
+				self.descriptor_sets_texture[index],
+				self.descriptor_sets_light[index],
+			],
+			&[],
+		);
+		
+		for (_, (mesh, _material, transform)) in &mut world.query::<(
+			&Mesh, &DefaultMat, &Transform,
+		)>(){
+			if let Some(vertexbuffer) = &mesh.vertexbuffer {
+				if let Some(instancebuffer) = &mesh.instancebuffer {
+					if let Some(indexbuffer) = &mesh.indexbuffer {
+						// Bind position buffer						
+						self.device.cmd_bind_index_buffer(
+							commandbuffer,
+							indexbuffer.buffer,
+							0,
+							vk::IndexType::UINT32,
+						);
+						
+						self.device.cmd_bind_vertex_buffers(
+							commandbuffer,
+							0,
+							&[vertexbuffer.buffer],
+							&[0],
+						);
+						
+						self.device.cmd_bind_vertex_buffers(
+							commandbuffer,
+							1,
+							&[instancebuffer.buffer],
+							&[0],
+						);
+						
+						let transform_matrices = transform.to_matrices();
+						let transform_ptr = &transform_matrices as *const _ as *const u8;
+						let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
+						self.device.cmd_push_constants(
+							commandbuffer,
+							self.pipeline.layout,
+							vk::ShaderStageFlags::VERTEX,
+							0,
+							transform_slice,
+						);
+						
+						self.device.cmd_draw_indexed(
+							commandbuffer,
+							mesh.indexdata.len() as u32,
+							1,
+							0,
+							0,
+							0,
+						);
+					}
+				}
+			}
+		}
+		
+		self.device.cmd_end_render_pass(commandbuffer);
+		self.device.end_command_buffer(commandbuffer)?;
+			
+		Ok(())
+	}
+	
+	pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+		unsafe {
+			self.device
+				.device_wait_idle()
+				.expect("something wrong while waiting");
+			self.swapchain.cleanup(&self.device, &mut self.allocator);
+		}
+		// Recreate Swapchain
+		self.swapchain = Swapchain::init(
+			&self.instance,
+			&self.device,
+			&self.window.surface,
+			&self.queue_families,
+			&mut self.allocator,
+		)?;
+		
+		// Recreate FrameBuffers
+		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
+		
+		// Recreate Pipeline
+		self.pipeline.cleanup(&self.device);
+		self.pipeline = Pipeline::init(
+			&self.device, 
+			&self.swapchain, 
+			&self.renderpass
+		)?;
+		
+		Ok(())
+	}
+	
+	pub(crate) fn fill_lightbuffer<T: Sized>(
+		&mut self,
+		data: &[T],
+	) -> Result<(), vk::Result>{
+		self.lightbuffer.fill(&self.device, &mut self.allocator, data)?;
+		Ok(())
 	}
 	
 	pub fn screenshot(&mut self, full_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -501,164 +557,6 @@ impl Renderer {
 		let screen_image = image::DynamicImage::ImageRgba8(screen);
 		screen_image.save(full_path)?;		
 		
-		Ok(())
-	}
-	
-	pub fn create_texture<P: AsRef<std::path::Path>>(
-		&mut self,
-		path: P,
-		filter: Filter,
-	) -> usize {
-		self.texture_storage.new_texture_from_file(
-			path,
-			filter,
-			&self.device,
-			&mut self.allocator,
-			&self.commandbuffer_pools.commandpool_graphics,
-			&self.queue_families.graphics_queue,
-		).expect("Cannot create texture")
-	}
-	
-	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
-		&mut self,
-		world: &mut SubWorld<W>,
-		index: usize
-	) -> Result<(), vk::Result> {
-		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
-		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
-		
-		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
-		
-		let clear_values = Self::set_clear_values(Vector3::new(0.0, 0.0, 0.0));
-		
-		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
-			.render_pass(self.renderpass)
-			.framebuffer(self.swapchain.framebuffers[index])
-			.render_area(vk::Rect2D {
-				offset: vk::Offset2D { x: 0, y: 0 },
-				extent: self.swapchain.extent,
-			})
-			.clear_values(&clear_values);
-			
-		// Bind RenderPass
-		self.device.cmd_begin_render_pass(
-			commandbuffer,
-			&renderpass_begininfo,
-			vk::SubpassContents::INLINE,
-		);
-		// Bind Pipeline
-		self.device.cmd_bind_pipeline(
-			commandbuffer,
-			vk::PipelineBindPoint::GRAPHICS,
-			self.pipeline.pipeline,
-		);
-		// Bind DescriptorSets
-		self.device.cmd_bind_descriptor_sets(
-			commandbuffer,
-			vk::PipelineBindPoint::GRAPHICS,
-			self.pipeline.layout,
-			0,
-			&[
-				self.descriptor_sets_camera[index],
-				self.descriptor_sets_texture[index],
-				self.descriptor_sets_light[index],
-			],
-			&[],
-		);
-		
-		for (_, (mesh, _material, transform)) in &mut world.query::<(
-			&Mesh, &DefaultMat, &Transform,
-		)>(){
-			if let Some(vertexbuffer) = &mesh.vertexbuffer {
-				if let Some(instancebuffer) = &mesh.instancebuffer {
-					if let Some(indexbuffer) = &mesh.indexbuffer {
-						// Bind position buffer						
-						self.device.cmd_bind_index_buffer(
-							commandbuffer,
-							indexbuffer.buffer,
-							0,
-							vk::IndexType::UINT32,
-						);
-						
-						self.device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							0,
-							&[vertexbuffer.buffer],
-							&[0],
-						);
-						
-						self.device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							1,
-							&[instancebuffer.buffer],
-							&[0],
-						);
-						
-						let transform_matrices = transform.to_matrices();
-						let transform_ptr = &transform_matrices as *const _ as *const u8;
-						let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
-						self.device.cmd_push_constants(
-							commandbuffer,
-							self.pipeline.layout,
-							vk::ShaderStageFlags::VERTEX,
-							0,
-							transform_slice,
-						);
-						
-						self.device.cmd_draw_indexed(
-							commandbuffer,
-							mesh.indexdata.len() as u32,
-							1,
-							0,
-							0,
-							0,
-						);
-					}
-				}
-			}
-		}
-		
-		self.device.cmd_end_render_pass(commandbuffer);
-		self.device.end_command_buffer(commandbuffer)?;
-			
-		Ok(())
-	}
-	
-	pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-		unsafe {
-			self.device
-				.device_wait_idle()
-				.expect("something wrong while waiting");
-			self.swapchain.cleanup(&self.device, &mut self.allocator);
-		}
-		// Recreate Swapchain
-		self.swapchain = Swapchain::init(
-			&self.instance,
-			&self.device,
-			&self.window.surface,
-			&self.queue_families,
-			&mut self.allocator,
-		)?;
-		
-		// Recreate FrameBuffers
-		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
-		
-		// Recreate Pipeline
-		self.pipeline.cleanup(&self.device);
-		self.pipeline = Pipeline::init(
-			&self.device, 
-			&self.swapchain, 
-			&self.renderpass
-		)?;
-		
-		Ok(())
-	}
-	
-	pub(crate) fn fill_lightbuffer<T: Sized>(
-		&mut self,
-		data: &[T],
-	) -> Result<(), vk::Result>{
-		self.lightbuffer.fill(&self.device, &mut self.allocator, data)?;
 		Ok(())
 	}
 	

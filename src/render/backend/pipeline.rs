@@ -8,255 +8,120 @@ use crate::render::{
 	},
 };
 
-// Pipeline
-pub(crate) struct Pipeline {
+pub type ShaderInputAttribute = vk::VertexInputAttributeDescription;
+pub type ShaderInputBinding = vk::VertexInputBindingDescription;
+pub type ShaderInputFormat = vk::Format;
+
+pub struct ShaderStages {
+	vertex_stage: vk::PipelineShaderStageCreateInfo,
+	fragment_stage: vk::PipelineShaderStageCreateInfo,
+	vertex_module: vk::ShaderModule,
+	fragment_module: vk::ShaderModule,
+}
+
+impl ShaderStages {
+	pub unsafe fn create(
+		vertex_shader: &vk::ShaderModuleCreateInfo,
+		fragment_shader: &vk::ShaderModuleCreateInfo,
+		logical_device: &ash::Device,
+	) -> Result<ShaderStages, vk::Result> {
+		let vertex_module = logical_device.create_shader_module(vertex_shader, None)?;
+		let fragment_module = logical_device.create_shader_module(fragment_shader, None)?;
+		
+		let main_function = CString::new("main").unwrap();
+		
+		let vertex_stage = vk::PipelineShaderStageCreateInfo::builder()
+			.stage(vk::ShaderStageFlags::VERTEX)
+			.module(vertexshader_module)
+			.name(&main_function)
+			.build();
+			
+		let fragment_stage = vk::PipelineShaderStageCreateInfo::builder()
+			.stage(vk::ShaderStageFlags::FRAGMENT)
+			.module(fragmentshader_module)
+			.name(&main_function)
+			.build();
+			
+		Ok(ShaderStages {
+			vertex_stage,
+			fragment_stage,
+			vertex_module,
+			fragment_module,
+		})
+	}
+	
+	pub fn get_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> {
+		vec![self.vertex_stage.clone(), self.fragment_stage.clone()]
+	}
+	
+	pub unsafe fn destroy(&self, logical_device: &ash::Device) {
+		logical_device.destroy_shader_module(self.fragment_module, None);
+		logical_device.destroy_shader_module(self.vertex_module, None);
+	}
+}
+
+pub struct Pipeline {
 	pub pipeline: vk::Pipeline,
 	pub layout: vk::PipelineLayout,
-	pub descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,
 }
 
 impl Pipeline {	
-	pub(crate) unsafe fn init(
+	pub unsafe fn init(
 		renderer: &Renderer,
 		vertex_shader: &vk::ShaderModuleCreateInfo,
 		fragment_shader: &vk::ShaderModuleCreateInfo,
-	) -> Result<Pipeline, vk::Result>{
-		let shader_stages = unsafe { Self::create_shader_stages(vertex_shader, fragment_shader, &renderer.device)? };
-		
-		// Vertex Input Info
-		// 
-		// Attribute description
-		let vertex_attrib_descs = [
-			vk::VertexInputAttributeDescription {
+		instance_attributes: Vec<ShaderInputAttribute>,
+		instance_bytes: usize,
+	) -> Result<Pipeline, vk::Result> {
+		let vertex_attributes = vec![
+			ShaderInputAttribute {
 				binding: 0,
 				location: 0,
 				offset: 0,
-				format: vk::Format::R32G32B32_SFLOAT,
+				format: ShaderInputFormat::R32G32B32_SFLOAT,
 			},
-			vk::VertexInputAttributeDescription {
+			ShaderInputAttribute {
 				binding: 0,
 				location: 1,
 				offset: 12,
-				format: vk::Format::R32G32B32_SFLOAT,
+				format: ShaderInputFormat::R32G32B32_SFLOAT,
 			},
-			vk::VertexInputAttributeDescription {
+			ShaderInputAttribute {
 				binding: 0,
 				location: 2,
 				offset: 24,
-				format: vk::Format::R32G32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 3,
-				offset: 0,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 4,
-				offset: 16,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 5,
-				offset: 32,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 6,
-				offset: 48,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 7,
-				offset: 64,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 8,
-				offset: 80,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 9,
-				offset: 96,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription {
-				binding: 1,
-				location: 10,
-				offset: 112,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription{
-				binding: 1,
-				location: 11,
-				offset: 128,
-				format: vk::Format::R8G8B8A8_UINT,
-			},
-			vk::VertexInputAttributeDescription{
-				binding: 1,
-				location: 12,
-				offset: 132,
-				format: vk::Format::R32_SFLOAT,
-			},
-			vk::VertexInputAttributeDescription{
-				binding: 1,
-				location: 13,
-				offset: 136,
-				format: vk::Format::R32_SFLOAT,
+				format: ShaderInputFormat::R32G32_SFLOAT,
 			},
 		];
-		let vertex_binding_descs = [
-			vk::VertexInputBindingDescription {
+		
+		let vertex_bindings = vec![
+			ShaderInputBinding {
 				binding: 0,
 				stride: 32,
 				input_rate: vk::VertexInputRate::VERTEX,
 			},
-			vk::VertexInputBindingDescription {
+			ShaderInputBinding {
 				binding: 1,
-				stride: 140,
+				stride: instance_bytes,
 				input_rate: vk::VertexInputRate::INSTANCE,
 			},
 		];
 		
-		// Bind vertex inputs
-		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
-			.vertex_attribute_descriptions(&vertex_attrib_descs)
-			.vertex_binding_descriptions(&vertex_binding_descs);
-			
-		let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
-			.topology(vk::PrimitiveTopology::TRIANGLE_LIST);
+		vertex_attributes.extend(instance_attributes);
 		
-		// Viewports
-		let viewports = [vk::Viewport {
-			x: 0.,
-			y: 0.,
-			width: swapchain.extent.width as f32,
-			height: swapchain.extent.height as f32,
-			min_depth: 0.,
-			max_depth: 1.,
-		}];
+		let shader_stages = unsafe { ShaderStages::create(vertex_shader, fragment_shader, &renderer.device)? };
+		let vertex_input_info = Self::create_vertex_input_info(&vertex_attributes, &vertex_bindings);
+		let input_assembly_info = Self::create_input_assembly();
+		let viewport_info = Self::create_viewport_info(&swapchain);
+		let rasterizer_info = Self::create_rasterizer();
+		let multisampler_info = Self::create_multisampler();		
+		let colourblend_info = Self::create_color_blend();
+		let depth_stencil_info = Self::create_depth_stencil();
+		let push_constants = Self::create_push_constants(vk::ShaderStageFlags::VERTEX, 0, 128);	
+		let layout = Self::create_pipeline_layout(&logical_device, &descriptor_set_layouts, &push_constants)?;
 		
-		let scissors = [vk::Rect2D {
-			offset: vk::Offset2D { x: 0, y: 0 },
-			extent: swapchain.extent,
-		}];
-
-		let viewport_info = vk::PipelineViewportStateCreateInfo::builder()
-			.viewports(&viewports)
-			.scissors(&scissors);
-			
-		// Rasterizer
-		let rasterizer_info = vk::PipelineRasterizationStateCreateInfo::builder()
-			.line_width(1.0)
-			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
-			.cull_mode(vk::CullModeFlags::BACK)
-			.polygon_mode(vk::PolygonMode::FILL);
-			
-		// Multisampler	
-		let multisampler_info = vk::PipelineMultisampleStateCreateInfo::builder()
-			.rasterization_samples(vk::SampleCountFlags::TYPE_1);
-			
-		// Color blend
-		let colorblend_attachments = [vk::PipelineColorBlendAttachmentState::builder()
-			.blend_enable(true)
-			.src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
-			.dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-			.color_blend_op(vk::BlendOp::ADD)
-			.src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
-			.dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-			.alpha_blend_op(vk::BlendOp::ADD)
-			.color_write_mask(
-				vk::ColorComponentFlags::R
-					| vk::ColorComponentFlags::G
-					| vk::ColorComponentFlags::B
-					| vk::ColorComponentFlags::A,
-			)
-			.build()];
-		let colourblend_info = vk::PipelineColorBlendStateCreateInfo::builder()
-			.attachments(&colorblend_attachments);
-		let depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo::builder()
-			.depth_test_enable(true)
-			.depth_write_enable(true)
-			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
-		
-		// Bind resource descriptor
-		//
-		//
-		// 0
-		let descriptorset_layout_binding_descs0 = [
-			vk::DescriptorSetLayoutBinding::builder()
-				.binding(0)
-				.descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-				.descriptor_count(1)
-				.stage_flags(vk::ShaderStageFlags::VERTEX)
-				.build()
-		];
-		let descriptorset_layout_info0 = vk::DescriptorSetLayoutCreateInfo::builder()
-			.bindings(&descriptorset_layout_binding_descs0);
-		let descriptorsetlayout0 = unsafe {
-			logical_device.create_descriptor_set_layout(&descriptorset_layout_info0, None)
-		}?;
-		//
-		//
-		// 1
-		let descriptorset_layout_binding_descs1 = [vk::DescriptorSetLayoutBinding::builder()
-			.binding(0)
-			.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-			.descriptor_count(MAX_NUMBER_OF_TEXTURES)
-			.stage_flags(vk::ShaderStageFlags::FRAGMENT)
-			.build()];
-		let descriptorset_layout_info1 = vk::DescriptorSetLayoutCreateInfo::builder()
-			.bindings(&descriptorset_layout_binding_descs1);
-		let descriptorsetlayout1 = unsafe {
-			logical_device.create_descriptor_set_layout(&descriptorset_layout_info1, None)
-		}?;
-		//
-		//
-		// 2
-		let descriptorset_layout_binding_descs2 = [
-			vk::DescriptorSetLayoutBinding::builder()
-				.binding(0)
-				.descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-				.descriptor_count(1)
-				.stage_flags(vk::ShaderStageFlags::FRAGMENT)
-				.build()
-		];
-		let descriptorset_layout_info2 = vk::DescriptorSetLayoutCreateInfo::builder()
-			.bindings(&descriptorset_layout_binding_descs2);
-		let descriptorsetlayout2 = unsafe {
-			logical_device.create_descriptor_set_layout(&descriptorset_layout_info2, None)
-		}?;
-		
-		let desclayouts = vec![
-			descriptorsetlayout0,
-			descriptorsetlayout1,
-			descriptorsetlayout2,
-		];
-		
-		// Push Constants
-		let push_constants = [vk::PushConstantRange::builder()
-			.stage_flags(vk::ShaderStageFlags::VERTEX)
-			.offset(0)
-			.size(128)
-			.build()];
-		
-		// Pipeline layout
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
-			.set_layouts(&desclayouts)
-			.push_constant_ranges(&push_constants);
-			
-		let pipelinelayout = unsafe { logical_device.create_pipeline_layout(&pipelinelayout_info, None) }?;
-		
-		// Graphics Pipeline
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
-			.stages(&shader_stages)
+			.stages(&shader_stages.get_stages())
 			.vertex_input_state(&vertex_input_info)
 			.input_assembly_state(&input_assembly_info)
 			.viewport_state(&viewport_info)
@@ -267,7 +132,8 @@ impl Pipeline {
 			.layout(pipelinelayout)
 			.render_pass(*renderpass)
 			.subpass(0);
-		let graphicspipeline = unsafe {
+			
+		let pipeline = unsafe {
 			logical_device
 				.create_graphics_pipelines(
 					vk::PipelineCache::null(),
@@ -276,16 +142,11 @@ impl Pipeline {
 				).expect("Cannot create pipeline")				
 		}[0];
 		
-		// Destroy used shader modules
-		unsafe {
-			logical_device.destroy_shader_module(fragmentshader_module, None);
-			logical_device.destroy_shader_module(vertexshader_module, None);
-		}
+		unsafe { shader_stages.destroy(&logical_device) };
 		
 		Ok(Pipeline {
-			pipeline: graphicspipeline,
-			layout: pipelinelayout,
-			descriptor_set_layouts: desclayouts,
+			pipeline,
+			layout,
 		})
 	}
 	
@@ -371,26 +232,124 @@ impl Pipeline {
 		Ok(renderpass)
 	}
 	
-	unsafe fn create_shader_stages(
-		vertex_shader: &vk::ShaderModuleCreateInfo,
-		fragment_shader: &vk::ShaderModuleCreateInfo,
+	unsafe fn create_pipeline_layout(
 		logical_device: &ash::Device,
-	) -> Result<Vec<vk::PipelineShaderStage>, vk::Result> {
-		let vertexshader_module = logical_device.create_shader_module(vertex_shader, None)?;
-		let fragmentshader_module = logical_device.create_shader_module(fragment_shader, None)?;
-		
-		let main_function = CString::new("main").unwrap();
-		
-		let vertexshader_stage = vk::PipelineShaderStageCreateInfo::builder()
-			.stage(vk::ShaderStageFlags::VERTEX)
-			.module(vertexshader_module)
-			.name(&main_function);
+		descriptor_set_layouts: &Vec<vk::DescriptorSetLayout>,
+		push_constants: &[vk::PushConstantRange],
+	) -> Result<vk::PipelineLayout, vk::Result> {
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
+			.set_layouts(&descriptor_set_layouts)
+			.push_constant_ranges(&push_constants);
 			
-		let fragmentshader_stage = vk::PipelineShaderStageCreateInfo::builder()
-			.stage(vk::ShaderStageFlags::FRAGMENT)
-			.module(fragmentshader_module)
-			.name(&main_function);
+		logical_device.create_pipeline_layout(&pipelinelayout_info, None)?
+	}
+	
+	fn create_push_constants(
+		flags: vk::ShaderStageFlags,
+		offset: u32,
+		constant_size: u32,
+	) -> [vk::PushConstantRange; 1] {
+		[
+			vk::PushConstantRange::builder()
+				.stage_flags(flags)
+				.offset(offset)
+				.size(constant_size)
+				.build()
+		]
+	}
+	
+	fn create_input_assembly() -> vk::PipelineInputAssemblyStateCreateInfo {
+		vk::PipelineInputAssemblyStateCreateInfo::builder()
+			.topology(vk::PrimitiveTopology::TRIANGLE_LIST)
+			.build()
+	}
+	
+	fn create_vertex_input_info(
+		vertex_attributes: Vec<ShaderInputAttribute>,
+		vertex_bindings: Vec<ShaderInputBinding>,
+	) -> vk::PipelineVertexInputStateCreateInfo {
+		vk::PipelineVertexInputStateCreateInfo::builder()
+			.vertex_attribute_descriptions(&vertex_attributes)
+			.vertex_binding_descriptions(&vertex_bindings)
+			.build()
+	}
+	
+	fn create_multisampler() -> vk::PipelineMultisampleStateCreateInfo {
+		vk::PipelineMultisampleStateCreateInfo::builder()
+			.rasterization_samples(vk::SampleCountFlags::TYPE_1)
+			.build()
+	}
+	
+	fn create_rasterizer() -> vk::PipelineRasterizationStateCreateInfo {
+		vk::PipelineRasterizationStateCreateInfo::builder()
+			.line_width(1.0)
+			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
+			.cull_mode(vk::CullModeFlags::BACK)
+			.polygon_mode(vk::PolygonMode::FILL)
+			.build()
+	}
+	
+	fn create_depth_stencil() -> vk::PipelineDepthStencilStateCreateInfo {
+		vk::PipelineDepthStencilStateCreateInfo::builder()
+			.depth_test_enable(true)
+			.depth_write_enable(true)
+			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL)
+			.build()
+	}
+	
+	fn create_viewport_info(swapchain: &Swapchain) -> vk::PipelineViewportState {
+		let viewports = Self::create_viewports(&swapchain);
+		let scissors = Self::create_scissors(&swapchain);
+		
+		vk::PipelineViewportStateCreateInfo::builder()
+			.viewports(viewports)
+			.scissors(scissors)
+			.build()
+	}
+	
+	fn create_scissors(swapchain: &Swapchain) -> [vk::Rect2D; 1] {
+		[
+			vk::Rect2D {
+				offset: vk::Offset2D { x: 0, y: 0 },
+				extent: swapchain.extent,
+			}
+		]
+	}
+	
+	fn create_color_blend() -> vk::PipelineColorBlendStateCreateInfo {
+		let colorblend_attachments = [
+			vk::PipelineColorBlendAttachmentState::builder()
+				.blend_enable(true)
+				.src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+				.dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+				.color_blend_op(vk::BlendOp::ADD)
+				.src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
+				.dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+				.alpha_blend_op(vk::BlendOp::ADD)
+				.color_write_mask(
+					vk::ColorComponentFlags::R
+						| vk::ColorComponentFlags::G
+						| vk::ColorComponentFlags::B
+						| vk::ColorComponentFlags::A,
+				)
+				.build()
+		];
 			
-		Ok(vec![vertexshader_stage.build(), fragmentshader_stage.build()])
+		vk::PipelineColorBlendStateCreateInfo::builder()
+			.attachments(&colorblend_attachments)
+			.build()
+	}
+	
+	fn create_viewports(swapchain: &Swapchain) -> [vk::Viewport; 1] {
+		[
+			vk::Viewport {
+				x: 0.,
+				y: 0.,
+				width: swapchain.extent.width as f32,
+				height: swapchain.extent.height as f32,
+				min_depth: 0.,
+				max_depth: 1.,
+			}
+		]
 	}
 }
