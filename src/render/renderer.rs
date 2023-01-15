@@ -44,13 +44,11 @@ pub struct Renderer {
 	pub(crate) pipelines: HashMap<TypeId, Pipeline>,
 	pub(crate) commandbuffer_pools: CommandBufferPools,
 	pub(crate) allocator: Allocator,
-	
-	pub(crate) uniformbuffer: Buffer,
-	pub(crate) lightbuffer: Buffer,
-	
+	pub(crate) camera_buffer: Buffer,
+	pub(crate) light_buffer: Buffer,
 	pub(crate) descriptor_pool: DescriptorPool,
-	
 	pub(crate) texture_storage: TextureStorage,
+	pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync + Any)>>,
 }
 
 impl Renderer {
@@ -105,6 +103,7 @@ impl Renderer {
 		light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
 		
 		let descriptor_pool = DescriptorPool::init()?;
+		unsafe { descriptor_pool.bind_buffers(&logical_device, &camera_buffer, &light_buffer) };
 		 
 		Ok(Renderer {
 			instance,
@@ -120,6 +119,7 @@ impl Renderer {
 			light_buffer,
 			descriptor_pool,
 			texture_storage: TextureStorage::new(),
+			materials: HashMap::new();
 		})
 	}
 	
@@ -142,6 +142,13 @@ impl Renderer {
 		).expect("Cannot create texture")
 	}
 	
+	pub fn create_material(material: Arc<(dyn Material + Any + Send + Sync)>) -> MaterialHandle
+	{
+		let index = self.materials.len();
+		self.materials.push(material);
+		return MaterialHandle::new(index);
+	}
+	
 	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
 		&mut self,
 		world: &mut SubWorld<W>,
@@ -162,80 +169,91 @@ impl Renderer {
 				extent: self.swapchain.extent,
 			})
 			.clear_values(&clear_values);
-			
+		
+		// COMMAND BUFFER
+		//
 		// Bind RenderPass
 		self.device.cmd_begin_render_pass(
 			commandbuffer,
 			&renderpass_begininfo,
 			vk::SubpassContents::INLINE,
 		);
-		// Bind Pipeline
-		self.device.cmd_bind_pipeline(
-			commandbuffer,
-			vk::PipelineBindPoint::GRAPHICS,
-			self.pipeline.pipeline,
-		);
-		// Bind DescriptorSets
-		self.device.cmd_bind_descriptor_sets(
-			commandbuffer,
-			vk::PipelineBindPoint::GRAPHICS,
-			self.pipeline.layout,
-			0,
-			&[
-				self.descriptor_sets_camera[index],
-				self.descriptor_sets_texture[index],
-				self.descriptor_sets_light[index],
-			],
-			&[],
-		);
 		
-		for (_, (mesh, _material, transform)) in &mut world.query::<(
-			&Mesh, &DefaultMat, &Transform,
-		)>(){
-			if let Some(vertexbuffer) = &mesh.vertexbuffer {
-				if let Some(instancebuffer) = &mesh.instancebuffer {
-					if let Some(indexbuffer) = &mesh.indexbuffer {
-						// Bind position buffer						
-						self.device.cmd_bind_index_buffer(
-							commandbuffer,
-							indexbuffer.buffer,
-							0,
-							vk::IndexType::UINT32,
-						);
-						
-						self.device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							0,
-							&[vertexbuffer.buffer],
-							&[0],
-						);
-						
-						self.device.cmd_bind_vertex_buffers(
-							commandbuffer,
-							1,
-							&[instancebuffer.buffer],
-							&[0],
-						);
-						
-						let transform_matrices = transform.to_matrices();
-						let transform_ptr = &transform_matrices as *const _ as *const u8;
-						let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
-						self.device.cmd_push_constants(
-							commandbuffer,
-							self.pipeline.layout,
-							vk::ShaderStageFlags::VERTEX,
-							0,
-							transform_slice,
-						);
-						
-						self.device.cmd_draw_indexed(
-							commandbuffer,
-							mesh.indexdata.len() as u32,
-							1,
-							0,
-							0,
-							0,
-						);
+		for material_type in self.pipelines.keys() {
+			let pipeline = self.pipelines.get(&type_id).unwrap();
+			
+			// Bind Pipeline
+			self.device.cmd_bind_pipeline(
+				commandbuffer,
+				vk::PipelineBindPoint::GRAPHICS,
+				pipeline.pipeline,
+			);
+			
+			// Bind DescriptorSets
+			self.device.cmd_bind_descriptor_sets(
+				commandbuffer,
+				vk::PipelineBindPoint::GRAPHICS,
+				pipeline.layout,
+				0,
+				&[
+					self.descriptor_pool.descriptor_sets_camera[index],
+					self.descriptor_pool.descriptor_sets_texture[index],
+					self.descriptor_pool.descriptor_sets_light[index],
+				],
+				&[],
+			);
+			
+			for (_, (mesh, handle, transform)) in &mut world.query::<(
+				&Mesh, &MaterialHandle, &Transform,
+			)>(){
+				if let Some(vertexbuffer) = &mesh.vertexbuffer {
+					if let Some(instancebuffer) = &mesh.instancebuffer {
+						if let Some(indexbuffer) = &mesh.indexbuffer {
+							let material = self.materials.get(handle.get()).unwrap();
+							if material.type_id() = material_type {
+								// Bind position buffer						
+								self.device.cmd_bind_index_buffer(
+									commandbuffer,
+									indexbuffer.buffer,
+									0,
+									vk::IndexType::UINT32,
+								);
+								
+								self.device.cmd_bind_vertex_buffers(
+									commandbuffer,
+									0,
+									&[vertexbuffer.buffer],
+									&[0],
+								);
+								
+								self.device.cmd_bind_vertex_buffers(
+									commandbuffer,
+									1,
+									&[instancebuffer.buffer],
+									&[0],
+								);
+								
+								let transform_matrices = transform.to_matrices();
+								let transform_ptr = &transform_matrices as *const _ as *const u8;
+								let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
+								self.device.cmd_push_constants(
+									commandbuffer,
+									self.pipeline.layout,
+									vk::ShaderStageFlags::VERTEX,
+									0,
+									transform_slice,
+								);
+								
+								self.device.cmd_draw_indexed(
+									commandbuffer,
+									mesh.indexdata.len() as u32,
+									1,
+									0,
+									0,
+									0,
+								);
+							}
+						}
 					}
 				}
 			}

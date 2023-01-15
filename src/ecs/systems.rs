@@ -296,21 +296,3 @@ pub fn update_lights(
 	}
 	Ok(())
 }
-
-pub(crate) fn process_transform(
-	w_model: SubWorld<(&Transform, &mut DefaultMat)>,
-){
-	for (_, (transform, material)) in &mut w_model.query::<(&Transform, &mut DefaultMat)>(){
-		let new_matrix = na::Matrix4::new_translation(&transform.translation)
-			* na::Matrix4::from(transform.rotation)
-			* na::Matrix4::from([
-				[transform.scale, 0.0, 0.0, 0.0],
-				[0.0, transform.scale, 0.0, 0.0],
-				[0.0, 0.0, transform.scale, 0.0],
-				[0.0, 0.0, 0.0, 1.0]
-			]);
-		
-		material.modelmatrix = new_matrix.into();
-		material.inverse_modelmatrix = new_matrix.try_inverse().unwrap().into();
-	}
-}

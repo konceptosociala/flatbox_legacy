@@ -70,9 +70,24 @@ impl DescriptorPool {
 			light_set_layout,
 		)?};
 		
-		for descset in &descriptor_sets_camera {
+		Ok(DescriptorPool {
+			descriptor_pool,	
+			descriptor_sets_camera, 
+			descriptor_sets_texture,
+			descriptor_sets_light,
+			descriptor_set_layouts: vec![camera_set_layout, texture_set_layout, light_set_layout],
+		})
+	}
+	
+	pub(crate) unsafe fn bind_buffers(
+		&self,
+		logical_device: &ash::Device,
+		camera_buffer: &Buffer,
+		light_buffer: &Buffer,
+	){
+		for descset in &self.descriptor_sets_camera {
 			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: uniformbuffer.buffer,
+				buffer: camera_buffer.buffer,
 				offset: 0,
 				range: 128,
 			}];
@@ -83,12 +98,12 @@ impl DescriptorPool {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
+			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
 		
-		for descset in &descriptor_sets_light {
+		for descset in &self.descriptor_sets_light {
 			let buffer_infos = [vk::DescriptorBufferInfo {
-				buffer: lightbuffer.buffer,
+				buffer: light_buffer.buffer,
 				offset: 0,
 				range: 8,
 			}];
@@ -99,16 +114,14 @@ impl DescriptorPool {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { device.update_descriptor_sets(&desc_sets_write, &[]) };
+			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
 		}
-		
-		Ok(DescriptorPool {
-			descriptor_pool,	
-			descriptor_sets_camera, 
-			descriptor_sets_texture,
-			descriptor_sets_light,
-			descriptor_set_layouts: vec![camera_set_layout, texture_set_layout, light_set_layout],
-		})
+	}
+	
+	pub(crate) unsafe fn cleanup(&self, logical_device: &ash::Device){
+		for dsl in &self.descriptor_set_layouts {
+			logical_device.destroy_descriptor_set_layout(*dsl, None);
+		}
 	}
 	
 	unsafe fn create_descriptor_set_layout(

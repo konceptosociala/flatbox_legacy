@@ -75,11 +75,7 @@ fn create_models(
 	// Load model from OBJ
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: DefaultMat::new(
-			texture,
-			0.0,
-			1.0,
-		),
+		material: renderer.create_material(MyMaterial { colour: [1.0, 0.0, 1.0] }),
 		transform: Transform::default(),
 	});
 	// Add light

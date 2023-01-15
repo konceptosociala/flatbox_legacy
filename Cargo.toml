@@ -8,6 +8,7 @@ repository = "https://github.com/konceptosociala/despero"
 
 [dependencies]
 # Misc
+nanorand 	= "0.7.0"
 colored 	= "2.0.0"
 nalgebra 	= "0.31.2"
 readonly 	= "0.2.3"
