@@ -4,10 +4,14 @@ pub use crate::render::renderer::*;
 pub use crate::render::debug::*;
 pub use crate::render::transform::*;
 
+pub use crate::render::backend::shader::*;
+pub use crate::render::backend::pipeline::*;
+
 pub use crate::render::pbr::camera::*;
 pub use crate::render::pbr::model::*;
 pub use crate::render::pbr::texture::*;
 pub use crate::render::pbr::light::*;
+pub use crate::render::pbr::material::*;
 
 pub use crate::ecs::event::*;
 

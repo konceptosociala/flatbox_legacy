@@ -1,5 +1,13 @@
-use std::collections::HashMap;
+use std::any::Any;
 use ash::vk;
+
+use crate::render::{
+	renderer::*,
+	backend::{
+		pipeline::*,
+		shader::*,
+	},
+};
 
 pub struct MaterialHandle(usize);
 
@@ -14,8 +22,10 @@ impl MaterialHandle {
 }
 
 /// Trait for materials to be used in [`ModelBundle`]
-pub trait Material {
-	fn pipeline(renderer: &Renderer) -> Pipeline;	
+pub trait Material: Any {
+	fn pipeline(renderer: &Renderer) -> Pipeline
+	where
+        Self: Sized;
 }
 
 /// Default material, which uses standard shader and graphics pipeline
@@ -41,7 +51,7 @@ impl DefaultMat {
 		}
 	}
 }
-
+/*
 impl Material for DefaultMat {
 	fn pipeline(renderer: &Renderer) -> Pipeline {
 		let vertex_shader = vk::ShaderModuleCreateInfo::builder()
@@ -125,12 +135,15 @@ impl Material for DefaultMat {
 			}
 		];
 		
-		Pipeline::init(
-			&renderer,
-			&vertex_shader,
-			&fragment_shader,
-			instance_attributes,
-			140,
-		)
+		unsafe {
+			Pipeline::init(
+				&renderer,
+				&vertex_shader,
+				&fragment_shader,
+				instance_attributes,
+				140,
+			).expect("Cannot create pipeline")
+		}
 	}
 }
+*/

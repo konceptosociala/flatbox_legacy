@@ -504,6 +504,7 @@ dependencies = [
  "image",
  "mlua",
  "nalgebra",
+ "nanorand",
  "rapier3d",
  "raw-window-handle",
  "readonly",

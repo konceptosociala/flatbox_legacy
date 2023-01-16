@@ -2,7 +2,6 @@ use ash::vk;
 use std::mem::size_of;
 use gpu_allocator::MemoryLocation;
 use hecs_schedule::*;
-use nalgebra as na;
 
 use crate::render::{
 	renderer::Renderer,
@@ -11,13 +10,14 @@ use crate::render::{
 		camera::Camera,
 		model::*,
 		light::*,
+		material::*,
 	},
 	backend::buffer::Buffer,
 };
 
 pub(crate) fn rendering_system(
 	mut renderer: Write<Renderer>,
-	mut model_world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
+	mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
 	camera_world: SubWorld<(&mut Camera, &Transform)>,
 ){
 	// Get image of swapchain
@@ -62,7 +62,7 @@ pub(crate) fn rendering_system(
 	// Get image descriptor info
 	let imageinfos = renderer.texture_storage.get_descriptor_image_info();
 	let descriptorwrite_image = vk::WriteDescriptorSet::builder()
-		.dst_set(renderer.descriptor_sets_texture[renderer.swapchain.current_image])
+		.dst_set(renderer.descriptor_pool.descriptor_sets_texture[renderer.swapchain.current_image])
 		.dst_binding(0)
 		.dst_array_element(0)
 		.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
@@ -77,10 +77,10 @@ pub(crate) fn rendering_system(
 	}
 
 	// Update CommandBuffer
-	renderer.update_commandbuffer(
+	unsafe { renderer.update_commandbuffer(
 		&mut model_world,
 		image_index as usize,
-	).expect("Cannot update CommandBuffer");
+	).expect("Cannot update CommandBuffer") };
 	
 	// Submit commandbuffers
 	let semaphores_available = [renderer.swapchain.image_available[renderer.swapchain.current_image]];
@@ -116,7 +116,7 @@ pub(crate) fn rendering_system(
 			.queue_present(renderer.queue_families.graphics_queue, &present_info)
 			.expect("queue presentation")
 		{
-			renderer.recreate_swapchain().expect("Cannot recreate swapchain");
+			//renderer.recreate_swapchain().expect("Cannot recreate swapchain");
 			
 			for (_, camera) in &mut camera_world.query::<&mut Camera>(){
 				if camera.is_active {
@@ -280,9 +280,9 @@ pub fn update_lights(
 	}
 	renderer.fill_lightbuffer(&data)?;
 	// Update descriptor_sets
-	for descset in &renderer.descriptor_sets_light {
+	for descset in &renderer.descriptor_pool.descriptor_sets_light {
 		let buffer_infos = [vk::DescriptorBufferInfo {
-			buffer: renderer.lightbuffer.buffer,
+			buffer: renderer.light_buffer.buffer,
 			offset: 0,
 			range: 4 * data.len() as u64,
 		}];

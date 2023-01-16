@@ -1,4 +1,5 @@
-use std::any::TypeId;
+use std::sync::Arc;
+use std::any::{TypeId, Any};
 use std::collections::HashMap;
 use ash::vk;
 use ash::Device;
@@ -25,13 +26,13 @@ use crate::render::{
 	pbr::{
 		model::*,
 		texture::*,
+		material::*,
 	},
 	transform::Transform,
-	error::Desperror,
 };
 
 /// Maximum number of textures, which can be pushed to descriptor sets
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 65536;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 65535;
 
 /// Main rendering collection, including Vulkan components
 pub struct Renderer {
@@ -48,7 +49,7 @@ pub struct Renderer {
 	pub(crate) light_buffer: Buffer,
 	pub(crate) descriptor_pool: DescriptorPool,
 	pub(crate) texture_storage: TextureStorage,
-	pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync + Any)>>,
+	pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync)>>,
 }
 
 impl Renderer {
@@ -56,7 +57,6 @@ impl Renderer {
 		let instance = Instance::init(get_window_title(&window_builder))?;
 		let window	= Window::init(&instance, window_builder)?;
 		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
-		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;	
 			
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
 			instance: instance.instance.clone(),
@@ -76,6 +76,8 @@ impl Renderer {
 		
 		let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
 		swapchain.create_framebuffers(&device, renderpass)?;
+		
+		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
 		
 		let mut camera_buffer = Buffer::new(
 			&device,
@@ -102,8 +104,8 @@ impl Renderer {
 		)?;
 		light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
 		
-		let descriptor_pool = DescriptorPool::init()?;
-		unsafe { descriptor_pool.bind_buffers(&logical_device, &camera_buffer, &light_buffer) };
+		let descriptor_pool = DescriptorPool::init(&device, &swapchain)?;
+		unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
 		 
 		Ok(Renderer {
 			instance,
@@ -112,19 +114,19 @@ impl Renderer {
 			device,
 			swapchain,
 			renderpass,
-			pipeline,
+			pipelines: HashMap::new(),
 			commandbuffer_pools,
 			allocator,
 			camera_buffer,
 			light_buffer,
 			descriptor_pool,
 			texture_storage: TextureStorage::new(),
-			materials: HashMap::new();
+			materials: vec![],
 		})
 	}
 	
 	pub fn bind_material<M: Material>(&mut self){	
-		self.pipelines.insert(TypeId::of::<M>, M::pipeline(&self));
+		self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
 	}
 	
 	pub fn create_texture<P: AsRef<std::path::Path>>(
@@ -142,7 +144,10 @@ impl Renderer {
 		).expect("Cannot create texture")
 	}
 	
-	pub fn create_material(material: Arc<(dyn Material + Any + Send + Sync)>) -> MaterialHandle
+	pub fn create_material(
+		&mut self,
+		material: Arc<(dyn Material + Send + Sync)>,
+	) -> MaterialHandle
 	{
 		let index = self.materials.len();
 		self.materials.push(material);
@@ -159,7 +164,7 @@ impl Renderer {
 		
 		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		
-		let clear_values = Self::set_clear_values(Vector3::new(0.0, 0.0, 0.0));
+		let clear_values = Self::set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
 		
 		let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
 			.render_pass(self.renderpass)
@@ -180,7 +185,7 @@ impl Renderer {
 		);
 		
 		for material_type in self.pipelines.keys() {
-			let pipeline = self.pipelines.get(&type_id).unwrap();
+			let pipeline = self.pipelines.get(&material_type).unwrap();
 			
 			// Bind Pipeline
 			self.device.cmd_bind_pipeline(
@@ -210,7 +215,7 @@ impl Renderer {
 					if let Some(instancebuffer) = &mesh.instancebuffer {
 						if let Some(indexbuffer) = &mesh.indexbuffer {
 							let material = self.materials.get(handle.get()).unwrap();
-							if material.type_id() = material_type {
+							if material.type_id() == *material_type {
 								// Bind position buffer						
 								self.device.cmd_bind_index_buffer(
 									commandbuffer,
@@ -238,7 +243,7 @@ impl Renderer {
 								let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
 								self.device.cmd_push_constants(
 									commandbuffer,
-									self.pipeline.layout,
+									pipeline.layout,
 									vk::ShaderStageFlags::VERTEX,
 									0,
 									transform_slice,
@@ -265,7 +270,7 @@ impl Renderer {
 		Ok(())
 	}
 	
-	pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+	/*pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
 		unsafe {
 			self.device
 				.device_wait_idle()
@@ -293,13 +298,13 @@ impl Renderer {
 		)?;
 		
 		Ok(())
-	}
+	}*/
 	
 	pub(crate) fn fill_lightbuffer<T: Sized>(
 		&mut self,
 		data: &[T],
 	) -> Result<(), vk::Result>{
-		self.lightbuffer.fill(&self.device, &mut self.allocator, data)?;
+		self.light_buffer.fill(&self.device, &mut self.allocator, data)?;
 		Ok(())
 	}
 	
@@ -581,10 +586,10 @@ impl Renderer {
 		unsafe {
 			self.device.device_wait_idle().expect("Error halting device");	
 			self.texture_storage.cleanup(&self.device, &mut self.allocator);
-			self.device.destroy_descriptor_pool(self.descriptor_pool, None);
-			self.device.destroy_buffer(self.uniformbuffer.buffer, None);
-			self.device.free_memory(self.uniformbuffer.allocation.as_ref().unwrap().memory(), None);
-			self.device.destroy_buffer(self.lightbuffer.buffer, None);
+			self.descriptor_pool.cleanup(&self.device);
+			self.device.destroy_buffer(self.camera_buffer.buffer, None);
+			self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
+			self.device.destroy_buffer(self.light_buffer.buffer, None);
 			// Models clean
 			for (_, m) in &mut world.query::<&mut Mesh>(){
 				if let Some(vb) = &mut m.vertexbuffer {
@@ -609,7 +614,9 @@ impl Renderer {
 				}
 			}
 			self.commandbuffer_pools.cleanup(&self.device);
-			self.pipeline.cleanup(&self.device);
+			for pipeline in self.pipelines.values() {
+				pipeline.cleanup(&self.device);
+			}
 			self.device.destroy_render_pass(self.renderpass, None);
 			self.swapchain.cleanup(&self.device, &mut self.allocator);
 			self.device.destroy_device(None);
@@ -619,12 +626,12 @@ impl Renderer {
 	}
 	
 	fn set_clear_values(
-		color: Vector3<f32>
+		color: na::Vector3<f32>
 	) -> [vk::ClearValue; 2] {
 		[
 			vk::ClearValue {
 				color: vk::ClearColorValue {
-					float32: Vector4::from(color).into(),
+					float32: na::Vector4::from([color.x, color.y, color.z, 1.0]).into(),
 				},
 			},
 			vk::ClearValue {

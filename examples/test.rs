@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use despero::prelude::*;
 use ash::vk;
 
@@ -20,12 +21,25 @@ impl Material for MyMaterial {
 				"./shaders/fragment_simple.glsl",
 				kind: frag,
 			));
+			
+		let instance_attributes = vec![
+			ShaderInputAttribute {
+				binding: 1,
+				location: 3,
+				offset: 0,
+				format: ShaderInputFormat::R32G32B32_SFLOAT,
+			},
+		];
 		
-		Pipeline::init(
-			&renderer,
-			&vertex_shader,
-			&fragment_shader,
-		)
+		unsafe {
+			Pipeline::init(
+				&renderer,
+				&vertex_shader,
+				&fragment_shader,
+				instance_attributes,
+				12,
+			).expect("Cannot create pipeline")
+		}
 	}
 }
 
@@ -43,7 +57,7 @@ fn main() {
 }
 
 fn bind_mat(
-	renderer: Write<Renderer>,
+	mut renderer: Write<Renderer>,
 ){
 	renderer.bind_material::<MyMaterial>();
 }
@@ -71,11 +85,11 @@ fn create_models(
 	mut renderer: Write<Renderer>,
 ){
 	// Create texture
-	let texture = renderer.create_texture("assets/uv.jpg", Filter::LINEAR);
+	let _texture = renderer.create_texture("assets/uv.jpg", Filter::LINEAR);
 	// Load model from OBJ
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(MyMaterial { colour: [1.0, 0.0, 1.0] }),
+		material: renderer.create_material(Arc::new(MyMaterial { colour: [1.0, 0.0, 1.0] })),
 		transform: Transform::default(),
 	});
 	// Add light

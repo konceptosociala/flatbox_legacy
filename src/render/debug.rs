@@ -74,8 +74,8 @@ impl Debug {
 	pub(crate) fn init_debug_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
 		vk::DebugUtilsMessengerCreateInfoEXT::builder()
 			.message_severity(
-				//vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
-				//vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
+				vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
+				vk::DebugUtilsMessageSeverityFlagsEXT::ERROR |
 				vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
 				vk::DebugUtilsMessageSeverityFlagsEXT::INFO
 			)

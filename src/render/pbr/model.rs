@@ -1,14 +1,12 @@
-use std::any::Any;
-use nalgebra as na;
 use hecs::*;
 
 use crate::render::{
 	backend::{
 		buffer::Buffer,
-		pipeline::{Pipeline, ShaderInputAttribute},
 	},
 	transform::Transform,
 	debug::Debug,
+	pbr::material::*,
 };
 
 /// Struct that handles vertex information

@@ -74,7 +74,7 @@ impl Camera {
 		renderer: &mut Renderer,
 	) -> Result<(), vk::Result>{		
 		let data: [[[f32; 4]; 4]; 2] = [self.viewmatrix.into(), self.projectionmatrix.into()];
-		renderer.uniformbuffer.fill(&renderer.device, &mut renderer.allocator, &data)?;
+		renderer.camera_buffer.fill(&renderer.device, &mut renderer.allocator, &data)?;
 		Ok(())
 	}
 	

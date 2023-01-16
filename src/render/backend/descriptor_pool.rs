@@ -3,7 +3,7 @@ use ash::vk;
 use crate::render::{
 	backend::{
 		swapchain::Swapchain,
-		
+		buffer::Buffer,
 	},
 	renderer::MAX_NUMBER_OF_TEXTURES,
 };
@@ -23,7 +23,7 @@ impl DescriptorPool {
 		logical_device: &ash::Device,
 		swapchain: &Swapchain,
 	) -> Result<DescriptorPool, vk::Result> {
-		let descriptor_pool = Self::create_descriptor_pool(&logical_device, &swapchain)?;
+		let descriptor_pool = unsafe { Self::create_descriptor_pool(&logical_device, &swapchain)? };
 		
 		let camera_set_layout = unsafe { Self::create_descriptor_set_layout(
 			&logical_device,
@@ -31,7 +31,7 @@ impl DescriptorPool {
 			vk::ShaderStageFlags::VERTEX,
 			0,
 			1,
-		)};
+		)?};
 			
 		let texture_set_layout = unsafe { Self::create_descriptor_set_layout(
 			&logical_device,
@@ -39,7 +39,7 @@ impl DescriptorPool {
 			vk::ShaderStageFlags::FRAGMENT,
 			0,
 			MAX_NUMBER_OF_TEXTURES,
-		)};
+		)?};
 		
 		let light_set_layout = unsafe { Self::create_descriptor_set_layout(
 			&logical_device,
@@ -47,7 +47,7 @@ impl DescriptorPool {
 			vk::ShaderStageFlags::FRAGMENT,
 			0,
 			1,
-		)};
+		)?};
 		
 		let descriptor_sets_camera = unsafe { Self::allocate_descriptor_sets(
 			&logical_device,
@@ -98,7 +98,7 @@ impl DescriptorPool {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
+			logical_device.update_descriptor_sets(&desc_sets_write, &[]);
 		}
 		
 		for descset in &self.descriptor_sets_light {
@@ -114,11 +114,12 @@ impl DescriptorPool {
 				.buffer_info(&buffer_infos)
 				.build()
 			];
-			unsafe { logical_device.update_descriptor_sets(&desc_sets_write, &[]) };
+			logical_device.update_descriptor_sets(&desc_sets_write, &[]);
 		}
 	}
 	
 	pub(crate) unsafe fn cleanup(&self, logical_device: &ash::Device){
+		logical_device.destroy_descriptor_pool(self.descriptor_pool, None);
 		for dsl in &self.descriptor_set_layouts {
 			logical_device.destroy_descriptor_set_layout(*dsl, None);
 		}
@@ -130,7 +131,7 @@ impl DescriptorPool {
 		stage_flags: vk::ShaderStageFlags,
 		binding: u32,
 		dcount: u32,
-	) -> vk::DescriptorSetLayout {
+	) -> Result<vk::DescriptorSetLayout, vk::Result> {
 		let description = [
 			vk::DescriptorSetLayoutBinding::builder()
 				.binding(binding)

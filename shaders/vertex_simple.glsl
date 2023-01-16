@@ -22,4 +22,5 @@ layout (location=0) out vec3 out_colour;
 void main() {
 	vec4 worldpos = pc.model_matrix * vec4(position, 1.0);
     gl_Position = ubo.projection_matrix * ubo.view_matrix * worldpos;
+    out_colour = colour;
 }
