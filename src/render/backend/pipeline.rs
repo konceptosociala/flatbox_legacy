@@ -136,12 +136,19 @@ impl Pipeline {
 			.depth_write_enable(true)
 			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
 		
-		let push_constants = Self::create_push_constants(&vk::ShaderStageFlags::VERTEX, 0, 128);	
-		let layout = Self::create_pipeline_layout(
-			&renderer.device, 
-			&renderer.descriptor_pool.descriptor_set_layouts, 
-			&push_constants
-		)?;
+		let push_constants = [
+			vk::PushConstantRange::builder()
+				.stage_flags(vk::ShaderStageFlags::VERTEX)
+				.offset(0)
+				.size(128)
+				.build()
+		];
+				
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
+			.set_layouts(&renderer.descriptor_pool.descriptor_set_layouts)
+			.push_constant_ranges(&push_constants);
+			
+		let layout = renderer.device.create_pipeline_layout(&pipelinelayout_info, None)?;
 		
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
 			.stages(&shader_stages)
@@ -249,31 +256,5 @@ impl Pipeline {
 			.dependencies(&subpass_dependencies);
 		let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
 		Ok(renderpass)
-	}
-	
-	unsafe fn create_pipeline_layout(
-		logical_device: &ash::Device,
-		descriptor_set_layouts: &Vec<vk::DescriptorSetLayout>,
-		push_constants: &[vk::PushConstantRange],
-	) -> Result<vk::PipelineLayout, vk::Result> {
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
-			.set_layouts(descriptor_set_layouts)
-			.push_constant_ranges(push_constants);
-			
-		logical_device.create_pipeline_layout(&pipelinelayout_info, None)
-	}
-	
-	fn create_push_constants(
-		flags: &vk::ShaderStageFlags,
-		offset: u32,
-		constant_size: u32,
-	) -> [vk::PushConstantRange; 1] {
-		[
-			vk::PushConstantRange::builder()
-				.stage_flags(*flags)
-				.offset(offset)
-				.size(constant_size)
-				.build()
-		]
 	}
 }

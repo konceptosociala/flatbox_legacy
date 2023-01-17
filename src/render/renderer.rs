@@ -125,7 +125,7 @@ impl Renderer {
 		})
 	}
 	
-	pub fn bind_material<M: Material>(&mut self){	
+	pub fn bind_material<M: Material + Sync + Send>(&mut self){	
 		self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
 	}
 	
@@ -215,7 +215,7 @@ impl Renderer {
 					if let Some(instancebuffer) = &mesh.instancebuffer {
 						if let Some(indexbuffer) = &mesh.indexbuffer {
 							let material = self.materials.get(handle.get()).unwrap();
-							if material.type_id() == *material_type {
+							if (**material).type_id() == *material_type {
 								// Bind position buffer						
 								self.device.cmd_bind_index_buffer(
 									commandbuffer,
@@ -256,7 +256,7 @@ impl Renderer {
 									0,
 									0,
 									0,
-								);
+								);									
 							}
 						}
 					}

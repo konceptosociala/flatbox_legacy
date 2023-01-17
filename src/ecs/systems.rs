@@ -1,5 +1,5 @@
 use ash::vk;
-use std::mem::size_of;
+use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
 use hecs_schedule::*;
 
@@ -137,11 +137,12 @@ pub(crate) fn rendering_system(
 
 pub(crate) fn update_models_system(
 	mut renderer: Write<Renderer>,
-	world: SubWorld<(&mut Mesh, &mut DefaultMat, &mut Transform)>,
+	world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
 ) -> Result<(), vk::Result> {
-	for (_, (mesh, material, _transform)) in &mut world.query::<(
-		&mut Mesh, &mut DefaultMat, &mut Transform,
+	for (_, (mesh, handle, _transform)) in &mut world.query::<(
+		&mut Mesh, &mut MaterialHandle, &mut Transform,
 	)>(){
+		let material = renderer.materials.get(handle.get()).unwrap().clone();
 		let logical_device = renderer.device.clone();
 		let mut allocator = &mut renderer.allocator;
 		// Update vertex buffer
@@ -177,8 +178,8 @@ pub(crate) fn update_models_system(
 		// Update InstanceBuffer
 		//
 		//		
-		let mat_ptr = material as *const _ as *const u8;
-		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of::<DefaultMat>())};
+		let mat_ptr = &material as *const _ as *const u8;
+		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&material))};
 		if let Some(buffer) = &mut mesh.instancebuffer {
 			buffer.fill(
 				&logical_device,
@@ -186,7 +187,7 @@ pub(crate) fn update_models_system(
 				mat_slice,
 			)?;
 		} else {
-			let bytes = size_of::<DefaultMat>() as u64; 
+			let bytes = size_of_val(&material) as u64; 
 			let mut buffer = Buffer::new(
 				&logical_device,
 				&mut allocator,

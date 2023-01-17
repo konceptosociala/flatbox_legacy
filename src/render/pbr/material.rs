@@ -22,7 +22,7 @@ impl MaterialHandle {
 }
 
 /// Trait for materials to be used in [`ModelBundle`]
-pub trait Material: Any {
+pub trait Material: Any + std::fmt::Debug {
 	fn pipeline(renderer: &Renderer) -> Pipeline
 	where
         Self: Sized;
