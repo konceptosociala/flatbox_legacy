@@ -60,11 +60,8 @@ use std::sync::Arc;
 use hecs::*;
 use hecs_schedule::*;
 use winit::{
-	event::{
-		Event,
-		WindowEvent,
-		KeyboardInput,
-	},
+	event::*,
+	event::Event as WinitEvent,
 	platform::run_return::EventLoopExtRunReturn,
 	window::WindowBuilder,
 };
@@ -154,31 +151,29 @@ impl Despero {
 		let mut eventloop = self.renderer.window.get_event_loop();
 		// Run EventLoop
 		eventloop.run_return(move |event, _, controlflow| match event {	
-			Event::WindowEvent {
+			WinitEvent::WindowEvent {
 				event: WindowEvent::CloseRequested,
 				..
 			} => {
 				*controlflow = winit::event_loop::ControlFlow::Exit;
 			}
 					
-			Event::MainEventsCleared => {
+			WinitEvent::MainEventsCleared => {
 				self.renderer.window.request_redraw();
 			}
 			
-			Event::RedrawRequested(_) => {
+			WinitEvent::RedrawRequested(_) => {
 				// Execute loop schedule	
 				systems
 					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
 					.expect("Cannot execute loop schedule");
 			}
 			
-			Event::WindowEvent {
+			WinitEvent::WindowEvent {
 				event: WindowEvent::KeyboardInput {input, ..},
 				..
 			} => {
-				self.event_writer.send::<KeyboardInput>(
-					Arc::new(input)
-				).expect("Event send error");
+				self.event_writer.send(Arc::new(input)).expect("Event send error");
 			}
 			
 			_ => {}

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::any::{TypeId, Any};
+use std::any::TypeId;
 use std::collections::HashMap;
 use ash::vk;
 use ash::Device;
@@ -32,7 +32,7 @@ use crate::render::{
 };
 
 /// Maximum number of textures, which can be pushed to descriptor sets
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 65535;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
 
 /// Main rendering collection, including Vulkan components
 pub struct Renderer {
@@ -52,7 +52,7 @@ pub struct Renderer {
 	pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync)>>,
 }
 
-impl Renderer {
+impl Renderer {	
 	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
 		let instance = Instance::init(get_window_title(&window_builder))?;
 		let window	= Window::init(&instance, window_builder)?;
@@ -61,20 +61,14 @@ impl Renderer {
 		let mut allocator = Allocator::new(&AllocatorCreateDesc {
 			instance: instance.instance.clone(),
 			device: device.clone(),
-			physical_device: instance.physical_device.clone(),
+			physical_device: *instance.physical_device.clone(),
 			debug_settings: Default::default(),
 			buffer_device_address: true,
 		}).expect("Cannot create allocator");
 		
-		let mut swapchain = Swapchain::init(
-			&instance, 
-			&device, 
-			&window.surface, 
-			&queue_families,
-			&mut allocator
-		)?;
+		let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator)?;
 		
-		let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
+		let renderpass = Pipeline::init_renderpass(&device, *instance.physical_device.clone(), &window.surface)?;
 		swapchain.create_framebuffers(&device, renderpass)?;
 		
 		let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
@@ -159,6 +153,17 @@ impl Renderer {
 		world: &mut SubWorld<W>,
 		index: usize
 	) -> Result<(), vk::Result> {
+		let imageinfos = self.texture_storage.get_descriptor_image_info();
+		let descriptorwrite_image = vk::WriteDescriptorSet::builder()
+			.dst_set(self.descriptor_pool.descriptor_sets_texture[self.swapchain.current_image])
+			.dst_binding(0)
+			.dst_array_element(0)
+			.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+			.image_info(&imageinfos)
+			.build();
+
+		self.device.update_descriptor_sets(&[descriptorwrite_image], &[]);
+		
 		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
 		
@@ -186,7 +191,7 @@ impl Renderer {
 		
 		for material_type in self.pipelines.keys() {
 			let pipeline = self.pipelines.get(&material_type).unwrap();
-			
+						
 			// Bind Pipeline
 			self.device.cmd_bind_pipeline(
 				commandbuffer,
@@ -214,7 +219,7 @@ impl Renderer {
 				if let Some(vertexbuffer) = &mesh.vertexbuffer {
 					if let Some(instancebuffer) = &mesh.instancebuffer {
 						if let Some(indexbuffer) = &mesh.indexbuffer {
-							let material = self.materials.get(handle.get()).unwrap();
+							let material = &self.materials[handle.get()];
 							if (**material).type_id() == *material_type {
 								// Bind position buffer						
 								self.device.cmd_bind_index_buffer(

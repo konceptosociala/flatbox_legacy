@@ -57,24 +57,7 @@ pub(crate) fn rendering_system(
 		if camera.is_active {		
 			camera.update_buffer(&mut renderer).expect("Cannot update uniformbuffer");
 		}
-	}
-	
-	// Get image descriptor info
-	let imageinfos = renderer.texture_storage.get_descriptor_image_info();
-	let descriptorwrite_image = vk::WriteDescriptorSet::builder()
-		.dst_set(renderer.descriptor_pool.descriptor_sets_texture[renderer.swapchain.current_image])
-		.dst_binding(0)
-		.dst_array_element(0)
-		.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-		.image_info(&imageinfos)
-		.build();
-
-	// Update descriptors
-	unsafe {
-		renderer
-			.device
-			.update_descriptor_sets(&[descriptorwrite_image], &[]);
-	}
+	}	
 
 	// Update CommandBuffer
 	unsafe { renderer.update_commandbuffer(

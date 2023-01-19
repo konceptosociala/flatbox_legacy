@@ -67,9 +67,9 @@ impl Swapchain {
 		surface: &Surface,
 		queue_families: &QueueFamilies,
 	) -> Result<(SwapchainLoader, vk::SwapchainKHR, [u32; 1], vk::Extent2D), vk::Result> {
-		let surface_capabilities = surface.get_capabilities(instance.physical_device)?;
+		let surface_capabilities = surface.get_capabilities(*instance.physical_device)?;
 		let extent = surface_capabilities.current_extent;
-		let surface_format = *surface.get_formats(instance.physical_device)?.first().unwrap();
+		let surface_format = *surface.get_formats(*instance.physical_device)?.first().unwrap();
 		let queue_family_indices = [queue_families.graphics_index.unwrap()];
 		
 		let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()

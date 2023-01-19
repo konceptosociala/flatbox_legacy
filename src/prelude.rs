@@ -16,6 +16,7 @@ pub use crate::render::pbr::material::*;
 pub use crate::ecs::event::*;
 
 pub use winit::window::WindowBuilder;
+pub use winit::event::VirtualKeyCode as KeyCode;
 pub use winit::event::*;
 pub use hecs_schedule::*;
 

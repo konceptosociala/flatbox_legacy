@@ -29,4 +29,12 @@ impl Transform {
 		
 		(new_matrix, new_matrix.try_inverse().unwrap())
 	}
+	
+	pub fn from_translation(translation: Vector3<f32>) -> Self {
+		Transform {
+			translation,
+			rotation: UnitQuaternion::identity(),
+			scale: 1.0,
+		}
+	}
 }

@@ -4,7 +4,7 @@ use crate::render::{
 	renderer::*,
 	backend::{
 		surface::Surface,
-		swapchain::Swapchain,
+		//~ swapchain::Swapchain,
 		shader::*,
 	},
 };
@@ -58,8 +58,8 @@ impl Pipeline {
 		
 		vertex_attributes.extend(instance_attributes);
 		
-		let vertexshader_module = unsafe { renderer.device.create_shader_module(&vertex_shader, None)? };
-		let fragmentshader_module = unsafe { renderer.device.create_shader_module(&fragment_shader, None)? };
+		let vertexshader_module = renderer.device.create_shader_module(&vertex_shader, None)?;
+		let fragmentshader_module = renderer.device.create_shader_module(&fragment_shader, None)?;
 		
 		// Set main function's name to `main`
 		let main_function = std::ffi::CString::new("main").unwrap();

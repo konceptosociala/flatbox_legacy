@@ -1,9 +1,10 @@
+use std::sync::Arc;
 use colored::Colorize;
 use ash::vk;
 
 pub struct Debug {
-	loader: ash::extensions::ext::DebugUtils,
-	messenger: vk::DebugUtilsMessengerEXT
+	loader: Arc<ash::extensions::ext::DebugUtils>,
+	messenger: Arc<vk::DebugUtilsMessengerEXT>,
 }
 
 impl Debug {
@@ -14,7 +15,10 @@ impl Debug {
 		let loader = ash::extensions::ext::DebugUtils::new(&entry, &instance);
 		let messenger = unsafe { loader.create_debug_utils_messenger(&Debug::init_debug_info(), None)? };
 		
-		Ok(Debug {loader, messenger})
+		Ok(Debug {
+			loader: Arc::new(loader), 
+			messenger: Arc::new(messenger),
+		})
 	}
 	
 	pub fn info<M>(msg: M)
@@ -91,6 +95,6 @@ impl Debug {
 
 impl Drop for Debug {
 	fn drop(&mut self) {
-		unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None) };
+		unsafe { self.loader.destroy_debug_utils_messenger(*self.messenger, None) };
 	}
 }

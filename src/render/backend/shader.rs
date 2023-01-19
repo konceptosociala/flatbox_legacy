@@ -1,4 +1,4 @@
-use std::ffi::CString;
+//~ use std::ffi::CString;
 use ash::vk;
 
 pub type ShaderInputAttribute = vk::VertexInputAttributeDescription;

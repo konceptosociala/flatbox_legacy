@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::mem::ManuallyDrop;
 use ash::vk;
 use winit::{
@@ -18,7 +19,7 @@ use crate::render::{
 /// Main window structure, containing rendering surface, window instance and event loop
 pub struct Window {
 	event_loop: Option<EventLoop<()>>,
-	window: WinitWindow,
+	window: Arc<WinitWindow>,
 	pub(crate) surface: ManuallyDrop<Surface>,
 }
 
@@ -29,7 +30,7 @@ impl Window {
 		let surface = ManuallyDrop::new(Surface::init(&window, &instance)?);
 		Ok(Window {
 			event_loop: Some(event_loop),
-			window,
+			window: Arc::new(window),
 			surface,
 		})
 	}

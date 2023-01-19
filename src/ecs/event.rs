@@ -4,8 +4,9 @@ use std::{
 		mpsc::TryRecvError,
 		Arc,
 	},
-	any::TypeId,
+	any::{TypeId, Any},
 	collections::HashMap,
+	fmt::Debug,
 };
 
 use thiserror::Error;
@@ -18,20 +19,14 @@ use crate::Despero;
 #[derive(Error, Debug)]
 pub enum EventError {
 	#[error("Couldn't broadcast an event")]
-	Send(HashMap<TypeId, Arc<(dyn Event + Send + Sync)>>),
+	Send(Arc<(dyn Any + Send + Sync)>),
 	#[error("Couldn't read an event")]
 	Read(#[from] TryRecvError),
 }
 
-/// Universal trait for all events
-pub trait Event: std::fmt::Debug {}
-
-/// Implement [`Event`] for [`KeyboardInput`]
-impl Event for KeyboardInput {}
-
 /// Broadcasts events, which are sent to it. Part of [`Despero`] struct
 pub struct EventWriter {
-	writer: Bus<HashMap<TypeId, Arc<dyn Event + Send + Sync>>>,
+	writer: Bus<Arc<dyn Any + Send + Sync>>,
 }
 
 impl EventWriter {
@@ -42,16 +37,9 @@ impl EventWriter {
 		}
 	}
 	
-	/// Send event of type `E`, which implements [`Event`] trait
-	pub fn send<E>(&mut self, event: Arc<(dyn Event + Send + Sync)>) -> Result<(), EventError>
-	where
-		E: Event + Sync + 'static,
-    {
-		let mut events = HashMap::new();
-		let typeid = TypeId::of::<E>();
-		events.insert(typeid, event);
-		
-		match self.writer.try_broadcast(events.clone()){
+	/// Send event of type which implements [`Event`] trait
+	pub fn send(&mut self, event: Arc<(dyn Any + Send + Sync)>) -> Result<(), EventError> {		
+		match self.writer.try_broadcast(event){
 			Ok(()) => Ok(()),
 			Err(ev) => Err(EventError::Send(ev)),
 		}
@@ -60,7 +48,7 @@ impl EventWriter {
 
 /// Reads events from [`EventWriter`]. It is unique for each system (for spmc implementation)
 pub struct EventReader {
-	reader: BusReader<HashMap<TypeId, Arc<(dyn Event + Send + Sync)>>>,
+	reader: BusReader<Arc<(dyn Any + Send + Sync)>>,
 }
 
 impl EventReader {
@@ -72,11 +60,12 @@ impl EventReader {
 	}
 	
 	/// Send event of type `E`, which implements [`Event`] trait
-	pub fn read<E: Event + Sync + 'static>(&mut self) -> Result<Arc<(dyn Event + Send + Sync)>, EventError> {
+	pub fn read<E: Any + Clone + Send + Sync + 'static>(&mut self) -> Result<E, EventError> {
 		match self.reader.try_recv(){
-			Ok(ev) => match ev.get(&TypeId::of::<E>()) {
-				Some(ev) => Ok(ev.clone()),
-				_ => Err(EventError::Read(TryRecvError::Empty)),
+			Ok(ev) => if (*ev).type_id() == TypeId::of::<E>() {
+				Ok((*ev.downcast::<E>().unwrap()).clone())
+			} else {
+				Err(EventError::Read(TryRecvError::Empty))
 			},
 			Err(err) => Err(EventError::Read(err))
 		}

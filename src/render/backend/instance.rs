@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use std::sync::Arc;
 use std::mem::ManuallyDrop;
 use std::ffi::CString;
 use ash::vk;
@@ -8,12 +9,12 @@ use crate::render::{
 
 /// Structure controlling Vulkan instance and physical device
 pub struct Instance {
-	pub(crate) entry: ash::Entry,
+	pub(crate) entry: Arc<ash::Entry>,
 	pub(crate) instance: ash::Instance,
 	pub(crate) debugger: ManuallyDrop<Debug>,
-	pub(crate) physical_device: vk::PhysicalDevice,
-	pub(crate) physical_device_properties: vk::PhysicalDeviceProperties,
-	pub(crate) physical_device_features: vk::PhysicalDeviceFeatures,
+	pub(crate) physical_device: Arc<vk::PhysicalDevice>,
+	pub(crate) physical_device_properties: Arc<vk::PhysicalDeviceProperties>,
+	pub(crate) physical_device_features: Arc<vk::PhysicalDeviceFeatures>,
 }
 
 impl Instance {
@@ -47,18 +48,18 @@ impl Instance {
 		let (device, device_properties, device_features) = Self::init_physical_device(&instance)?;
 		
 		Ok(Instance {
-			entry,
+			entry: Arc::new(entry),
 			instance,
 			debugger,
-			physical_device: device,
-			physical_device_properties: device_properties,
-			physical_device_features: device_features,
+			physical_device: Arc::new(device),
+			physical_device_properties: Arc::new(device_properties),
+			physical_device_features: Arc::new(device_features),
 		})
 	}
 	
 	/// Get queue family properties of current physical device
 	pub unsafe fn get_queue_family_properties(&self) -> Vec<vk::QueueFamilyProperties> {
-		self.instance.get_physical_device_queue_family_properties(self.physical_device)
+		self.instance.get_physical_device_queue_family_properties(*self.physical_device)
 	}
 	
 	/// Destroy [`Instance`]
