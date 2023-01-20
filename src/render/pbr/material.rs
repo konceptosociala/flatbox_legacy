@@ -1,11 +1,11 @@
 use std::any::Any;
-//~ use ash::vk;
+use ash::vk;
 
 use crate::render::{
 	renderer::*,
 	backend::{
 		pipeline::*,
-		//~ shader::*,
+		shader::*,
 	},
 };
 
@@ -51,7 +51,7 @@ impl DefaultMat {
 		}
 	}
 }
-/*
+
 impl Material for DefaultMat {
 	fn pipeline(renderer: &Renderer) -> Pipeline {
 		let vertex_shader = vk::ShaderModuleCreateInfo::builder()
@@ -67,70 +67,22 @@ impl Material for DefaultMat {
 			));
 			
 		let instance_attributes = vec![
-			ShaderInputAttribute {
+			ShaderInputAttribute{
 				binding: 1,
 				location: 3,
 				offset: 0,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 4,
-				offset: 16,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 5,
-				offset: 32,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 6,
-				offset: 48,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 7,
-				offset: 64,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 8,
-				offset: 80,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 9,
-				offset: 96,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute {
-				binding: 1,
-				location: 10,
-				offset: 112,
-				format: vk::Format::R32G32B32A32_SFLOAT,
-			},
-			ShaderInputAttribute{
-				binding: 1,
-				location: 11,
-				offset: 128,
 				format: vk::Format::R8G8B8A8_UINT,
 			},
 			ShaderInputAttribute{
 				binding: 1,
-				location: 12,
-				offset: 132,
+				location: 4,
+				offset: 4,
 				format: vk::Format::R32_SFLOAT,
 			},
 			ShaderInputAttribute{
 				binding: 1,
-				location: 13,
-				offset: 136,
+				location: 5,
+				offset: 8,
 				format: vk::Format::R32_SFLOAT,
 			}
 		];
@@ -141,9 +93,8 @@ impl Material for DefaultMat {
 				&vertex_shader,
 				&fragment_shader,
 				instance_attributes,
-				140,
+				12,
 			).expect("Cannot create pipeline")
 		}
 	}
 }
-*/

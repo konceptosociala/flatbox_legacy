@@ -10,72 +10,88 @@ use crate::render::{
 
 pub(crate) struct DescriptorPool {
 	pub(crate) descriptor_pool: vk::DescriptorPool,
-		
-	pub(crate) descriptor_sets_camera: Vec<vk::DescriptorSet>, 
-	pub(crate) descriptor_sets_texture: Vec<vk::DescriptorSet>,
-	pub(crate) descriptor_sets_light: Vec<vk::DescriptorSet>,
-	
-	pub(crate) descriptor_set_layouts: Vec<vk::DescriptorSetLayout>,
+	pub(crate) camera_sets: Vec<vk::DescriptorSet>, 
+	pub(crate) texture_sets: Vec<vk::DescriptorSet>,
+	pub(crate) light_sets: Vec<vk::DescriptorSet>,
+	pub(crate) set_layouts: Vec<vk::DescriptorSetLayout>,
+	pub(crate) pipeline_layout: vk::PipelineLayout,
 }
 
 impl DescriptorPool {
-	pub(crate) fn init(
+	pub(crate) unsafe fn init(
 		logical_device: &ash::Device,
 		swapchain: &Swapchain,
-	) -> Result<DescriptorPool, vk::Result> {
-		let descriptor_pool = unsafe { Self::create_descriptor_pool(&logical_device, &swapchain)? };
+	) -> Result<DescriptorPool, vk::Result> {		
+		let descriptor_pool = Self::create_descriptor_pool(&logical_device, &swapchain)?;
 		
-		let camera_set_layout = unsafe { Self::create_descriptor_set_layout(
+		let camera_set_layout = Self::create_descriptor_set_layout(
 			&logical_device,
 			vk::DescriptorType::UNIFORM_BUFFER,
 			vk::ShaderStageFlags::VERTEX,
 			0,
 			1,
-		)?};
+		)?;
 			
-		let texture_set_layout = unsafe { Self::create_descriptor_set_layout(
+		let texture_set_layout = Self::create_descriptor_set_layout(
 			&logical_device,
 			vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
 			vk::ShaderStageFlags::FRAGMENT,
 			0,
 			MAX_NUMBER_OF_TEXTURES,
-		)?};
+		)?;
 		
-		let light_set_layout = unsafe { Self::create_descriptor_set_layout(
+		let light_set_layout = Self::create_descriptor_set_layout(
 			&logical_device,
 			vk::DescriptorType::STORAGE_BUFFER,
 			vk::ShaderStageFlags::FRAGMENT,
 			0,
 			1,
-		)?};
+		)?;
 		
-		let descriptor_sets_camera = unsafe { Self::allocate_descriptor_sets(
+		let camera_sets = Self::allocate_descriptor_sets(
 			&logical_device,
 			&swapchain, 
 			descriptor_pool,
 			camera_set_layout,
-		)?};
+		)?;
 		
-		let descriptor_sets_texture = unsafe { Self::allocate_descriptor_sets(
+		let texture_sets = Self::allocate_descriptor_sets(
 			&logical_device,
 			&swapchain, 
 			descriptor_pool,
 			texture_set_layout,
-		)?};
+		)?;
 		
-		let descriptor_sets_light = unsafe { Self::allocate_descriptor_sets(
+		let light_sets = Self::allocate_descriptor_sets(
 			&logical_device,
 			&swapchain, 
 			descriptor_pool,
 			light_set_layout,
-		)?};
+		)?;
+		
+		let set_layouts = vec![camera_set_layout, texture_set_layout, light_set_layout];
+		
+		let push_constants = [
+			vk::PushConstantRange::builder()
+				.stage_flags(vk::ShaderStageFlags::VERTEX)
+				.offset(0)
+				.size(128)
+				.build()
+		];
+				
+		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
+			.set_layouts(&set_layouts)
+			.push_constant_ranges(&push_constants);
+			
+		let pipeline_layout = logical_device.create_pipeline_layout(&pipelinelayout_info, None)?;
 		
 		Ok(DescriptorPool {
 			descriptor_pool,	
-			descriptor_sets_camera, 
-			descriptor_sets_texture,
-			descriptor_sets_light,
-			descriptor_set_layouts: vec![camera_set_layout, texture_set_layout, light_set_layout],
+			camera_sets, 
+			texture_sets,
+			light_sets,
+			set_layouts,
+			pipeline_layout,
 		})
 	}
 	
@@ -85,7 +101,7 @@ impl DescriptorPool {
 		camera_buffer: &Buffer,
 		light_buffer: &Buffer,
 	){
-		for descset in &self.descriptor_sets_camera {
+		for descset in &self.camera_sets {
 			let buffer_infos = [vk::DescriptorBufferInfo {
 				buffer: camera_buffer.buffer,
 				offset: 0,
@@ -101,7 +117,7 @@ impl DescriptorPool {
 			logical_device.update_descriptor_sets(&desc_sets_write, &[]);
 		}
 		
-		for descset in &self.descriptor_sets_light {
+		for descset in &self.light_sets {
 			let buffer_infos = [vk::DescriptorBufferInfo {
 				buffer: light_buffer.buffer,
 				offset: 0,
@@ -120,9 +136,10 @@ impl DescriptorPool {
 	
 	pub(crate) unsafe fn cleanup(&self, logical_device: &ash::Device){
 		logical_device.destroy_descriptor_pool(self.descriptor_pool, None);
-		for dsl in &self.descriptor_set_layouts {
+		for dsl in &self.set_layouts {
 			logical_device.destroy_descriptor_set_layout(*dsl, None);
 		}
+		logical_device.destroy_pipeline_layout(self.pipeline_layout, None);
 	}
 	
 	unsafe fn create_descriptor_set_layout(

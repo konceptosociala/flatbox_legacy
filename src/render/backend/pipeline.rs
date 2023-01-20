@@ -11,7 +11,6 @@ use crate::render::{
 
 pub struct Pipeline {
 	pub pipeline: vk::Pipeline,
-	pub layout: vk::PipelineLayout,
 }
 
 impl Pipeline {	
@@ -136,20 +135,6 @@ impl Pipeline {
 			.depth_write_enable(true)
 			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
 		
-		let push_constants = [
-			vk::PushConstantRange::builder()
-				.stage_flags(vk::ShaderStageFlags::VERTEX)
-				.offset(0)
-				.size(128)
-				.build()
-		];
-				
-		let pipelinelayout_info = vk::PipelineLayoutCreateInfo::builder()
-			.set_layouts(&renderer.descriptor_pool.descriptor_set_layouts)
-			.push_constant_ranges(&push_constants);
-			
-		let layout = renderer.device.create_pipeline_layout(&pipelinelayout_info, None)?;
-		
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
 			.stages(&shader_stages)
 			.vertex_input_state(&vertex_input_info)
@@ -159,7 +144,7 @@ impl Pipeline {
 			.multisample_state(&multisampler_info)
 			.depth_stencil_state(&depth_stencil_info)
 			.color_blend_state(&colourblend_info)
-			.layout(layout)
+			.layout(renderer.descriptor_pool.pipeline_layout)
 			.render_pass(renderer.renderpass)
 			.subpass(0);
 			
@@ -175,14 +160,12 @@ impl Pipeline {
 		
 		Ok(Pipeline {
 			pipeline,
-			layout,
 		})
 	}
 	
 	pub(crate) fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
 			logical_device.destroy_pipeline(self.pipeline, None);
-			logical_device.destroy_pipeline_layout(self.layout, None);
 		}
 	}
 	

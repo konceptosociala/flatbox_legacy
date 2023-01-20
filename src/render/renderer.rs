@@ -98,7 +98,7 @@ impl Renderer {
 		)?;
 		light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
 		
-		let descriptor_pool = DescriptorPool::init(&device, &swapchain)?;
+		let descriptor_pool = unsafe { DescriptorPool::init(&device, &swapchain)? };
 		unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
 		 
 		Ok(Renderer {
@@ -155,7 +155,7 @@ impl Renderer {
 	) -> Result<(), vk::Result> {
 		let imageinfos = self.texture_storage.get_descriptor_image_info();
 		let descriptorwrite_image = vk::WriteDescriptorSet::builder()
-			.dst_set(self.descriptor_pool.descriptor_sets_texture[self.swapchain.current_image])
+			.dst_set(self.descriptor_pool.texture_sets[self.swapchain.current_image])
 			.dst_binding(0)
 			.dst_array_element(0)
 			.descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
@@ -166,8 +166,6 @@ impl Renderer {
 		
 		let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
 		let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
-		
-		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
 		
 		let clear_values = Self::set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
 		
@@ -180,37 +178,34 @@ impl Renderer {
 			})
 			.clear_values(&clear_values);
 		
-		// COMMAND BUFFER
-		//
-		// Bind RenderPass
+		self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
+		
 		self.device.cmd_begin_render_pass(
 			commandbuffer,
 			&renderpass_begininfo,
 			vk::SubpassContents::INLINE,
 		);
 		
+		self.device.cmd_bind_descriptor_sets(
+			commandbuffer,
+			vk::PipelineBindPoint::GRAPHICS,
+			self.descriptor_pool.pipeline_layout,
+			0,
+			&[
+				self.descriptor_pool.camera_sets[index],
+				self.descriptor_pool.texture_sets[index],
+				self.descriptor_pool.light_sets[index],
+			],
+			&[],
+		);
+		
 		for material_type in self.pipelines.keys() {
 			let pipeline = self.pipelines.get(&material_type).unwrap();
 						
-			// Bind Pipeline
 			self.device.cmd_bind_pipeline(
 				commandbuffer,
 				vk::PipelineBindPoint::GRAPHICS,
 				pipeline.pipeline,
-			);
-			
-			// Bind DescriptorSets
-			self.device.cmd_bind_descriptor_sets(
-				commandbuffer,
-				vk::PipelineBindPoint::GRAPHICS,
-				pipeline.layout,
-				0,
-				&[
-					self.descriptor_pool.descriptor_sets_camera[index],
-					self.descriptor_pool.descriptor_sets_texture[index],
-					self.descriptor_pool.descriptor_sets_light[index],
-				],
-				&[],
 			);
 			
 			for (_, (mesh, handle, transform)) in &mut world.query::<(
@@ -248,7 +243,7 @@ impl Renderer {
 								let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
 								self.device.cmd_push_constants(
 									commandbuffer,
-									pipeline.layout,
+									self.descriptor_pool.pipeline_layout,
 									vk::ShaderStageFlags::VERTEX,
 									0,
 									transform_slice,
@@ -275,35 +270,41 @@ impl Renderer {
 		Ok(())
 	}
 	
-	/*pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-		unsafe {
-			self.device
-				.device_wait_idle()
-				.expect("something wrong while waiting");
-			self.swapchain.cleanup(&self.device, &mut self.allocator);
-		}
-		// Recreate Swapchain
-		self.swapchain = Swapchain::init(
-			&self.instance,
-			&self.device,
-			&self.window.surface,
-			&self.queue_families,
-			&mut self.allocator,
-		)?;
+	//~ pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+		//~ unsafe {
+			//~ self.device
+				//~ .device_wait_idle()
+				//~ .expect("something wrong while waiting");
+			//~ self.swapchain.cleanup(&self.device, &mut self.allocator);
+		//~ }
+		//~ // Recreate Swapchain
+		//~ self.swapchain = Swapchain::init(
+			//~ &self.instance,
+			//~ &self.device,
+			//~ &self.window.surface,
+			//~ &self.queue_families,
+			//~ &mut self.allocator,
+		//~ )?;
 		
-		// Recreate FrameBuffers
-		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
+		//~ // Recreate FrameBuffers
+		//~ self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
 		
-		// Recreate Pipeline
-		self.pipeline.cleanup(&self.device);
-		self.pipeline = Pipeline::init(
-			&self.device, 
-			&self.swapchain, 
-			&self.renderpass
-		)?;
+		//~ // Recreate Pipeline
+		//~ for material_type in self.pipelines.keys() {
+			//~ let pipeline = self.pipelines.get(&material_type).unwrap();
+			
+			//~ pipeline.cleanup(&self.device);
+			
+			
+		//~ }
+		//~ self.pipeline = Pipeline::init(
+			//~ &self.device, 
+			//~ &self.swapchain, 
+			//~ &self.renderpass
+		//~ )?;
 		
-		Ok(())
-	}*/
+		//~ Ok(())
+	//~ }
 	
 	pub(crate) fn fill_lightbuffer<T: Sized>(
 		&mut self,

@@ -237,11 +237,13 @@ pub fn update_lights(
 		.map(|(_, l)| l.clone())
 		.collect::<Vec<PointLight>>();
 	
-	let mut data: Vec<f32> = vec![];
-	data.push(directional_lights.len() as f32);
-	data.push(point_lights.len() as f32);
-	data.push(0.0);
-	data.push(0.0);
+	let mut data = vec![
+		directional_lights.len() as f32,
+		point_lights.len() as f32,
+		0.0,
+		0.0,
+	];
+	
 	for dl in directional_lights {
 		data.push(dl.direction.x);
 		data.push(dl.direction.y);
@@ -264,7 +266,7 @@ pub fn update_lights(
 	}
 	renderer.fill_lightbuffer(&data)?;
 	// Update descriptor_sets
-	for descset in &renderer.descriptor_pool.descriptor_sets_light {
+	for descset in &renderer.descriptor_pool.light_sets {
 		let buffer_infos = [vk::DescriptorBufferInfo {
 			buffer: renderer.light_buffer.buffer,
 			offset: 0,
