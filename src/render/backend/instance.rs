@@ -9,19 +9,17 @@ use crate::render::{
 
 /// Structure controlling Vulkan instance and physical device
 pub struct Instance {
-	pub(crate) entry: Arc<ash::Entry>,
-	pub(crate) instance: ash::Instance,
-	pub(crate) debugger: ManuallyDrop<Debug>,
-	pub(crate) physical_device: Arc<vk::PhysicalDevice>,
-	pub(crate) physical_device_properties: Arc<vk::PhysicalDeviceProperties>,
-	pub(crate) physical_device_features: Arc<vk::PhysicalDeviceFeatures>,
+	pub entry: Arc<ash::Entry>,
+	pub instance: ash::Instance,
+	pub debugger: ManuallyDrop<Debug>,
+	pub physical_device: Arc<vk::PhysicalDevice>,
+	pub physical_device_properties: Arc<vk::PhysicalDeviceProperties>,
+	pub physical_device_features: Arc<vk::PhysicalDeviceFeatures>,
 }
 
 impl Instance {
-	/// Initialize [`Instance`]
-	pub(crate) fn init(
-		app_title: String,
-	) -> Result<Instance, vk::Result> {
+	/// Initialize main [`Instance`]
+	pub fn init() -> Result<Instance, vk::Result> {
 		let entry = unsafe { ash::Entry::load().expect("Cannot create entry") };		
 		
 		let layer_names_c: Vec<std::ffi::CString> = vec!["VK_LAYER_KHRONOS_validation"]
@@ -34,7 +32,7 @@ impl Instance {
 			.collect();
 
 		let extensions = Self::init_extensions();
-		let app_info = Self::init_app_info(app_title);
+		let app_info = Self::init_app_info();
 		let mut debug_info = Debug::init_debug_info();
 	
 		let instance_create_info = vk::InstanceCreateInfo::builder()
@@ -69,9 +67,9 @@ impl Instance {
 	}
 	
 	/// Create [`Instance`] application info
-	fn init_app_info<T: ToString>(title: T) -> vk::ApplicationInfo {
+	fn init_app_info() -> vk::ApplicationInfo {
 		vk::ApplicationInfo::builder()
-			.application_name(&CString::new(title.to_string().as_str()).unwrap())
+			.application_name(&CString::new("Despero Game").unwrap())
 			.engine_name(&CString::new("DesperØ").unwrap())
 			.engine_version(vk::make_api_version(0, 0, 0, 0))
 			.api_version(vk::make_api_version(0, 1, 0, 106))

@@ -54,7 +54,7 @@ pub struct Renderer {
 
 impl Renderer {	
 	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
-		let instance = Instance::init(get_window_title(&window_builder))?;
+		let instance = Instance::init()?;
 		let window	= Window::init(&instance, window_builder)?;
 		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
 			
@@ -662,9 +662,9 @@ fn bgra_to_rgba(data: &Vec<u8>) -> Vec<u8> {
 	return rgba;
 }
 
-fn get_window_title(window_builder: &WindowBuilder) -> String {
-	String::from(window_builder.window.title.clone())
-}
+//~ fn get_window_title(window_builder: &WindowBuilder) -> String {
+	//~ String::from(window_builder.window.title.clone())
+//~ }
 
 pub fn extract_option<T>(option: &mut Option<T>) -> T {
 	let mut empty: Option<T> = None;

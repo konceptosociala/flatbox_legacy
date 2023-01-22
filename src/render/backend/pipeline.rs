@@ -4,7 +4,6 @@ use crate::render::{
 	renderer::*,
 	backend::{
 		surface::Surface,
-		//~ swapchain::Swapchain,
 		shader::*,
 	},
 };
@@ -163,13 +162,13 @@ impl Pipeline {
 		})
 	}
 	
-	pub(crate) fn cleanup(&self, logical_device: &ash::Device) {
+	pub fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
 			logical_device.destroy_pipeline(self.pipeline, None);
 		}
 	}
 	
-	pub(crate) fn init_renderpass(
+	pub fn init_renderpass(
 		logical_device: &ash::Device,
 		physical_device: vk::PhysicalDevice,
 		surfaces: &Surface

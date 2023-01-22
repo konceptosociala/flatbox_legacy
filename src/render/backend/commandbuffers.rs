@@ -8,14 +8,14 @@ use crate::render::{
 };
 
 /// Contains commandbuffer pools and graphics commandbuffer
-pub(crate) struct CommandBufferPools {
-	pub(crate) commandpool_graphics: vk::CommandPool,
-	pub(crate) commandpool_transfer: vk::CommandPool,
-	pub(crate) commandbuffers: Vec<vk::CommandBuffer>,
+pub struct CommandBufferPools {
+	pub commandpool_graphics: vk::CommandPool,
+	pub commandpool_transfer: vk::CommandPool,
+	pub commandbuffers: Vec<vk::CommandBuffer>,
 }
 
 impl CommandBufferPools {
-	pub(crate) fn init(
+	pub fn init(
 		logical_device: &ash::Device,
 		queue_families: &QueueFamilies,
 		swapchain: &Swapchain,
@@ -34,11 +34,11 @@ impl CommandBufferPools {
 		})
 	}
 	
-	pub(crate) fn get_commandbuffer(&self, index: usize) -> Option<&vk::CommandBuffer> {
+	pub fn get_commandbuffer(&self, index: usize) -> Option<&vk::CommandBuffer> {
 		self.commandbuffers.get(index)
 	}
 	
-	pub(crate) fn cleanup(&self, logical_device: &ash::Device) {
+	pub fn cleanup(&self, logical_device: &ash::Device) {
 		unsafe {
 			logical_device.destroy_command_pool(self.commandpool_graphics, None);
 			logical_device.destroy_command_pool(self.commandpool_transfer, None);

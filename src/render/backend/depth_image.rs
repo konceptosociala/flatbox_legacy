@@ -5,9 +5,9 @@ use gpu_allocator::MemoryLocation;
 use crate::render::renderer::extract_option;
 
 pub struct DepthImage {
-	pub(crate) depth_image: vk::Image,							  
-	pub(crate) depth_image_allocation: Option<Allocation>,		  
-	pub(crate) depth_imageview: vk::ImageView,
+	pub depth_image: vk::Image,							  
+	pub depth_image_allocation: Option<Allocation>,		  
+	pub depth_imageview: vk::ImageView,
 }
 
 impl DepthImage {
@@ -28,7 +28,7 @@ impl DepthImage {
 		})
 	}
 	
-	pub(crate) unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
+	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
 		let alloc = extract_option(&mut self.depth_image_allocation);
 		allocator.free(alloc).unwrap();
 		logical_device.destroy_image_view(self.depth_imageview, None);

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::mem::ManuallyDrop;
 use ash::vk;
 use winit::{
@@ -13,31 +13,32 @@ use crate::render::{
 		instance::Instance,
 		surface::Surface,
 	},
-	renderer::extract_option,
 };
 
 /// Main window structure, containing rendering surface, window instance and event loop
 pub struct Window {
-	event_loop: Option<EventLoop<()>>,
-	window: Arc<WinitWindow>,
+	pub(crate) event_loop: Arc<Mutex<EventLoop<()>>>,
+	pub(crate) window: Arc<WinitWindow>,
 	pub(crate) surface: ManuallyDrop<Surface>,
 }
 
 impl Window {
 	pub fn init(instance: &Instance, window_builder: WindowBuilder) -> Result<Window, vk::Result> {
-		let event_loop = EventLoop::new();
-		let window = window_builder.build(&event_loop).expect("Cannot create window");
+		let event_loop = Arc::new(Mutex::new(EventLoop::new()));
+		let window = Arc::new(window_builder.build(&*event_loop.lock().unwrap()).expect("Cannot create window"));
 		let surface = ManuallyDrop::new(Surface::init(&window, &instance)?);
 		Ok(Window {
-			event_loop: Some(event_loop),
-			window: Arc::new(window),
+			event_loop,
+			window,
 			surface,
 		})
 	}
 	
-	pub fn get_event_loop(&mut self) -> EventLoop<()> {
-		extract_option(&mut self.event_loop)
-	}
+	/*pub fn extract_event_loop(&mut self) -> EventLoop<()> {
+		let mut dummy = Arc::new(EventLoop::<()>::new());
+		std::mem::swap(&mut self.event_loop, &mut dummy);
+		return dummy;
+	}*/
 	
 	pub fn request_redraw(&mut self) {
 		self.window.request_redraw();

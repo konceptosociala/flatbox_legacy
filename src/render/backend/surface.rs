@@ -5,9 +5,9 @@ use crate::render::{
 	},
 };
 
-pub(crate) struct Surface {
-	pub(crate) surface: vk::SurfaceKHR,
-	pub(crate) surface_loader: ash::extensions::khr::Surface,
+pub struct Surface {
+	pub surface: vk::SurfaceKHR,
+	pub surface_loader: ash::extensions::khr::Surface,
 }
 
 impl Surface {

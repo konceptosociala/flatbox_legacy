@@ -8,17 +8,17 @@ use crate::render::{
 	renderer::MAX_NUMBER_OF_TEXTURES,
 };
 
-pub(crate) struct DescriptorPool {
-	pub(crate) descriptor_pool: vk::DescriptorPool,
-	pub(crate) camera_sets: Vec<vk::DescriptorSet>, 
-	pub(crate) texture_sets: Vec<vk::DescriptorSet>,
-	pub(crate) light_sets: Vec<vk::DescriptorSet>,
-	pub(crate) set_layouts: Vec<vk::DescriptorSetLayout>,
-	pub(crate) pipeline_layout: vk::PipelineLayout,
+pub struct DescriptorPool {
+	pub descriptor_pool: vk::DescriptorPool,
+	pub camera_sets: Vec<vk::DescriptorSet>, 
+	pub texture_sets: Vec<vk::DescriptorSet>,
+	pub light_sets: Vec<vk::DescriptorSet>,
+	pub set_layouts: Vec<vk::DescriptorSetLayout>,
+	pub pipeline_layout: vk::PipelineLayout,
 }
 
 impl DescriptorPool {
-	pub(crate) unsafe fn init(
+	pub unsafe fn init(
 		logical_device: &ash::Device,
 		swapchain: &Swapchain,
 	) -> Result<DescriptorPool, vk::Result> {		
@@ -95,7 +95,7 @@ impl DescriptorPool {
 		})
 	}
 	
-	pub(crate) unsafe fn bind_buffers(
+	pub unsafe fn bind_buffers(
 		&self,
 		logical_device: &ash::Device,
 		camera_buffer: &Buffer,
@@ -134,7 +134,7 @@ impl DescriptorPool {
 		}
 	}
 	
-	pub(crate) unsafe fn cleanup(&self, logical_device: &ash::Device){
+	pub unsafe fn cleanup(&self, logical_device: &ash::Device){
 		logical_device.destroy_descriptor_pool(self.descriptor_pool, None);
 		for dsl in &self.set_layouts {
 			logical_device.destroy_descriptor_set_layout(*dsl, None);

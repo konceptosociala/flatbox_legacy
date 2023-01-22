@@ -9,38 +9,45 @@ use crate::render::backend::{
 	depth_image::DepthImage,
 };
 
-pub(crate) struct Swapchain {
-	pub(crate) swapchain_loader: SwapchainLoader,
-	pub(crate) swapchain: vk::SwapchainKHR,
-	pub(crate) images: Vec<vk::Image>,
-	pub(crate) imageviews: Vec<vk::ImageView>,
-	pub(crate) depth_image: DepthImage,
-	pub(crate) framebuffers: Vec<vk::Framebuffer>,
-	pub(crate) extent: vk::Extent2D,
-	pub(crate) may_begin_drawing: Vec<vk::Fence>,
-	pub(crate) image_available: Vec<vk::Semaphore>,
-	pub(crate) rendering_finished: Vec<vk::Semaphore>,
-	pub(crate) amount_of_images: u32,
-	pub(crate) current_image: usize,
+type SwapchainBundle = (SwapchainLoader, vk::SwapchainKHR, [u32; 1], vk::Extent2D);
+type SwapchainImages = (Vec<vk::Image>, u32, Vec<vk::ImageView>);
+type SwapchainSync = (Vec<vk::Semaphore>, Vec<vk::Semaphore>, Vec<vk::Fence>);
+
+pub struct Swapchain {
+	pub swapchain_loader: SwapchainLoader,
+	pub swapchain: vk::SwapchainKHR,
+	pub images: Vec<vk::Image>,
+	pub imageviews: Vec<vk::ImageView>,
+	pub depth_image: DepthImage,
+	pub framebuffers: Vec<vk::Framebuffer>,
+	pub extent: vk::Extent2D,
+	pub may_begin_drawing: Vec<vk::Fence>,
+	pub image_available: Vec<vk::Semaphore>,
+	pub rendering_finished: Vec<vk::Semaphore>,
+	pub amount_of_images: u32,
+	pub current_image: usize,
 }
 
 impl Swapchain {
 	/// Initialize [`Swapchain`]
-	pub(crate) fn init(
+	pub fn init(
 		instance: &Instance,
 		logical_device: &ash::Device,
 		surface: &Surface,
 		queue_families: &QueueFamilies,
 		allocator: &mut Allocator,
 	) -> Result<Swapchain, vk::Result> {
-		let (swapchain_loader, swapchain, queue_family_indices, extent)
-			= unsafe { Self::create_swapchain(instance, logical_device, surface, queue_families)? };
+		let (swapchain_loader, swapchain, queue_family_indices, extent) = unsafe {
+			Self::create_swapchain(instance, logical_device, surface, queue_families)?
+		};
 			
-		let (swapchain_images, amount_of_images, swapchain_imageviews)
-			= unsafe { Self::create_swapchain_images(&swapchain_loader, &swapchain, &logical_device)? };
+		let (swapchain_images, amount_of_images, swapchain_imageviews) = unsafe {
+			Self::create_swapchain_images(&swapchain_loader, &swapchain, &logical_device)?
+		};
 			
-		let (image_available, rendering_finished, may_begin_drawing) 
-			= unsafe { Self::create_semaphores_and_fences(amount_of_images, &logical_device)? };
+		let (image_available, rendering_finished, may_begin_drawing) = unsafe {
+			Self::create_semaphores_and_fences(amount_of_images, &logical_device)?
+		};
 			
 		let depth_image = DepthImage::new(&logical_device, allocator, &extent, &queue_family_indices)?;
 		
@@ -66,7 +73,7 @@ impl Swapchain {
 		logical_device: &ash::Device,
 		surface: &Surface,
 		queue_families: &QueueFamilies,
-	) -> Result<(SwapchainLoader, vk::SwapchainKHR, [u32; 1], vk::Extent2D), vk::Result> {
+	) -> Result<SwapchainBundle, vk::Result> {
 		let surface_capabilities = surface.get_capabilities(*instance.physical_device)?;
 		let extent = surface_capabilities.current_extent;
 		let surface_format = *surface.get_formats(*instance.physical_device)?.first().unwrap();
@@ -103,7 +110,7 @@ impl Swapchain {
 		swapchain_loader: &SwapchainLoader,
 		swapchain: &vk::SwapchainKHR,
 		logical_device: &ash::Device,
-	) -> Result<(Vec<vk::Image>, u32, Vec<vk::ImageView>), vk::Result> {
+	) -> Result<SwapchainImages, vk::Result> {
 		let swapchain_images = swapchain_loader.get_swapchain_images(*swapchain)?;
 		let amount_of_images = swapchain_images.len() as u32;
 		let mut swapchain_imageviews = Vec::with_capacity(swapchain_images.len());
@@ -142,7 +149,7 @@ impl Swapchain {
 	unsafe fn create_semaphores_and_fences(
 		amount_of_images: u32,
 		logical_device: &ash::Device,
-	) -> Result<(Vec<vk::Semaphore>, Vec<vk::Semaphore>, Vec<vk::Fence>), vk::Result>{
+	) -> Result<SwapchainSync, vk::Result>{
 		let mut image_available = vec![];
 		let mut rendering_finished = vec![];
 		let mut may_begin_drawing = vec![];
@@ -162,7 +169,7 @@ impl Swapchain {
 	}
 	
 	/// Create swapchain framebuffers
-	pub(crate) fn create_framebuffers(
+	pub fn create_framebuffers(
 		&mut self,
 		logical_device: &ash::Device,
 		renderpass: vk::RenderPass,
@@ -182,12 +189,12 @@ impl Swapchain {
 	}
 	
 	/// Get swapchain's count of framebuffers
-	pub(crate) fn framebuffers_count(&self) -> usize {
+	pub fn framebuffers_count(&self) -> usize {
 		self.framebuffers.len()
 	}
 	
 	/// Destroy [`Swapchain`]
-	pub(crate) unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
+	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
 		self.depth_image.cleanup(&logical_device, allocator);
 		for fence in &self.may_begin_drawing {
 			logical_device.destroy_fence(*fence, None);

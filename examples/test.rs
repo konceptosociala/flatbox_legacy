@@ -57,38 +57,24 @@ fn create_models(
 ){
 	let txt1 = renderer.create_texture("assets/uv.jpg", Filter::NEAREST) as u32;
 	let txt2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR) as u32;
-	// Load model from OBJ
-	cmd.spawn(ModelBundle {
-		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(MyMaterial {
-			colour: [0.7, 0.0, 0.0]
-		})),
-		transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
-	});
 	
-	cmd.spawn(ModelBundle {
-		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(MyMaterial {
-			colour: [0.0, 0.6, 1.0]
-		})),
-		transform: Transform::from_translation(Vector3::new(-1.0, 0.0, 0.0)),
-	});
-	
-	cmd.spawn(ModelBundle {
-		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(TexMaterial {
-			texture_id: txt1
-		})),
-		transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
-	});
-	
-	cmd.spawn(ModelBundle {
-		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(TexMaterial {
-			texture_id: txt2
-		})),
-		transform: Transform::from_translation(Vector3::new(-1.0, 0.0, -2.0)),
-	});
+	for i in 1..4 {
+		cmd.spawn(ModelBundle {
+			mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+			material: renderer.create_material(Arc::new(match i {
+				1 => MyMaterial { colour: [0.7, 0.0, 0.0] }),
+				2 => MyMaterial { colour: [0.0, 0.6, 1.0] }),
+				3 => TexMaterial { texture_id: txt1 }),
+				4 => TexMaterial { texture_id: txt2 }),
+			}),
+			transform: Transform::from_translation(match i {
+				1 => Vector3::new(1.0, 0.0, 0.0),
+				2 => Vector3::new(-1.0, 0.0, 0.0),
+				3 => Vector3::new(1.0, 0.0, -2.0),
+				4 => Vector3::new(-1.0, 0.0, -2.0),
+			}),
+		});
+	}
 	
 	// Add light
 	cmd.spawn((DirectionalLight {

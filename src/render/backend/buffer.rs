@@ -4,9 +4,9 @@ use gpu_allocator::MemoryLocation;
 use ash::vk;
 
 #[derive(Debug)]
-pub(crate) struct Buffer {
-	pub(crate) buffer: vk::Buffer,
-	pub(crate) allocation: Option<Allocation>,
+pub struct Buffer {
+	pub buffer: vk::Buffer,
+	pub allocation: Option<Allocation>,
 	allocation_name: String,
 	size_in_bytes: u64,
 	buffer_usage: vk::BufferUsageFlags,
@@ -14,7 +14,7 @@ pub(crate) struct Buffer {
 }
 
 impl Buffer {
-	pub(crate) fn new(
+	pub fn new(
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,
 		size_in_bytes: u64,
@@ -57,7 +57,7 @@ impl Buffer {
 		})
 	}
 	
-	pub(crate) fn fill<T: Sized>(
+	pub fn fill<T: Sized>(
 		&mut self,
 		logical_device: &ash::Device,
 		allocator: &mut gpu_allocator::vulkan::Allocator,

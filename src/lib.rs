@@ -71,7 +71,12 @@ use crate::ecs::{
 	event::*,
 };
 
-use crate::render::renderer::Renderer;
+use crate::render::{
+	renderer::Renderer,
+	gui::{
+		ctx::*,
+	},
+};
 
 /// Module of the main engine error handler [`Desperror`]
 pub mod error;
@@ -94,18 +99,21 @@ pub struct Despero {
 	event_writer: EventWriter,
 	
 	renderer: Renderer,
+	ctx: egui::Context,
 }
 
 impl Despero {	
 	/// Initialize Despero application
 	pub fn init(window_builder: WindowBuilder) -> Despero {
 		let renderer = Renderer::init(window_builder).expect("Cannot create renderer");
+		let ctx = egui::Context::init(&renderer).expect("Cannot create egui context");
 		Despero {
 			world: World::new(),
 			setup_systems: Schedule::builder(),
 			systems: Schedule::builder(),
 			event_writer: EventWriter::new(),
 			renderer,
+			ctx,
 		}
 	}
 	
@@ -145,12 +153,12 @@ impl Despero {
 			.build();
 		// Execute setup-systems Schedule
 		setup_systems
-			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
+			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer, &mut self.ctx))
 			.expect("Cannot execute setup schedule");
-		// Extract `EventLoop` from `Renderer`
-		let mut eventloop = self.renderer.window.get_event_loop();
 		// Run EventLoop
-		eventloop.run_return(move |event, _, controlflow| match event {	
+		let event_loop = Arc::clone(&self.renderer.window.event_loop);
+		
+		(*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {	
 			WinitEvent::WindowEvent {
 				event: WindowEvent::CloseRequested,
 				..
@@ -165,7 +173,7 @@ impl Despero {
 			WinitEvent::RedrawRequested(_) => {
 				// Execute loop schedule	
 				systems
-					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer))
+					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer, &mut self.ctx))
 					.expect("Cannot execute loop schedule");
 			}
 			

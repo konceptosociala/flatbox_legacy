@@ -16,7 +16,7 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub(crate) fn from_file<P: AsRef<std::path::Path>>(
+	pub fn from_file<P: AsRef<std::path::Path>>(
 		path: P, 
 		filter: Filter,
 		logical_device: &ash::Device,
@@ -246,11 +246,11 @@ pub struct TextureStorage {
 }
 
 impl TextureStorage {
-	pub(crate) fn new() -> Self {
+	pub fn new() -> Self {
 		TextureStorage { textures: vec![] }
 	}
 	
-	pub(crate) fn cleanup(
+	pub fn cleanup(
 		&mut self,
 		logical_device: &ash::Device,
 		allocator: &mut Allocator,
@@ -272,7 +272,7 @@ impl TextureStorage {
 		}
 	}
 	
-	pub(crate) fn new_texture_from_file<P: AsRef<std::path::Path>>(
+	pub fn new_texture_from_file<P: AsRef<std::path::Path>>(
 		&mut self,
 		path: P,
 		filter: Filter,
@@ -295,16 +295,16 @@ impl TextureStorage {
 	}
 	
 	#[allow(dead_code)]
-	pub(crate) fn get(&self, index: usize) -> Option<&Texture> {
+	pub fn get(&self, index: usize) -> Option<&Texture> {
 		self.textures.get(index)
 	}
 	
 	#[allow(dead_code)]
-	pub(crate) fn get_mut(&mut self, index: usize) -> Option<&mut Texture> {
+	pub fn get_mut(&mut self, index: usize) -> Option<&mut Texture> {
 		self.textures.get_mut(index)
 	}
 	
-	pub(crate) fn get_descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
+	pub fn get_descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
 		self.textures
 			.iter()
 			.map(|t| vk::DescriptorImageInfo {

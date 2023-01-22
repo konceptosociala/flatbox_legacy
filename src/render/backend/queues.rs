@@ -9,19 +9,19 @@ use crate::render::{
 };
 
 /// Conserves transfer and graphics queues for current instance
-pub(crate) struct QueueFamilies {
-	pub(crate) graphics_queue: vk::Queue,
-	pub(crate) graphics_index: Option<u32>,
-	pub(crate) transfer_queue: vk::Queue,
-	pub(crate) transfer_index: Option<u32>,
+pub struct QueueFamilies {
+	pub graphics_queue: vk::Queue,
+	pub graphics_index: Option<u32>,
+	pub transfer_queue: vk::Queue,
+	pub transfer_index: Option<u32>,
 }
 
 impl QueueFamilies {
 	/// Initialize physical device queues and indices
-	pub(crate) fn init(
+	pub fn init(
 		instance: &Instance,
 		window: &Window,
-	) -> Result<(ash::Device, QueueFamilies), vk::Result>{
+	) -> Result<(ash::Device, QueueFamilies), vk::Result> {
 		let (graphics_index, transfer_index) = Self::get_queue_indices(&instance, &window)?;
 		let (logical_device, graphics_queue, transfer_queue) = Self::init_device_and_queues(
 			&instance, 
@@ -54,16 +54,15 @@ impl QueueFamilies {
 			{
 				graphics_index = Some(index as u32);
 			}
-			if qfam.queue_count > 0 && qfam.queue_flags.contains(vk::QueueFlags::TRANSFER) {
-				if transfer_index.is_none()
-					|| !qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS)
-				{
-					transfer_index = Some(index as u32);
-				}
+			if qfam.queue_count > 0
+				&& qfam.queue_flags.contains(vk::QueueFlags::TRANSFER)
+				&& (transfer_index.is_none() || !qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS))
+			{
+				transfer_index = Some(index as u32);
 			}
 		}
-		return Ok((graphics_index, transfer_index));
 		
+		Ok((graphics_index, transfer_index))
 	}
 	
 	/// Initialize logical device and queues
