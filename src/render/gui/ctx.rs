@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use egui_winit_ash_integration::*;
 use egui::*;
 //~ use egui_winit::*;
@@ -26,7 +26,7 @@ impl EguiExt for Context {
 			FontDefinitions::default(),
 			Style::default(),
 			renderer.device.clone(),
-			Arc::new(Mutex::new(renderer.allocator)),
+			Arc::clone(&renderer.allocator),
 			renderer.queue_families.graphics_index.unwrap(),
 			renderer.queue_families.graphics_queue,
 			renderer.swapchain.swapchain_loader.clone(),

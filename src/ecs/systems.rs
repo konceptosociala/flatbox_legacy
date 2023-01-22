@@ -127,7 +127,7 @@ pub(crate) fn update_models_system(
 	)>(){
 		let material = renderer.materials.get(handle.get()).unwrap().clone();
 		let logical_device = renderer.device.clone();
-		let mut allocator = &mut renderer.allocator;
+		let allocator = &mut renderer.allocator;
 		// Update vertex buffer
 		//
 		//
@@ -135,7 +135,7 @@ pub(crate) fn update_models_system(
 		if let Some(buffer) = &mut mesh.vertexbuffer {
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				&mesh.vertexdata
 			)?;
 		} else {
@@ -143,7 +143,7 @@ pub(crate) fn update_models_system(
 			let bytes = (mesh.vertexdata.len() * size_of::<Vertex>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				bytes,
 				vk::BufferUsageFlags::VERTEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -152,7 +152,7 @@ pub(crate) fn update_models_system(
 			
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				&mesh.vertexdata
 			)?;
 			mesh.vertexbuffer = Some(buffer);
@@ -166,14 +166,14 @@ pub(crate) fn update_models_system(
 		if let Some(buffer) = &mut mesh.instancebuffer {
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				mat_slice,
 			)?;
 		} else {
 			let bytes = size_of_val(&material) as u64; 
 			let mut buffer = Buffer::new(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				bytes,
 				vk::BufferUsageFlags::VERTEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -182,7 +182,7 @@ pub(crate) fn update_models_system(
 			
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				mat_slice
 			)?;
 			mesh.instancebuffer = Some(buffer);
@@ -195,7 +195,7 @@ pub(crate) fn update_models_system(
 		if let Some(buffer) = &mut mesh.indexbuffer {
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				&mesh.indexdata,
 			)?;
 		} else {
@@ -203,7 +203,7 @@ pub(crate) fn update_models_system(
 			let bytes = (mesh.indexdata.len() * size_of::<u32>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				bytes,
 				vk::BufferUsageFlags::INDEX_BUFFER,
 				MemoryLocation::CpuToGpu,
@@ -212,7 +212,7 @@ pub(crate) fn update_models_system(
 			
 			buffer.fill(
 				&logical_device,
-				&mut allocator,
+				&mut *allocator.lock().unwrap(),
 				&mesh.indexdata
 			)?;
 			mesh.indexbuffer = Some(buffer);

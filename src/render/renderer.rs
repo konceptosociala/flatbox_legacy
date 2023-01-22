@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::any::TypeId;
 use std::collections::HashMap;
 use ash::vk;
@@ -44,7 +44,7 @@ pub struct Renderer {
 	pub(crate) renderpass: vk::RenderPass,
 	pub(crate) pipelines: HashMap<TypeId, Pipeline>,
 	pub(crate) commandbuffer_pools: CommandBufferPools,
-	pub(crate) allocator: Allocator,
+	pub(crate) allocator: Arc<Mutex<Allocator>>,
 	pub(crate) camera_buffer: Buffer,
 	pub(crate) light_buffer: Buffer,
 	pub(crate) descriptor_pool: DescriptorPool,
@@ -110,7 +110,7 @@ impl Renderer {
 			renderpass,
 			pipelines: HashMap::new(),
 			commandbuffer_pools,
-			allocator,
+			allocator: Arc::new(Mutex::new(allocator)),
 			camera_buffer,
 			light_buffer,
 			descriptor_pool,
@@ -132,7 +132,7 @@ impl Renderer {
 			path,
 			filter,
 			&self.device,
-			&mut self.allocator,
+			&mut *self.allocator.lock().unwrap(),
 			&self.commandbuffer_pools.commandpool_graphics,
 			&self.queue_families.graphics_queue,
 		).expect("Cannot create texture")
@@ -310,7 +310,7 @@ impl Renderer {
 		&mut self,
 		data: &[T],
 	) -> Result<(), vk::Result>{
-		self.light_buffer.fill(&self.device, &mut self.allocator, data)?;
+		self.light_buffer.fill(&self.device, &mut *self.allocator.lock().unwrap(), data)?;
 		Ok(())
 	}
 	
@@ -358,7 +358,7 @@ impl Renderer {
 			linear: true,
 		};
 		// Create memory allocation
-		let allocation = self.allocator.allocate(allocation_info).unwrap();
+		let allocation = (*self.allocator.lock().unwrap()).allocate(allocation_info).unwrap();
 		// Bind memory allocation to image
 		unsafe { self.device.bind_image_memory(
 			image,
@@ -571,7 +571,7 @@ impl Renderer {
 		}
 		let data = bgra_to_rgba(&data);
 		// Destroy VulkanImage
-		self.allocator.free(allocation)?;
+		(*self.allocator.lock().unwrap()).free(allocation)?;
 		unsafe { self.device.destroy_image(image, None); }
 		// Create ImageBuffer
 		let screen: image::ImageBuffer<image::Rgba<u8>, _> = image::ImageBuffer::from_raw(
@@ -591,7 +591,7 @@ impl Renderer {
 	pub(crate) fn cleanup(&mut self, world: &mut World){
 		unsafe {
 			self.device.device_wait_idle().expect("Error halting device");	
-			self.texture_storage.cleanup(&self.device, &mut self.allocator);
+			self.texture_storage.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
 			self.descriptor_pool.cleanup(&self.device);
 			self.device.destroy_buffer(self.camera_buffer.buffer, None);
 			self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
@@ -601,21 +601,21 @@ impl Renderer {
 				if let Some(vb) = &mut m.vertexbuffer {
 					// Reassign VertexBuffer allocation to remove
 					let alloc = extract_option(&mut vb.allocation);
-					self.allocator.free(alloc).unwrap();
+					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
 					self.device.destroy_buffer(vb.buffer, None);
 				}
 				
 				if let Some(xb) = &mut m.indexbuffer {
 					// Reassign IndexBuffer allocation to remove
 					let alloc = extract_option(&mut xb.allocation);
-					self.allocator.free(alloc).unwrap();
+					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
 					self.device.destroy_buffer(xb.buffer, None);
 				}
 				
 				if let Some(ib) = &mut m.instancebuffer {
 					// Reassign IndexBuffer allocation to remove
 					let alloc = extract_option(&mut ib.allocation);
-					self.allocator.free(alloc).unwrap();
+					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
 					self.device.destroy_buffer(ib.buffer, None);
 				}
 			}
@@ -624,7 +624,7 @@ impl Renderer {
 				pipeline.cleanup(&self.device);
 			}
 			self.device.destroy_render_pass(self.renderpass, None);
-			self.swapchain.cleanup(&self.device, &mut self.allocator);
+			self.swapchain.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
 			self.device.destroy_device(None);
 			self.window.cleanup();
 			self.instance.cleanup();
