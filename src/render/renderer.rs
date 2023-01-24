@@ -143,10 +143,6 @@ impl Renderer {
 		})
 	}
 	
-	pub fn bind_material<M: Material + Sync + Send>(&mut self){	
-		self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
-	}
-	
 	pub fn create_texture<P: AsRef<std::path::Path>>(
 		&mut self,
 		path: P,
@@ -170,6 +166,10 @@ impl Renderer {
 		let index = self.materials.len();
 		self.materials.push(material);
 		return MaterialHandle::new(index);
+	}
+	
+	pub(crate) fn bind_material<M: Material + Sync + Send>(&mut self){	
+		self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
 	}
 	
 	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(

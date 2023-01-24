@@ -76,6 +76,7 @@ use crate::render::{
 	gui::{
 		ctx::*,
 	},
+	pbr::material::*,
 };
 
 /// Module of the main engine error handler [`Desperror`]
@@ -137,6 +138,10 @@ impl Despero {
 	
 	pub fn add_event_reader(&mut self) -> EventReader {
 		EventReader::new(&mut self.event_writer)
+	}
+	
+	pub fn bind_material<M: Material + Sync + Send>(&mut self){	
+		self.renderer.bind_material::<M>();
 	}
 	
 	/// Run main event loop

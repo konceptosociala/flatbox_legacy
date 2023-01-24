@@ -7,11 +7,14 @@ use modules::materials::*;
 
 fn main() {	
 	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
+	
 	let reader = despero.add_event_reader();
 	let egui_reader = despero.add_event_reader();
 	
+	despero.bind_material::<MyMaterial>();
+	despero.bind_material::<TexMaterial>();
+	
 	despero
-		.add_setup_system(bind_mat)
 		.add_setup_system(create_models)
 		.add_setup_system(create_camera)
 		.add_system(handling(reader))
@@ -33,13 +36,6 @@ fn egui_handling(
 			});
 		}
 	}
-}
-
-fn bind_mat(
-	mut renderer: Write<Renderer>,
-){
-	renderer.bind_material::<MyMaterial>();
-	renderer.bind_material::<TexMaterial>();
 }
 
 fn ecs_change(
