@@ -20,6 +20,9 @@ pub use winit::event::VirtualKeyCode as KeyCode;
 pub use winit::event::*;
 pub use hecs_schedule::*;
 
+pub use egui::Context as GuiContext;
+pub use egui as gui;
+
 /// Math
 pub use nalgebra::{
 	Matrix4,

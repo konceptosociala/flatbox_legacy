@@ -106,7 +106,7 @@ impl Despero {
 	/// Initialize Despero application
 	pub fn init(window_builder: WindowBuilder) -> Despero {
 		let renderer = Renderer::init(window_builder).expect("Cannot create renderer");
-		let ctx = egui::Context::init(&renderer).expect("Cannot create egui context");
+		let ctx = renderer.egui.context();
 		Despero {
 			world: World::new(),
 			setup_systems: Schedule::builder(),
@@ -159,11 +159,18 @@ impl Despero {
 		let event_loop = Arc::clone(&self.renderer.window.event_loop);
 		
 		(*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {	
-			WinitEvent::WindowEvent {
-				event: WindowEvent::CloseRequested,
-				..
-			} => {
-				*controlflow = winit::event_loop::ControlFlow::Exit;
+			Event::WindowEvent { event, window_id: _ } => {
+				let _response = self.renderer.egui.handle_event(&event);
+				
+				match event {
+                    WindowEvent::CloseRequested => {
+                        *controlflow = winit::event_loop::ControlFlow::Exit;
+                    }
+                    WindowEvent::KeyboardInput {input, ..} => {
+						self.event_writer.send(Arc::new(input)).expect("Event send error");
+					}
+                    _ => (),
+                }
 			}
 					
 			WinitEvent::MainEventsCleared => {
@@ -175,13 +182,6 @@ impl Despero {
 				systems
 					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer, &mut self.ctx))
 					.expect("Cannot execute loop schedule");
-			}
-			
-			WinitEvent::WindowEvent {
-				event: WindowEvent::KeyboardInput {input, ..},
-				..
-			} => {
-				self.event_writer.send(Arc::new(input)).expect("Event send error");
 			}
 			
 			_ => {}

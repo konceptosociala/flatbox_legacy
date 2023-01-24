@@ -15,7 +15,10 @@ use crate::render::{
 	backend::buffer::Buffer,
 };
 
+use crate::ecs::event::EventWriter;
+
 pub(crate) fn rendering_system(
+	mut event_writer: Write<EventWriter>,
 	mut renderer: Write<Renderer>,
 	mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
 	camera_world: SubWorld<(&mut Camera, &Transform)>,
@@ -62,6 +65,7 @@ pub(crate) fn rendering_system(
 	// Update CommandBuffer
 	unsafe { renderer.update_commandbuffer(
 		&mut model_world,
+		&mut event_writer,
 		image_index as usize,
 	).expect("Cannot update CommandBuffer") };
 	

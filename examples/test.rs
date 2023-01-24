@@ -8,6 +8,7 @@ use modules::materials::*;
 fn main() {	
 	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
 	let reader = despero.add_event_reader();
+	let egui_reader = despero.add_event_reader();
 	
 	despero
 		.add_setup_system(bind_mat)
@@ -15,18 +16,23 @@ fn main() {
 		.add_setup_system(create_camera)
 		.add_system(handling(reader))
 		.add_system(ecs_change)
-		.add_system(gui)
+		.add_system(egui_handling(egui_reader))
 		.run();
 }
 
-fn gui(ctx: Read<egui::Context>) {
-	egui::CentralPanel::default().show(&ctx, |ui| {
-		ui.add(egui::Label::new("Hello World!"));
-		ui.label("A shorter and more convenient way to add a label.");
-		if ui.button("Click me").clicked() {
-			panic!("I love the life!");
+fn egui_handling(
+	mut event_reader: EventReader,
+) -> impl FnMut() {
+	move || {
+		if let Ok(ctx) = event_reader.read::<GuiContext>() {
+			gui::SidePanel::left("my_panel").show(&ctx, |ui| {
+				ui.label("Hello World!");
+				if ui.button("Click me").clicked() {
+					println!("I love egui!");
+				}
+			});
 		}
-	});
+	}
 }
 
 fn bind_mat(

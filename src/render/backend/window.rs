@@ -34,12 +34,6 @@ impl Window {
 		})
 	}
 	
-	/*pub fn extract_event_loop(&mut self) -> EventLoop<()> {
-		let mut dummy = Arc::new(EventLoop::<()>::new());
-		std::mem::swap(&mut self.event_loop, &mut dummy);
-		return dummy;
-	}*/
-	
 	pub fn request_redraw(&mut self) {
 		self.window.request_redraw();
 	}

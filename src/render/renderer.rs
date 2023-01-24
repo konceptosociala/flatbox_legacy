@@ -1,3 +1,4 @@
+use std::mem::ManuallyDrop;
 use std::sync::{Arc, Mutex};
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -9,6 +10,7 @@ use nalgebra as na;
 use winit::{
 	window::WindowBuilder,
 };
+use egui_winit_ash_integration::*;
 use hecs::World;
 use hecs_schedule::*;
 
@@ -31,6 +33,8 @@ use crate::render::{
 	transform::Transform,
 };
 
+use crate::ecs::event::EventWriter;
+
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
 
@@ -50,6 +54,7 @@ pub struct Renderer {
 	pub(crate) descriptor_pool: DescriptorPool,
 	pub(crate) texture_storage: TextureStorage,
 	pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync)>>,
+	pub(crate) egui: ManuallyDrop<Integration<Arc<Mutex<Allocator>>>>,
 }
 
 impl Renderer {	
@@ -100,6 +105,24 @@ impl Renderer {
 		
 		let descriptor_pool = unsafe { DescriptorPool::init(&device, &swapchain)? };
 		unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
+		
+		let allocator = Arc::new(Mutex::new(allocator));
+		
+		let egui = ManuallyDrop::new(Integration::new(
+			&*window.event_loop.lock().unwrap(),
+			swapchain.extent.width,
+			swapchain.extent.height,
+			1.0,
+			egui::FontDefinitions::default(),
+			egui::Style::default(),
+			device.clone(),
+			Arc::clone(&allocator),
+			queue_families.graphics_index.unwrap(),
+			queue_families.graphics_queue,
+			swapchain.swapchain_loader.clone(),
+			swapchain.swapchain,
+			*window.surface.get_formats(*instance.physical_device)?.first().unwrap(),
+		));
 		 
 		Ok(Renderer {
 			instance,
@@ -110,12 +133,13 @@ impl Renderer {
 			renderpass,
 			pipelines: HashMap::new(),
 			commandbuffer_pools,
-			allocator: Arc::new(Mutex::new(allocator)),
+			allocator,
 			camera_buffer,
 			light_buffer,
 			descriptor_pool,
 			texture_storage: TextureStorage::new(),
 			materials: vec![],
+			egui,
 		})
 	}
 	
@@ -151,7 +175,8 @@ impl Renderer {
 	pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
 		&mut self,
 		world: &mut SubWorld<W>,
-		index: usize
+		event_writer: &mut EventWriter,
+		index: usize,
 	) -> Result<(), vk::Result> {
 		let imageinfos = self.texture_storage.get_descriptor_image_info();
 		let descriptorwrite_image = vk::WriteDescriptorSet::builder()
@@ -265,6 +290,27 @@ impl Renderer {
 		}
 		
 		self.device.cmd_end_render_pass(commandbuffer);
+		
+		// Egui
+		self.egui.context().set_visuals(egui::style::Visuals::dark());
+		self.egui.begin_frame(&self.window.window);
+		//~ egui::SidePanel::left("my_side_panel").show(&self.egui.context(), |ui| {
+			//~ ui.heading("Hello");
+			//~ ui.label("Hello egui!");
+			//~ if ui.button("Click me").clicked() {
+				//~ println!("Hello world!");
+			//~ }
+		//~ });
+		event_writer.send(Arc::new(self.egui.context()));
+		let output = self.egui.end_frame(&mut self.window.window);
+		let clipped_meshes = self.egui.context().tessellate(output.shapes);
+		self.egui.paint(
+			commandbuffer,
+			index,
+			clipped_meshes,
+			output.textures_delta
+		);
+		
 		self.device.end_command_buffer(commandbuffer)?;
 			
 		Ok(())
@@ -591,6 +637,7 @@ impl Renderer {
 	pub(crate) fn cleanup(&mut self, world: &mut World){
 		unsafe {
 			self.device.device_wait_idle().expect("Error halting device");	
+			self.egui.destroy();
 			self.texture_storage.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
 			self.descriptor_pool.cleanup(&self.device);
 			self.device.destroy_buffer(self.camera_buffer.buffer, None);
