@@ -92,6 +92,9 @@ pub mod scripting;
 /// Bundle of all essential components of the engine
 pub mod prelude;
 
+/// Re-import the engine error handling to use as [`despero::Result`]
+pub use crate::error::Result;
+
 /// Main engine struct
 pub struct Despero {
 	world: World,

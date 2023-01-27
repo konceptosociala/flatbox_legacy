@@ -10,6 +10,8 @@ use crate::render::{
 	},
 };
 
+use crate::error::*;
+
 pub struct Pipeline {
 	pub pipeline: vk::Pipeline,
 }
@@ -21,7 +23,7 @@ impl Pipeline {
 		fragment_shader: &vk::ShaderModuleCreateInfo,
 		instance_attributes: Vec<ShaderInputAttribute>,
 		instance_bytes: usize,
-	) -> Result<Pipeline, vk::Result> {
+	) -> DesperoResult<Pipeline> {
 		let mut vertex_attributes = vec![
 			ShaderInputAttribute {
 				binding: 0,
@@ -58,21 +60,22 @@ impl Pipeline {
 		
 		vertex_attributes.extend(instance_attributes);
 		
-		let vertexshader_module = renderer.device.create_shader_module(&vertex_shader, None)?;
-		let fragmentshader_module = renderer.device.create_shader_module(&fragment_shader, None)?;
+		let vertex_module = renderer.device.create_shader_module(&vertex_shader, None)?;
+		let fragment_module = renderer.device.create_shader_module(&fragment_shader, None)?;
 		
 		let main_function = CString::new("main").unwrap();
 		
-		let vertex_shader_stage = vk::PipelineShaderStageCreateInfo::builder()
+		let vertex_stage = vk::PipelineShaderStageCreateInfo::builder()
 			.stage(vk::ShaderStageFlags::VERTEX)
-			.module(vertexshader_module)
-			.name(&main_function);
-		let fragment_shader_stage = vk::PipelineShaderStageCreateInfo::builder()
-			.stage(vk::ShaderStageFlags::FRAGMENT)
-			.module(fragmentshader_module)
+			.module(vertex_module)
 			.name(&main_function);
 			
-		let shader_stages = vec![vertex_shader_stage.build(), fragment_shader_stage.build()];
+		let fragment_stage = vk::PipelineShaderStageCreateInfo::builder()
+			.stage(vk::ShaderStageFlags::FRAGMENT)
+			.module(fragment_module)
+			.name(&main_function);
+			
+		let shader_stages = vec![vertex_stage.build(), fragment_stage.build()];
 		
 		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
 			.vertex_attribute_descriptions(&vertex_attributes)
@@ -112,8 +115,10 @@ impl Pipeline {
 			
 		let pipeline = unsafe { Self::create_graphics_pipeline(&renderer.device, pipeline_info) };
 		
-		renderer.device.destroy_shader_module(fragmentshader_module, None);
-		renderer.device.destroy_shader_module(vertexshader_module, None);
+		unsafe { 
+			renderer.device.destroy_shader_module(fragment_module, None);
+			renderer.device.destroy_shader_module(vertex_module, None); 
+		}
 		
 		Ok(Pipeline {
 			pipeline,
@@ -130,7 +135,7 @@ impl Pipeline {
 		logical_device: &ash::Device,
 		physical_device: vk::PhysicalDevice,
 		surfaces: &Surface
-	) -> Result<vk::RenderPass, vk::Result> {
+	) -> DesperoResult<vk::RenderPass> {
 		let attachments = [
 			vk::AttachmentDescription::builder()
 				.format(
