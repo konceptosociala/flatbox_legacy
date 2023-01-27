@@ -1,5 +1,5 @@
 <p align="center">
-	<a href="https://konceptosociala.eu.org/despero"><img src="despero.svg" height="128" width="128" alt="despero"></a>
+	<a href="https://konceptosociala.eu.org/despero"><img src="despero.svg" height="156" width="156" alt="despero"></a>
 </p>	
 
 <p align="center">
@@ -13,7 +13,6 @@
 	Rusty game engine, using API Vulkan and implementing paradigm of ECS
 </p>
 
-# Tasklisto
 ## To fix:
 - Texture coordinates
 - Event reading (multiple event types are slow)
