@@ -1,15 +1,23 @@
-![despero_banner](banner.svg)
+<p align="center">
+	<a href="https://konceptosociala.eu.org/despero"><img src="despero.svg" height="128" width="128" alt="despero"></a>
+</p>	
 
-# Despero
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Alpha-blue?style=flat-square" alt="status">
+  <img src="https://img.shields.io/crates/v/despero.svg?style=flat-square" alt="crates">
+  <img src="https://img.shields.io/github/stars/konceptosociala/despero?style=flat-square&color=orange">
+  <img src="https://img.shields.io/github/issues/konceptosociala/despero?color=green&style=flat-square">
+</p>
 
-Rusty game engine, using API Vulkan and implementing paradigm of ECS
+<p align="center">
+	Rusty game engine, using API Vulkan and implementing paradigm of ECS
+</p>
 
 # Tasklisto
 ## To fix:
 - Texture coordinates
-- Event reading (`dyn Event` -> `generic E`)
-- Reorganize `Renderer`
-- Multithreading (`Arc`) for `Renderer`
+- Event reading (multiple event types are slow)
+- Synchronize light descriptor sets with commandbuffer
 
 ## To implement:
 
