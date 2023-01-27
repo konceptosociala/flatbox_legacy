@@ -1,9 +1,11 @@
+use std::ffi::CString;
 use ash::vk;
 
 use crate::render::{
 	renderer::*,
 	backend::{
-		surface::Surface,
+		swapchain::*,
+		surface::*,
 		shader::*,
 	},
 };
@@ -59,8 +61,7 @@ impl Pipeline {
 		let vertexshader_module = renderer.device.create_shader_module(&vertex_shader, None)?;
 		let fragmentshader_module = renderer.device.create_shader_module(&fragment_shader, None)?;
 		
-		// Set main function's name to `main`
-		let main_function = std::ffi::CString::new("main").unwrap();
+		let main_function = CString::new("main").unwrap();
 		
 		let vertex_shader_stage = vk::PipelineShaderStageCreateInfo::builder()
 			.stage(vk::ShaderStageFlags::VERTEX)
@@ -73,66 +74,27 @@ impl Pipeline {
 			
 		let shader_stages = vec![vertex_shader_stage.build(), fragment_shader_stage.build()];
 		
-		// Bind vertex inputs
 		let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
 			.vertex_attribute_descriptions(&vertex_attributes)
 			.vertex_binding_descriptions(&vertex_bindings);
 			
 		let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
-			.topology(vk::PrimitiveTopology::TRIANGLE_LIST);
-		
-		// Viewports
-		let viewports = [vk::Viewport {
-			x: 0.,
-			y: 0.,
-			width: renderer.swapchain.extent.width as f32,
-			height: renderer.swapchain.extent.height as f32,
-			min_depth: 0.,
-			max_depth: 1.,
-		}];
-		
-		let scissors = [vk::Rect2D {
-			offset: vk::Offset2D { x: 0, y: 0 },
-			extent: renderer.swapchain.extent,
-		}];
-
+			.topology(vk::PrimitiveTopology::TRIANGLE_LIST);	
+			
+		let viewports = [Self::create_viewports(&renderer.swapchain)];
+		let scissors = [Self::create_scissors(&renderer.swapchain)];
 		let viewport_info = vk::PipelineViewportStateCreateInfo::builder()
 			.viewports(&viewports)
-			.scissors(&scissors);
+			.scissors(&scissors)
+			.build();
 			
-		// Rasterizer
-		let rasterizer_info = vk::PipelineRasterizationStateCreateInfo::builder()
-			.line_width(1.0)
-			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
-			.cull_mode(vk::CullModeFlags::BACK)
-			.polygon_mode(vk::PolygonMode::FILL);
-			
-		// Multisampler	
-		let multisampler_info = vk::PipelineMultisampleStateCreateInfo::builder()
-			.rasterization_samples(vk::SampleCountFlags::TYPE_1);
-			
-		// Color blend
-		let colorblend_attachments = [vk::PipelineColorBlendAttachmentState::builder()
-			.blend_enable(true)
-			.src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
-			.dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-			.color_blend_op(vk::BlendOp::ADD)
-			.src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
-			.dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-			.alpha_blend_op(vk::BlendOp::ADD)
-			.color_write_mask(
-				vk::ColorComponentFlags::R
-					| vk::ColorComponentFlags::G
-					| vk::ColorComponentFlags::B
-					| vk::ColorComponentFlags::A,
-			)
-			.build()];
+		let colorblend_attachments = [Self::create_colorblend_attachments()];
 		let colourblend_info = vk::PipelineColorBlendStateCreateInfo::builder()
 			.attachments(&colorblend_attachments);
-		let depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo::builder()
-			.depth_test_enable(true)
-			.depth_write_enable(true)
-			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
+			
+		let depth_stencil_info = Self::create_depth_stencil();
+		let multisampler_info = Self::create_multisampler();
+		let rasterizer_info = Self::create_rasterizer();
 		
 		let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
 			.stages(&shader_stages)
@@ -145,14 +107,10 @@ impl Pipeline {
 			.color_blend_state(&colourblend_info)
 			.layout(renderer.descriptor_pool.pipeline_layout)
 			.render_pass(renderer.renderpass)
-			.subpass(0);
+			.subpass(0)
+			.build();
 			
-		let pipeline = renderer.device
-			.create_graphics_pipelines(
-				vk::PipelineCache::null(),
-				&[pipeline_info.build()],
-				None,
-			).expect("Cannot create pipeline")[0];
+		let pipeline = unsafe { Self::create_graphics_pipeline(&renderer.device, pipeline_info) };
 		
 		renderer.device.destroy_shader_module(fragmentshader_module, None);
 		renderer.device.destroy_shader_module(vertexshader_module, None);
@@ -238,5 +196,75 @@ impl Pipeline {
 			.dependencies(&subpass_dependencies);
 		let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
 		Ok(renderpass)
+	}
+	
+	fn create_scissors(swapchain: &Swapchain) -> vk::Rect2D {
+		vk::Rect2D {
+			offset: vk::Offset2D { x: 0, y: 0 },
+			extent: swapchain.extent,
+		}
+	}
+	
+	fn create_viewports(swapchain: &Swapchain) -> vk::Viewport {
+		vk::Viewport {
+			x: 0.,
+			y: 0.,
+			width: swapchain.extent.width as f32,
+			height: swapchain.extent.height as f32,
+			min_depth: 0.,
+			max_depth: 1.,
+		}
+	}
+	
+	fn create_rasterizer() -> vk::PipelineRasterizationStateCreateInfo {
+		vk::PipelineRasterizationStateCreateInfo::builder()
+			.line_width(1.0)
+			.front_face(vk::FrontFace::COUNTER_CLOCKWISE)
+			.cull_mode(vk::CullModeFlags::BACK)
+			.polygon_mode(vk::PolygonMode::FILL)
+			.build()
+	}
+	
+	fn create_colorblend_attachments() -> vk::PipelineColorBlendAttachmentState {
+		vk::PipelineColorBlendAttachmentState::builder()
+			.blend_enable(true)
+			.src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+			.dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+			.color_blend_op(vk::BlendOp::ADD)
+			.src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
+			.dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+			.alpha_blend_op(vk::BlendOp::ADD)
+			.color_write_mask(
+				vk::ColorComponentFlags::R
+					| vk::ColorComponentFlags::G
+					| vk::ColorComponentFlags::B
+					| vk::ColorComponentFlags::A,
+			)
+			.build()
+	}
+	
+	fn create_multisampler() -> vk::PipelineMultisampleStateCreateInfo {
+		vk::PipelineMultisampleStateCreateInfo::builder()
+			.rasterization_samples(vk::SampleCountFlags::TYPE_1)
+			.build()
+	}
+	
+	fn create_depth_stencil() -> vk::PipelineDepthStencilStateCreateInfo {
+		vk::PipelineDepthStencilStateCreateInfo::builder()
+			.depth_test_enable(true)
+			.depth_write_enable(true)
+			.depth_compare_op(vk::CompareOp::LESS_OR_EQUAL)
+			.build()
+	}
+	
+	unsafe fn create_graphics_pipeline(
+		logical_device: &ash::Device,
+		pipeline_info: vk::GraphicsPipelineCreateInfo,
+	) -> vk::Pipeline {
+		logical_device.create_graphics_pipelines(
+			vk::PipelineCache::null(),
+			&[pipeline_info],
+			None,
+		).expect("Cannot create pipeline")[0]
 	}
 }

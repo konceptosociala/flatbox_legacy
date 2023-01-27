@@ -3,8 +3,16 @@ name = "despero"
 version = "0.0.1"
 authors = ["Koncepto Sociala"]
 edition = "2021"
+
+license-file = "LICENSE"
+description = "Rusty game engine, using API Vulkan and implementing paradigm of ECS"
 homepage = "https://konceptosociala.eu.org/despero"
+documentation = "https://docs.rs/despero"
 repository = "https://github.com/konceptosociala/despero"
+readme = "README.md"
+
+keywords = ["gamedev", "graphics", "engine"]
+categories = ["game-development", "game-engines", "rendering"]
 
 [dependencies]
 # Misc

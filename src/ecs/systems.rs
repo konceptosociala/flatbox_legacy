@@ -165,8 +165,8 @@ pub(crate) fn update_models_system(
 		// Update InstanceBuffer
 		//
 		//		
-		let mat_ptr = &material as *const _ as *const u8;
-		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&material))};
+		let mat_ptr = &*material as *const _ as *const u8;
+		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&*material))};
 		if let Some(buffer) = &mut mesh.instancebuffer {
 			buffer.fill(
 				&logical_device,

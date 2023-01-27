@@ -89,8 +89,10 @@ fn create_models(
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(TexMaterial {
-			texture_id: txt1
+		material: renderer.create_material(Arc::new(DefaultMat {
+			texture_id: txt1,
+			metallic: 0.0,
+			roughness: 1.0,
 		})),
 		transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
 	});

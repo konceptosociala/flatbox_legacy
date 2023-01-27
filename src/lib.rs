@@ -106,7 +106,9 @@ pub struct Despero {
 impl Despero {	
 	/// Initialize Despero application
 	pub fn init(window_builder: WindowBuilder) -> Despero {
-		let renderer = Renderer::init(window_builder).expect("Cannot create renderer");
+		let mut renderer = Renderer::init(window_builder).expect("Cannot create renderer");
+		renderer.bind_material::<DefaultMat>();
+		
 		let ctx = renderer.egui.context();
 		Despero {
 			world: World::new(),
