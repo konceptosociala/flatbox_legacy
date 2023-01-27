@@ -578,7 +578,6 @@ dependencies = [
  "gpu-allocator",
  "hecs",
  "hecs-hierarchy",
- "hecs-query-tracker",
  "hecs-schedule",
  "image",
  "mlua",
@@ -978,14 +977,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "hecs-query-tracker"
-version = "0.1.0"
-dependencies = [
- "hecs",
- "hecs-schedule",
 ]
 
 [[package]]

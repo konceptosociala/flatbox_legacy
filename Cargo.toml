@@ -14,6 +14,11 @@ readme = "README.md"
 keywords = ["gamedev", "graphics", "engine"]
 categories = ["game-development", "game-engines", "rendering"]
 
+exclude = [
+    "test",
+    "doc",
+]
+
 [dependencies]
 # Misc
 nanorand 	= "0.7.0"
@@ -37,7 +42,7 @@ bus 			= "2.3.0"
 hecs 			= "0.7.7"
 hecs-schedule 	= "0.6.2"
 hecs-hierarchy 	= "0.11.7"
-hecs-query-tracker = { path = "hecs-query-tracker" }
+#hecs-query-tracker = { path = "hecs-query-tracker" }
 
 # Physics
 rapier3d = "0.16.1"
