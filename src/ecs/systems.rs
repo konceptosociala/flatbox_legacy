@@ -5,7 +5,6 @@ use hecs_schedule::*;
 
 use crate::render::{
 	renderer::Renderer,
-	transform::Transform,
 	pbr::{
 		camera::Camera,
 		model::*,
@@ -14,6 +13,8 @@ use crate::render::{
 	},
 	backend::buffer::Buffer,
 };
+
+use crate::math::transform::Transform;
 
 use crate::ecs::event::EventWriter;
 
@@ -103,7 +104,7 @@ pub(crate) fn rendering_system(
 			.queue_present(renderer.queue_families.graphics_queue, &present_info)
 			.expect("queue presentation")
 		{
-			//renderer.recreate_swapchain().expect("Cannot recreate swapchain");
+			renderer.recreate_swapchain().expect("Cannot recreate swapchain");
 			
 			for (_, camera) in &mut camera_world.query::<&mut Camera>(){
 				if camera.is_active {

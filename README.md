@@ -13,20 +13,24 @@
 	Rusty game engine, using API Vulkan and implementing paradigm of ECS
 </p>
 
+## WARNING
+The crate is in a very early stage of development. Use it at your own risk
+
 ## To fix:
 - Texture coordinates
 - Event reading (multiple event types are slow)
 - Synchronize light descriptor sets with commandbuffer
+- Recreate swapchain (synchonize pipelines' binding/recreating)
 
 ## To implement:
 
 - [x] `Prelude`
 - [x] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
-- [ ] Resource processing (as hecs ECS)
+- [x] Resource processing (as hecs ECS)
 	- [x] `Texture`
-	- [ ] `Material`
+	- [x] `Material`
 		- [x] `DefaultMat`
-		- [ ] Universal `Material`
+		- [x] Universal `Material`
 	- [x] `Mesh`
 - [x] ECS
 	- [x] `Light`

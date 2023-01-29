@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["Koncepto Sociala"]
 edition = "2021"
 
-license-file = "LICENSE"
+license = "Unlicense"
 description = "Rusty game engine, using API Vulkan and implementing paradigm of ECS"
 homepage = "https://konceptosociala.eu.org/despero"
 documentation = "https://docs.rs/despero"

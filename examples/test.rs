@@ -11,16 +11,21 @@ fn main() {
 	let reader = despero.add_event_reader();
 	let egui_reader = despero.add_event_reader();
 	
-	despero.bind_material::<MyMaterial>();
-	despero.bind_material::<TexMaterial>();
-	
 	despero
+		.add_setup_system(bind_mat)
 		.add_setup_system(create_models)
 		.add_setup_system(create_camera)
 		.add_system(handling(reader))
 		.add_system(ecs_change)
 		.add_system(egui_handling(egui_reader))
 		.run();
+}
+
+fn bind_mat(
+	mut renderer: Write<Renderer>
+){
+	renderer.bind_material::<MyMaterial>();
+	renderer.bind_material::<TexMaterial>();
 }
 
 fn egui_handling(
@@ -89,11 +94,13 @@ fn create_models(
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(DefaultMat {
-			texture_id: txt1,
-			metallic: 0.0,
-			roughness: 1.0,
-		})),
+		material: renderer.create_material(Arc::new(
+			DefaultMat::builder()
+				.texture_id(txt1)
+				.metallic(0.0)
+				.roughness(1.0)
+				.build(),
+		)),
 		transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
 	});
 	
@@ -105,7 +112,6 @@ fn create_models(
 		transform: Transform::from_translation(Vector3::new(-1.0, 0.0, -2.0)),
 	});
 	
-	// Add light
 	cmd.spawn((DirectionalLight {
 		direction: Vector3::new(-1., -1., 0.),
 		illuminance: [0.5, 0.5, 0.5],

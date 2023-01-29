@@ -2,8 +2,6 @@ use ash::vk;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 
-use crate::render::renderer::extract_option;
-
 pub struct DepthImage {
 	pub depth_image: vk::Image,							  
 	pub depth_image_allocation: Option<Allocation>,		  
@@ -29,8 +27,9 @@ impl DepthImage {
 	}
 	
 	pub unsafe fn cleanup(&mut self, logical_device: &ash::Device, allocator: &mut Allocator) {
-		let alloc = extract_option(&mut self.depth_image_allocation);
-		allocator.free(alloc).unwrap();
+		let mut alloc: Option<Allocation> = None;
+		std::mem::swap(&mut alloc, &mut self.depth_image_allocation);		
+		allocator.free(alloc.unwrap()).unwrap();
 		logical_device.destroy_image_view(self.depth_imageview, None);
 		logical_device.destroy_image(self.depth_image, None);
 	}

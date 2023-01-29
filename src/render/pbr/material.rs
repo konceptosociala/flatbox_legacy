@@ -38,16 +38,21 @@ pub struct DefaultMat {
 }
 
 impl DefaultMat {
-	/// Create new instance of default material
-	pub fn new(
-		texture_id: usize,
-		metallic: f32,
-		roughness: f32,
-	) -> DefaultMat {
+	pub fn new() -> Self {
+		Self::default()
+	}
+	
+	pub fn builder() -> DefaultMatBuilder {
+		DefaultMatBuilder::new()
+	}
+}
+
+impl Default for DefaultMat {
+	fn default() -> Self {
 		DefaultMat {
-			texture_id: texture_id as u32,
-			metallic,
-			roughness,
+			texture_id: 0,
+			metallic: 0.0,
+			roughness: 1.0,
 		}
 	}
 }
@@ -87,14 +92,51 @@ impl Material for DefaultMat {
 			}
 		];
 		
-		unsafe {
-			Pipeline::init(
-				&renderer,
-				&vertex_shader,
-				&fragment_shader,
-				instance_attributes,
-				12,
-			).expect("Cannot create pipeline")
+		Pipeline::init(
+			&renderer,
+			&vertex_shader,
+			&fragment_shader,
+			instance_attributes,
+			12,
+		).expect("Cannot create pipeline")
+	}
+}
+
+pub struct DefaultMatBuilder {
+	texture_id: u32,
+	metallic: f32,
+	roughness: f32,
+}
+
+impl DefaultMatBuilder {
+	pub fn new() -> Self {
+		DefaultMatBuilder {
+			texture_id: 0,
+			metallic: 0.0,
+			roughness: 1.0,
+		}
+	}
+	
+	pub fn texture_id(mut self, id: u32) -> Self {
+		self.texture_id = id;
+		self
+	}
+	
+	pub fn metallic(mut self, value: f32) -> Self {
+		self.metallic = value;
+		self
+	}
+	
+	pub fn roughness(mut self, value: f32) -> Self {
+		self.roughness = value;
+		self
+	}
+	
+	pub fn build(self) -> DefaultMat {
+		DefaultMat {
+			texture_id: self.texture_id,
+			metallic: self.metallic,
+			roughness: self.roughness,
 		}
 	}
 }

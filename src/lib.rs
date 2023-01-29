@@ -81,6 +81,8 @@ use crate::render::{
 
 /// Module of the main engine error handler [`Desperror`]
 pub mod error;
+///
+pub mod math;
 /// Contains submodules and structures to work with graphics
 pub mod render;
 /// Contains ECS implementations
@@ -103,7 +105,6 @@ pub struct Despero {
 	event_writer: EventWriter,
 	
 	renderer: Renderer,
-	ctx: egui::Context,
 }
 
 impl Despero {	
@@ -111,15 +112,12 @@ impl Despero {
 	pub fn init(window_builder: WindowBuilder) -> Despero {
 		let mut renderer = Renderer::init(window_builder).expect("Cannot create renderer");
 		renderer.bind_material::<DefaultMat>();
-		
-		let ctx = renderer.egui.context();
 		Despero {
 			world: World::new(),
 			setup_systems: Schedule::builder(),
 			systems: Schedule::builder(),
 			event_writer: EventWriter::new(),
 			renderer,
-			ctx,
 		}
 	}
 	
@@ -145,31 +143,24 @@ impl Despero {
 		EventReader::new(&mut self.event_writer)
 	}
 	
-	pub fn bind_material<M: Material + Sync + Send>(&mut self){	
-		self.renderer.bind_material::<M>();
-	}
-	
 	/// Run main event loop
 	pub fn run(mut self) {
-		// Init setup-systems Schedule
-		let mut setup_systems = self.setup_systems
-				//
-					.build();
-		// Init systems Schedule
+		let mut setup_systems = self.setup_systems.build();
 		let mut systems = self.systems
 			.add_system(update_models_system)
 			.add_system(rendering_system)
 			.add_system(update_lights)
 			.build();
-		// Execute setup-systems Schedule
-		setup_systems
-			.execute((&mut self.world, &mut self.renderer, &mut self.event_writer, &mut self.ctx))
-			.expect("Cannot execute setup schedule");
-		// Run EventLoop
-		let event_loop = Arc::clone(&self.renderer.window.event_loop);
 		
+		setup_systems.execute((
+			&mut self.world,
+			&mut self.renderer,
+			&mut self.event_writer
+		)).expect("Cannot execute setup schedule");
+		
+		let event_loop = Arc::clone(&self.renderer.window.event_loop);
 		(*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {	
-			Event::WindowEvent { event, window_id: _ } => {
+			WinitEvent::WindowEvent { event, window_id: _ } => {
 				let _response = self.renderer.egui.handle_event(&event);
 				
 				match event {
@@ -188,10 +179,11 @@ impl Despero {
 			}
 			
 			WinitEvent::RedrawRequested(_) => {
-				// Execute loop schedule	
-				systems
-					.execute((&mut self.world, &mut self.renderer, &mut self.event_writer, &mut self.ctx))
-					.expect("Cannot execute loop schedule");
+				systems.execute((
+					&mut self.world,
+					&mut self.renderer,
+					&mut self.event_writer
+				)).expect("Cannot execute loop schedule");
 			}
 			
 			_ => {}

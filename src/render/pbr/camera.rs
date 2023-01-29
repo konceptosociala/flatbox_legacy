@@ -4,9 +4,10 @@ use hecs::*;
 
 use crate::render::{
 	renderer::Renderer,
-	transform::Transform,
 	debug::Debug,
 };
+
+use crate::math::transform::Transform;
 
 pub struct Camera {
 	pub(crate) viewmatrix: na::Matrix4<f32>,

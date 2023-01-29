@@ -30,10 +30,11 @@ use crate::render::{
 		texture::*,
 		material::*,
 	},
-	transform::Transform,
 };
 
+use crate::math::transform::Transform;
 use crate::ecs::event::EventWriter;
+use crate::error::DesperoResult;
 
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
@@ -58,7 +59,7 @@ pub struct Renderer {
 }
 
 impl Renderer {	
-	pub(crate) fn init(window_builder: WindowBuilder) -> Result<Renderer, Box<dyn std::error::Error>> {
+	pub(crate) fn init(window_builder: WindowBuilder) -> DesperoResult<Renderer> {
 		let instance = Instance::init()?;
 		let window	= Window::init(&instance, window_builder)?;
 		let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
@@ -161,14 +162,13 @@ impl Renderer {
 	pub fn create_material(
 		&mut self,
 		material: Arc<(dyn Material + Send + Sync)>,
-	) -> MaterialHandle
-	{
+	) -> MaterialHandle {
 		let index = self.materials.len();
 		self.materials.push(material);
 		return MaterialHandle::new(index);
 	}
 	
-	pub(crate) fn bind_material<M: Material + Sync + Send>(&mut self){	
+	pub fn bind_material<M: Material + Sync + Send>(&mut self) {
 		self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
 	}
 	
@@ -241,7 +241,6 @@ impl Renderer {
 						if let Some(indexbuffer) = &mesh.indexbuffer {
 							let material = &self.materials[handle.get()];
 							if (**material).type_id() == *material_type {
-								// Bind position buffer						
 								self.device.cmd_bind_index_buffer(
 									commandbuffer,
 									indexbuffer.buffer,
@@ -291,16 +290,8 @@ impl Renderer {
 		
 		self.device.cmd_end_render_pass(commandbuffer);
 		
-		// Egui
 		self.egui.context().set_visuals(egui::style::Visuals::dark());
 		self.egui.begin_frame(&self.window.window);
-		//~ egui::SidePanel::left("my_side_panel").show(&self.egui.context(), |ui| {
-			//~ ui.heading("Hello");
-			//~ ui.label("Hello egui!");
-			//~ if ui.button("Click me").clicked() {
-				//~ println!("Hello world!");
-			//~ }
-		//~ });
 		event_writer.send(Arc::new(self.egui.context()));
 		let output = self.egui.end_frame(&mut self.window.window);
 		let clipped_meshes = self.egui.context().tessellate(output.shapes);
@@ -316,320 +307,37 @@ impl Renderer {
 		Ok(())
 	}
 	
-	//~ pub(crate) fn recreate_swapchain(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-		//~ unsafe {
-			//~ self.device
-				//~ .device_wait_idle()
-				//~ .expect("something wrong while waiting");
-			//~ self.swapchain.cleanup(&self.device, &mut self.allocator);
-		//~ }
-		//~ // Recreate Swapchain
-		//~ self.swapchain = Swapchain::init(
-			//~ &self.instance,
-			//~ &self.device,
-			//~ &self.window.surface,
-			//~ &self.queue_families,
-			//~ &mut self.allocator,
-		//~ )?;
+	pub(crate) unsafe fn recreate_swapchain(&mut self) -> DesperoResult<()> {
+		self.device.device_wait_idle()?;
+
+		self.swapchain.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
+		self.swapchain = Swapchain::init(
+			&self.instance,
+			&self.device,
+			&self.window.surface,
+			&self.queue_families,
+			&mut *self.allocator.lock().unwrap(),
+		)?;
 		
-		//~ // Recreate FrameBuffers
-		//~ self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
-		
-		//~ // Recreate Pipeline
-		//~ for material_type in self.pipelines.keys() {
-			//~ let pipeline = self.pipelines.get(&material_type).unwrap();
-			
-			//~ pipeline.cleanup(&self.device);
-			
-			
-		//~ }
-		//~ self.pipeline = Pipeline::init(
-			//~ &self.device, 
-			//~ &self.swapchain, 
-			//~ &self.renderpass
-		//~ )?;
-		
-		//~ Ok(())
-	//~ }
+		self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
+		for p in self.pipelines.values_mut() {
+			p.cleanup(&self.device);
+			p.recreate_pipeline(
+				&self.device,
+				&self.swapchain,
+				&self.descriptor_pool,
+				self.renderpass,
+			)?;
+		}
+	
+		Ok(())
+	}
 	
 	pub(crate) fn fill_lightbuffer<T: Sized>(
 		&mut self,
 		data: &[T],
 	) -> Result<(), vk::Result>{
 		self.light_buffer.fill(&self.device, &mut *self.allocator.lock().unwrap(), data)?;
-		Ok(())
-	}
-	
-	pub fn screenshot(&mut self, full_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-		// Create CommandBuffer
-		let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-			.command_pool(self.commandbuffer_pools.commandpool_graphics)
-			.command_buffer_count(1);
-		let copybuffer = unsafe {
-			self.device.allocate_command_buffers(&commandbuf_allocate_info)
-		}.unwrap()[0];
-		// Begin CommandBuffer
-		let cmd_begin_info = vk::CommandBufferBeginInfo::builder()
-			.flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
-		unsafe { self.device.begin_command_buffer(copybuffer, &cmd_begin_info) }?;
-		
-		// Create Image to store
-		let ici = vk::ImageCreateInfo::builder()
-			.format(vk::Format::R8G8B8A8_UNORM)
-			.image_type(vk::ImageType::TYPE_2D)
-			.extent(vk::Extent3D {
-				width: self.swapchain.extent.width,
-				height: self.swapchain.extent.height,
-				depth: 1,
-			})
-			.array_layers(1)
-			.mip_levels(1)
-			.samples(vk::SampleCountFlags::TYPE_1)
-			.tiling(vk::ImageTiling::LINEAR)
-			.usage(vk::ImageUsageFlags::TRANSFER_DST)
-			.initial_layout(vk::ImageLayout::UNDEFINED);
-		let image = unsafe { 
-			self.device.create_image(&ici, None)
-		}.unwrap();
-		
-		// Image allocation
-		//
-		// Image memory requirements
-		let requirements = unsafe { self.device.get_image_memory_requirements(image) };
-		// Allocation info
-		let allocation_info = &AllocationCreateDesc {
-			name: "Screenshot allocation",
-			requirements,
-			location: MemoryLocation::GpuToCpu,
-			linear: true,
-		};
-		// Create memory allocation
-		let allocation = (*self.allocator.lock().unwrap()).allocate(allocation_info).unwrap();
-		// Bind memory allocation to image
-		unsafe { self.device.bind_image_memory(
-			image,
-			allocation.memory(), 
-			allocation.offset())
-		}.unwrap();
-		
-		// ImageMemoryBarrier
-		let barrier = vk::ImageMemoryBarrier::builder()
-			.image(image)
-			.src_access_mask(vk::AccessFlags::empty())
-			.dst_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-			.old_layout(vk::ImageLayout::UNDEFINED)
-			.new_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-			.subresource_range(vk::ImageSubresourceRange {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				base_mip_level: 0,
-				level_count: 1,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.build();
-		// Bind IMB to CommandBuffer
-		unsafe {
-			self.device.cmd_pipeline_barrier(
-				copybuffer,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::DependencyFlags::empty(),
-				&[],
-				&[],
-				&[barrier],
-			)
-		};
-		
-		// Layout transition
-		let source_image = self.swapchain.images[self.swapchain.current_image];
-		let barrier = vk::ImageMemoryBarrier::builder()
-			.image(source_image)
-			.src_access_mask(vk::AccessFlags::MEMORY_READ)
-			.dst_access_mask(vk::AccessFlags::TRANSFER_READ)
-			.old_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-			.new_layout(vk::ImageLayout::TRANSFER_SRC_OPTIMAL)
-			.subresource_range(vk::ImageSubresourceRange {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				base_mip_level: 0,
-				level_count: 1,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.build();
-		unsafe {
-			self.device.cmd_pipeline_barrier(
-				copybuffer,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::DependencyFlags::empty(),
-				&[],
-				&[],
-				&[barrier],
-			)
-		};
-		
-		// Copying
-		//
-		// Copying description
-		let copy_area = vk::ImageCopy::builder()
-			.src_subresource(vk::ImageSubresourceLayers {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				mip_level: 0,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.src_offset(vk::Offset3D::default())
-			.dst_subresource(vk::ImageSubresourceLayers {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				mip_level: 0,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.dst_offset(vk::Offset3D::default())
-			.extent(vk::Extent3D {
-				width: self.swapchain.extent.width,
-				height: self.swapchain.extent.height,
-				depth: 1,
-			})
-			.build();
-		// Copy Command
-		unsafe {
-			self.device.cmd_copy_image(
-				copybuffer,
-				source_image,
-				vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-				image,
-				vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-				&[copy_area],
-			)
-		};
-		
-		// Next layout (to read)
-		let barrier = vk::ImageMemoryBarrier::builder()
-			.image(image)
-			.src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-			.dst_access_mask(vk::AccessFlags::MEMORY_READ)
-			.old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-			.new_layout(vk::ImageLayout::GENERAL)
-			.subresource_range(vk::ImageSubresourceRange {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				base_mip_level: 0,
-				level_count: 1,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.build();
-		unsafe {
-			self.device.cmd_pipeline_barrier(
-				copybuffer,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::DependencyFlags::empty(),
-				&[],
-				&[],
-				&[barrier],
-			)
-		};
-		
-		// Turn back `source_image` layout
-		let barrier = vk::ImageMemoryBarrier::builder()
-			.image(source_image)
-			.src_access_mask(vk::AccessFlags::TRANSFER_READ)
-			.dst_access_mask(vk::AccessFlags::MEMORY_READ)
-			.old_layout(vk::ImageLayout::TRANSFER_SRC_OPTIMAL)
-			.new_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-			.subresource_range(vk::ImageSubresourceRange {
-				aspect_mask: vk::ImageAspectFlags::COLOR,
-				base_mip_level: 0,
-				level_count: 1,
-				base_array_layer: 0,
-				layer_count: 1,
-			})
-			.build();
-		unsafe {
-			self.device.cmd_pipeline_barrier(
-				copybuffer,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::PipelineStageFlags::TRANSFER,
-				vk::DependencyFlags::empty(),
-				&[],
-				&[],
-				&[barrier],
-			)
-		};
-		// End CommandBuffer
-		unsafe { self.device.end_command_buffer(copybuffer) }?;
-		
-		// Submit CommandBuffer
-		//
-		// Submit info
-		let submit_infos = [
-			vk::SubmitInfo::builder()
-				.command_buffers(&[copybuffer])
-				.build()
-		];
-		// Create fence (to wait until CommandBuffer is finished)
-		let fence = unsafe {
-			self.device.create_fence(&vk::FenceCreateInfo::default(), None)
-		}?;
-		// Submit
-		unsafe { self.device.queue_submit(
-			self.queue_families.graphics_queue, 
-			&submit_infos, 
-			fence
-		)? };
-		// Wait for fences
-		unsafe { self.device.wait_for_fences(&[fence], true, std::u64::MAX) }?;
-		
-		// Remove CommandBuffer and Fence
-		unsafe { self.device.destroy_fence(fence, None) };
-		unsafe {
-			self.device.free_command_buffers(
-				self.commandbuffer_pools.commandpool_graphics, 
-				&[copybuffer]
-			)
-		};
-		
-		// Save Image
-		//
-		// Pointer to image
-		let source_ptr = allocation.mapped_ptr().unwrap().as_ptr() as *mut u8;
-		// Size of the image in bytes (usize)
-		let image_size = unsafe {
-			self.device.get_image_subresource_layout(
-				image,
-				vk::ImageSubresource {
-					aspect_mask: vk::ImageAspectFlags::COLOR,
-					mip_level: 0,
-					array_layer: 0,
-				},
-			).size as usize
-		};
-		// Image to bytes
-		let mut data = Vec::<u8>::with_capacity(image_size);
-		unsafe {
-			std::ptr::copy(
-				source_ptr,
-				data.as_mut_ptr(),
-				image_size,
-			);
-			data.set_len(image_size);
-		}
-		let data = bgra_to_rgba(&data);
-		// Destroy VulkanImage
-		(*self.allocator.lock().unwrap()).free(allocation)?;
-		unsafe { self.device.destroy_image(image, None); }
-		// Create ImageBuffer
-		let screen: image::ImageBuffer<image::Rgba<u8>, _> = image::ImageBuffer::from_raw(
-			self.swapchain.extent.width,
-			self.swapchain.extent.height,
-			data,
-		)
-		.expect("Failed create ImageBuffer");
-		// Save image
-		let screen_image = image::DynamicImage::ImageRgba8(screen);
-		screen_image.save(full_path)?;		
-		
 		Ok(())
 	}
 	
@@ -643,29 +351,13 @@ impl Renderer {
 			self.device.destroy_buffer(self.camera_buffer.buffer, None);
 			self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
 			self.device.destroy_buffer(self.light_buffer.buffer, None);
-			// Models clean
-			for (_, m) in &mut world.query::<&mut Mesh>(){
-				if let Some(vb) = &mut m.vertexbuffer {
-					// Reassign VertexBuffer allocation to remove
-					let alloc = extract_option(&mut vb.allocation);
-					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
-					self.device.destroy_buffer(vb.buffer, None);
-				}
-				
-				if let Some(xb) = &mut m.indexbuffer {
-					// Reassign IndexBuffer allocation to remove
-					let alloc = extract_option(&mut xb.allocation);
-					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
-					self.device.destroy_buffer(xb.buffer, None);
-				}
-				
-				if let Some(ib) = &mut m.instancebuffer {
-					// Reassign IndexBuffer allocation to remove
-					let alloc = extract_option(&mut ib.allocation);
-					(*self.allocator.lock().unwrap()).free(alloc).unwrap();
-					self.device.destroy_buffer(ib.buffer, None);
-				}
+
+			for (_, m) in &mut world.query::<&mut Mesh>(){	
+				Self::clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
+				Self::clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
+				Self::clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);
 			}
+			
 			self.commandbuffer_pools.cleanup(&self.device);
 			for pipeline in self.pipelines.values() {
 				pipeline.cleanup(&self.device);
@@ -695,28 +387,19 @@ impl Renderer {
 			},
 		]
 	}
-}
-
-fn bgra_to_rgba(data: &Vec<u8>) -> Vec<u8> {
-	let mut rgba: Vec<u8> = data.clone();
-	for mut i in 0..data.len()/4 {
-		i = i*4;
-		rgba[i]   = data[i+2];
-		rgba[i+1] = data[i+1];
-		rgba[i+2] = data[i];
-		rgba[i+3] = data[i+3];
+	
+	fn clear_model_buffer(
+		buf: &mut Option<Buffer>,
+		logical_device: &ash::Device,
+		allocator: &Arc<Mutex<Allocator>>,
+	){
+		if let Some(b) = buf {
+			let mut alloc: Option<Allocation> = None;
+			std::mem::swap(&mut alloc, &mut b.allocation);
+			(*allocator.lock().unwrap()).free(alloc.unwrap()).unwrap();
+			unsafe { logical_device.destroy_buffer(b.buffer, None) };
+		}
 	}
-	return rgba;
-}
-
-//~ fn get_window_title(window_builder: &WindowBuilder) -> String {
-	//~ String::from(window_builder.window.title.clone())
-//~ }
-
-pub fn extract_option<T>(option: &mut Option<T>) -> T {
-	let mut empty: Option<T> = None;
-	std::mem::swap(&mut empty, option);
-	empty.unwrap()
 }
 
 unsafe impl Send for Renderer {}

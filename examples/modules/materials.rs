@@ -36,15 +36,13 @@ impl Material for MyMaterial {
 			},
 		];
 		
-		unsafe {
-			Pipeline::init(
-				&renderer,
-				&vertex_shader,
-				&fragment_shader,
-				instance_attributes,
-				12,
-			).expect("Cannot create pipeline")
-		}
+		Pipeline::init(
+			&renderer,
+			&vertex_shader,
+			&fragment_shader,
+			instance_attributes,
+			12,
+		).expect("Cannot create pipeline")
 	}
 }
 
@@ -71,14 +69,12 @@ impl Material for TexMaterial {
 			},
 		];
 		
-		unsafe {
-			Pipeline::init(
-				&renderer,
-				&vertex_shader,
-				&fragment_shader,
-				instance_attributes,
-				4,
-			).expect("Cannot create pipeline")
-		}
+		Pipeline::init(
+			&renderer,
+			&vertex_shader,
+			&fragment_shader,
+			instance_attributes,
+			4,
+		).expect("Cannot create pipeline")
 	}
 }

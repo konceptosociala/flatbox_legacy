@@ -4,10 +4,11 @@ use crate::render::{
 	backend::{
 		buffer::Buffer,
 	},
-	transform::Transform,
 	debug::Debug,
 	pbr::material::*,
 };
+
+use crate::math::transform::Transform;
 
 /// Struct that handles vertex information
 #[repr(C)]
