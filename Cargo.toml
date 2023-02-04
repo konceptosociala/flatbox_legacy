@@ -38,11 +38,7 @@ vk-shader-macros 	= "0.2.8"
 winit 				= "0.27.5"
 
 # ECS
-bus 			= "2.3.0"
-hecs 			= "0.7.7"
-hecs-schedule 	= "0.6.2"
-hecs-hierarchy 	= "0.11.7"
-#hecs-query-tracker = { path = "hecs-query-tracker" }
+despero_ecs	= { path = "../despero_ecs" }
 
 # Physics
 rapier3d = "0.16.1"

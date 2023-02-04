@@ -1,6 +1,6 @@
 use ash::vk;
 use nalgebra as na;
-use hecs::*;
+use despero_ecs::*;
 
 use crate::render::{
 	renderer::Renderer,

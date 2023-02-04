@@ -11,8 +11,7 @@ use winit::{
 	window::WindowBuilder,
 };
 use egui_winit_ash_integration::*;
-use hecs::World;
-use hecs_schedule::*;
+use despero_ecs::*;
 
 use crate::render::{
 	backend::{
@@ -159,12 +158,12 @@ impl Renderer {
 		).expect("Cannot create texture")
 	}
 	
-	pub fn create_material(
+	pub fn create_material<M: Material + Send + Sync>(
 		&mut self,
-		material: Arc<(dyn Material + Send + Sync)>,
+		material: M,
 	) -> MaterialHandle {
 		let index = self.materials.len();
-		self.materials.push(material);
+		self.materials.push(Arc::new(material));
 		return MaterialHandle::new(index);
 	}
 	
@@ -177,7 +176,7 @@ impl Renderer {
 		world: &mut SubWorld<W>,
 		event_writer: &mut EventWriter,
 		index: usize,
-	) -> Result<(), vk::Result> {
+	) -> DesperoResult<()> {
 		let imageinfos = self.texture_storage.get_descriptor_image_info();
 		let descriptorwrite_image = vk::WriteDescriptorSet::builder()
 			.dst_set(self.descriptor_pool.texture_sets[self.swapchain.current_image])
@@ -292,7 +291,7 @@ impl Renderer {
 		
 		self.egui.context().set_visuals(egui::style::Visuals::dark());
 		self.egui.begin_frame(&self.window.window);
-		event_writer.send(Arc::new(self.egui.context()));
+		event_writer.send(Arc::new(self.egui.context()))?;
 		let output = self.egui.end_frame(&mut self.window.window);
 		let clipped_meshes = self.egui.context().tessellate(output.shapes);
 		self.egui.paint(
@@ -329,6 +328,13 @@ impl Renderer {
 				self.renderpass,
 			)?;
 		}
+		
+		self.egui.update_swapchain(
+			self.swapchain.extent.width,
+			self.swapchain.extent.height,
+			self.swapchain.swapchain,
+			*self.window.surface.get_formats(*self.instance.physical_device)?.first().unwrap(),
+		);
 	
 		Ok(())
 	}

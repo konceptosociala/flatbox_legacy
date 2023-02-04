@@ -1,7 +1,7 @@
 use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
-use hecs_schedule::*;
+use despero_ecs::*;
 
 use crate::render::{
 	renderer::Renderer,

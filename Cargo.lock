@@ -570,15 +570,12 @@ version = "0.0.1"
 dependencies = [
  "ash",
  "ash-window",
- "bus",
  "colored",
+ "despero_ecs",
  "egui",
  "egui-winit",
  "egui-winit-ash-integration",
  "gpu-allocator",
- "hecs",
- "hecs-hierarchy",
- "hecs-schedule",
  "image",
  "mlua",
  "nalgebra",
@@ -590,6 +587,18 @@ dependencies = [
  "tobj",
  "vk-shader-macros",
  "winit",
+]
+
+[[package]]
+name = "despero_ecs"
+version = "0.0.1"
+dependencies = [
+ "bus",
+ "hecs",
+ "hecs-macros",
+ "hecs-schedule",
+ "reexport-proc-macro",
+ "thiserror",
 ]
 
 [[package]]
@@ -937,18 +946,16 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.12.3"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.7.6",
+ "ahash 0.8.2",
 ]
 
 [[package]]
 name = "hecs"
-version = "0.7.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95ae6c6368add4cc6592ed9b48a270b35cf3a52d429355aaeb55822935526e94"
+version = "0.9.1"
 dependencies = [
  "hashbrown",
  "hecs-macros",
@@ -957,22 +964,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "hecs-hierarchy"
-version = "0.11.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1bf04df0b0ac897245102877fe7987feb50df7048c4b7d8c2c27d4a05f4d34c"
-dependencies = [
- "hecs",
- "hecs-schedule",
- "once_cell",
- "smallvec",
-]
-
-[[package]]
 name = "hecs-macros"
 version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14883fb70dcf2363b5dd2321b9473117d91ebadf211959df748cec6927fd3765"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -982,8 +975,6 @@ dependencies = [
 [[package]]
 name = "hecs-schedule"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c0f9dc613d4a76770025e71fc1b2e5d357354e4d0d0564eb002e49a7c0c28fc"
 dependencies = [
  "anyhow",
  "atomic_refcell",
@@ -1773,6 +1764,12 @@ dependencies = [
  "redox_syscall",
  "thiserror",
 ]
+
+[[package]]
+name = "reexport-proc-macro"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6fd6195683d528242d8b017810909f8aaf91f111fdc4dbe8b10e4dd50e0c7f4"
 
 [[package]]
 name = "robust"

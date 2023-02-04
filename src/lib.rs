@@ -55,10 +55,8 @@
 //                     |___/                                      |___/	
 // 
 //
-
 use std::sync::Arc;
-use hecs::*;
-use hecs_schedule::*;
+use despero_ecs::*;
 use winit::{
 	event::*,
 	event::Event as WinitEvent,
@@ -66,8 +64,7 @@ use winit::{
 	window::WindowBuilder,
 };
 
-use crate::ecs::{
-	systems::*,
+use ecs::{
 	event::*,
 };
 
@@ -77,19 +74,20 @@ use crate::render::{
 		ctx::*,
 	},
 	pbr::material::*,
+	systems::*,
 };
 
 /// Module of the main engine error handler [`Desperror`]
 pub mod error;
-///
+/// Structures implementing mathematics
 pub mod math;
-/// Contains submodules and structures to work with graphics
+/// Submodules and structures to work with graphics
 pub mod render;
-/// Contains ECS implementations
-pub mod ecs;
-/// Contains [Rapier3D](https://crates.io/crates/rapier3d) implementations
+/// ECS implementations
+pub use despero_ecs as ecs;
+/// [Rapier3D](https://crates.io/crates/rapier3d) implementations
 pub mod physics;
-/// Contains [mlua](https://crates.io/crates/mlua) scripting implementations
+/// [Mlua](https://crates.io/crates/mlua) scripting implementations
 pub mod scripting;
 /// Bundle of all essential components of the engine
 pub mod prelude;

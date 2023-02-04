@@ -4,25 +4,25 @@ pub mod gui;
 pub mod renderer;
 pub mod debug;
 pub mod screenshot;
+pub mod systems;
 
-pub mod prelude {
-	pub use super::screenshot::*;
-	pub use super::renderer::*;
-	pub use super::debug::*;
-	
-	pub use super::gui::*;
-	pub use super::gui::ctx::*;
-	
-	pub use super::pbr::camera::*;
-	pub use super::pbr::model::*;
-	pub use super::pbr::texture::*;
-	pub use super::pbr::light::*;
-	pub use super::pbr::material::*;
-	
-	pub use super::backend::shader::*;
-	pub use super::backend::pipeline::*;
-	
-	pub use winit::window::WindowBuilder;
-	pub use winit::event::VirtualKeyCode as KeyCode;
-	pub use winit::event::*;
-}
+pub use screenshot::*;
+pub use renderer::*;
+pub use debug::*;
+pub use systems::*;
+
+pub use gui::*;
+pub use gui::ctx::*;
+
+pub use pbr::camera::*;
+pub use pbr::model::*;
+pub use pbr::texture::*;
+pub use pbr::light::*;
+pub use pbr::material::*;
+
+pub use backend::shader::*;
+pub use backend::pipeline::*;
+
+pub use winit::window::WindowBuilder;
+pub use winit::event::VirtualKeyCode as KeyCode;
+pub use winit::event::*;

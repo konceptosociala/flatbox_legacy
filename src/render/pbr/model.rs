@@ -1,4 +1,4 @@
-use hecs::*;
+use despero_ecs::*;
 
 use crate::render::{
 	backend::{
