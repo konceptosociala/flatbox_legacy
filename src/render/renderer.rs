@@ -358,7 +358,7 @@ impl Renderer {
 			self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
 			self.device.destroy_buffer(self.light_buffer.buffer, None);
 
-			for (_, m) in &mut world.query::<&mut Mesh>(){	
+			for (_, mut m) in &mut world.query::<&mut Mesh>(){	
 				Self::clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
 				Self::clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
 				Self::clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);

@@ -1,6 +1,5 @@
 pub mod modules;
 
-use std::sync::Arc;
 use despero::prelude::*;
 
 use modules::materials::*;
@@ -33,7 +32,7 @@ fn egui_handling(
 ) -> impl FnMut() {
 	move || {
 		if let Ok(ctx) = event_reader.read::<GuiContext>() {
-			gui::SidePanel::left("my_panel").show(&ctx, |ui| {
+			egui::SidePanel::left("my_panel").show(&ctx, |ui| {
 				ui.label("Hello World!");
 				if ui.button("Click me").clicked() {
 					println!("I love egui!");
@@ -46,7 +45,7 @@ fn egui_handling(
 fn ecs_change(
 	world: SubWorld<&mut Transform>,
 ){
-	for (_, t) in &mut world.query::<&mut Transform>() {
+	for (_, mut t) in &mut world.query::<&mut Transform>() {
 		t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
 	}
 }
@@ -56,7 +55,7 @@ fn handling(
 ) -> impl FnMut(SubWorld<&mut Camera>) {
 	move |camera_world: SubWorld<&mut Camera>| {
 		if let Ok(event) = event_reader.read::<KeyboardInput>() {
-			for (_, camera) in &mut camera_world.query::<&mut Camera>() {
+			for (_, mut camera) in &mut camera_world.query::<&mut Camera>() {
 				match event.virtual_keycode.unwrap() {
 					KeyCode::Up => camera.turn_up(0.02),
 					KeyCode::Down => camera.turn_down(0.02),
@@ -78,37 +77,36 @@ fn create_models(
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(MyMaterial {
+		material: renderer.create_material(MyMaterial {
 			colour: [0.7, 0.0, 0.0]
-		})),
+		}),
 		transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
 	});
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(MyMaterial {
+		material: renderer.create_material(MyMaterial {
 			colour: [0.0, 0.6, 1.0]
-		})),
+		}),
 		transform: Transform::from_translation(Vector3::new(-1.0, 0.0, 0.0)),
 	});
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(
-			DefaultMat::builder()
+		material: renderer.create_material(DefaultMat::builder()
 				.texture_id(txt1)
 				.metallic(0.0)
 				.roughness(1.0)
 				.build(),
-		)),
+		),
 		transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
 	});
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(Arc::new(TexMaterial {
+		material: renderer.create_material(TexMaterial {
 			texture_id: txt2
-		})),
+		}),
 		transform: Transform::from_translation(Vector3::new(-1.0, 0.0, -2.0)),
 	});
 	

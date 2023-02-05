@@ -3,6 +3,9 @@ use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
 use despero_ecs::*;
 
+use crate::error::DesperoResult;
+use crate::math::transform::Transform;
+use crate::ecs::event::EventWriter;
 use crate::render::{
 	renderer::Renderer,
 	pbr::{
@@ -11,64 +14,70 @@ use crate::render::{
 		light::*,
 		material::*,
 	},
-	backend::buffer::Buffer,
+	backend::{
+		buffer::Buffer,
+		swapchain::Swapchain,
+	},
 };
 
-use crate::math::transform::Transform;
+fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
+	let (image_index, _) = unsafe {
+		swapchain
+			.swapchain_loader
+			.acquire_next_image(
+				swapchain.swapchain,
+				std::u64::MAX,
+				swapchain.image_available[swapchain.current_image],
+				vk::Fence::null(),
+			)?
+	};
+	Ok(image_index)
+}
 
-use crate::ecs::event::EventWriter;
+fn check_fences(
+	logical_device: &ash::Device,
+	swapchain: &Swapchain
+) -> DesperoResult<()> {
+	unsafe {
+		logical_device
+			.wait_for_fences(
+				&[swapchain.may_begin_drawing[swapchain.current_image]],
+				true,
+				std::u64::MAX,
+			)?;
+			
+		logical_device
+			.reset_fences(&[
+				swapchain.may_begin_drawing[swapchain.current_image]
+			])?;
+	}
+	
+	Ok(())
+}
 
 pub(crate) fn rendering_system(
 	mut event_writer: Write<EventWriter>,
 	mut renderer: Write<Renderer>,
 	mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
 	camera_world: SubWorld<(&mut Camera, &Transform)>,
-){
-	// Get image of swapchain
-	let (image_index, _) = unsafe {
-		renderer
-			.swapchain
-			.swapchain_loader
-			.acquire_next_image(
-				renderer.swapchain.swapchain,
-				std::u64::MAX,
-				renderer.swapchain.image_available[renderer.swapchain.current_image],
-				vk::Fence::null(),
-			)
-			.expect("Error image acquisition")
-	};
-				
-	// Control fences
-	unsafe {
-		renderer
-			.device
-			.wait_for_fences(
-				&[renderer.swapchain.may_begin_drawing[renderer.swapchain.current_image]],
-				true,
-				std::u64::MAX,
-			)
-			.expect("fence-waiting");
-		renderer
-			.device
-			.reset_fences(&[
-				renderer.swapchain.may_begin_drawing[renderer.swapchain.current_image]
-			])
-			.expect("resetting fences");
-	}
+) -> DesperoResult<()> {
+	let image_index = get_image_index(&renderer.swapchain)?;
 	
-	// Update active camera's buffer
+	check_fences(&renderer.device, &renderer.swapchain)?;
+	
 	for (_, camera) in &mut camera_world.query::<&mut Camera>(){
 		if camera.is_active {		
-			camera.update_buffer(&mut renderer).expect("Cannot update uniformbuffer");
+			camera.update_buffer(&mut renderer)?;
 		}
 	}	
 
-	// Update CommandBuffer
-	unsafe { renderer.update_commandbuffer(
-		&mut model_world,
-		&mut event_writer,
-		image_index as usize,
-	).expect("Cannot update CommandBuffer") };
+	unsafe { 
+		renderer.update_commandbuffer(
+			&mut model_world,
+			&mut event_writer,
+			image_index as usize,
+		)? 
+	};
 	
 	// Submit commandbuffers
 	let semaphores_available = [renderer.swapchain.image_available[renderer.swapchain.current_image]];
@@ -106,7 +115,7 @@ pub(crate) fn rendering_system(
 		{
 			renderer.recreate_swapchain().expect("Cannot recreate swapchain");
 			
-			for (_, camera) in &mut camera_world.query::<&mut Camera>(){
+			for (_, mut camera) in &mut camera_world.query::<&mut Camera>(){
 				if camera.is_active {
 					camera.set_aspect(
 						renderer.swapchain.extent.width as f32
@@ -121,30 +130,30 @@ pub(crate) fn rendering_system(
 	// Set swapchain image
 	renderer.swapchain.current_image =
 		(renderer.swapchain.current_image + 1) % renderer.swapchain.amount_of_images as usize;
+		
+	Ok(())
 }
 
 pub(crate) fn update_models_system(
 	mut renderer: Write<Renderer>,
-	world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
-) -> Result<(), vk::Result> {
-	for (_, (mesh, handle, _transform)) in &mut world.query::<(
-		&mut Mesh, &mut MaterialHandle, &mut Transform,
+	world: SubWorld<(&mut Mesh, &mut MaterialHandle, &Transform)>,
+) -> DesperoResult<()> {
+	for (_, (mut mesh, handle, _)) in &mut world.query::<(
+		&mut Mesh, &MaterialHandle, &Transform,
 	)>(){
 		let material = renderer.materials.get(handle.get()).unwrap().clone();
 		let logical_device = renderer.device.clone();
 		let allocator = &mut renderer.allocator;
-		// Update vertex buffer
-		//
-		//
-		// Check whether the buffer exists
+		let vertexdata = mesh.vertexdata.clone();
+		let indexdata = mesh.indexdata.clone();
+
 		if let Some(buffer) = &mut mesh.vertexbuffer {
 			buffer.fill(
 				&logical_device,
 				&mut *allocator.lock().unwrap(),
-				&mesh.vertexdata
+				&vertexdata
 			)?;
 		} else {
-			// Set buffer size
 			let bytes = (mesh.vertexdata.len() * size_of::<Vertex>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
@@ -158,14 +167,11 @@ pub(crate) fn update_models_system(
 			buffer.fill(
 				&logical_device,
 				&mut *allocator.lock().unwrap(),
-				&mesh.vertexdata
+				&indexdata
 			)?;
 			mesh.vertexbuffer = Some(buffer);
 		}
-		
-		// Update InstanceBuffer
-		//
-		//		
+	
 		let mat_ptr = &*material as *const _ as *const u8;
 		let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&*material))};
 		if let Some(buffer) = &mut mesh.instancebuffer {
@@ -193,18 +199,13 @@ pub(crate) fn update_models_system(
 			mesh.instancebuffer = Some(buffer);
 		}
 
-		// Update IndexBuffer
-		//
-		//
-		// Check whether the buffer exists
 		if let Some(buffer) = &mut mesh.indexbuffer {
 			buffer.fill(
 				&logical_device,
 				&mut *allocator.lock().unwrap(),
-				&mesh.indexdata,
+				&indexdata,
 			)?;
 		} else {
-			// Set buffer size
 			let bytes = (mesh.indexdata.len() * size_of::<u32>()) as u64;		
 			let mut buffer = Buffer::new(
 				&logical_device,
@@ -218,20 +219,20 @@ pub(crate) fn update_models_system(
 			buffer.fill(
 				&logical_device,
 				&mut *allocator.lock().unwrap(),
-				&mesh.indexdata
+				&indexdata,
 			)?;
 			mesh.indexbuffer = Some(buffer);
 		}
 	}
 	
-	return Ok(());
+	Ok(())
 }
 
 pub fn update_lights(
 	plight_world: SubWorld<&PointLight>,
 	dlight_world: SubWorld<&DirectionalLight>,
 	mut renderer: Write<Renderer>,
-) -> Result<(), vk::Result> {
+) -> DesperoResult<()> {
 	let directional_lights = dlight_world.query::<&DirectionalLight>()
 		.into_iter()
 		.map(|(_, l)| l.clone())
@@ -270,7 +271,7 @@ pub fn update_lights(
 		data.push(0.0);
 	}
 	renderer.fill_lightbuffer(&data)?;
-	// Update descriptor_sets
+
 	for descset in &renderer.descriptor_pool.light_sets {
 		let buffer_infos = [vk::DescriptorBufferInfo {
 			buffer: renderer.light_buffer.buffer,

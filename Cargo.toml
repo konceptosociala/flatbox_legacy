@@ -15,30 +15,36 @@ keywords = ["gamedev", "graphics", "engine"]
 categories = ["game-development", "game-engines", "rendering"]
 
 exclude = [
-    "test",
-    "doc",
+    "test.sh",
+    "doc.sh",
 ]
 
 [dependencies]
+# Assets
+serde = "1.0.152"
+ron = "0.8.0"
+lz4 = "1.24.0"
+
 # Misc
-nanorand 	= "0.7.0"
-colored 	= "2.0.0"
-nalgebra 	= "0.31.2"
-readonly 	= "0.2.3"
-thiserror 	= "1.0.38"
+env_logger = "0.10.0"
+colored = "2.0.0"
+nalgebra = "0.31.2"
+readonly = "0.2.3"
+thiserror = "1.0.38"
 
 # Rendering
-ash 				= "0.37.0"
-ash-window 			= "0.11.0"
-gpu-allocator	 	= "0.21.0"
-image 				= "0.24.5"
-raw-window-handle 	= "0.4.2"
-tobj				= "3.2.3"
-vk-shader-macros 	= "0.2.8"
-winit 				= "0.27.5"
+ash = "0.37.0"
+ash-window = "0.11.0"
+gpu-allocator = "0.21.0"
+image = "0.24.5"
+raw-window-handle = "0.4.2"
+tobj= "3.2.3"
+vk-shader-macros = "0.2.8"
+winit = "0.27.5"
 
 # ECS
-despero_ecs	= { path = "../despero_ecs" }
+despero_ecs = { path = "../despero_ecs" }
+hecs = { path = "../despero_ecs/crates/hecs" }
 
 # Physics
 rapier3d = "0.16.1"
@@ -49,7 +55,7 @@ egui-winit = "0.20.1"
 egui-winit-ash-integration = "0.3.0"
 
 # Scripting
-mlua = { version = "0.8.6", features = ["lua51"] }
+mlua = { version = "0.8.6", features = ["lua51", "vendored"] }
 
 [profile.dev]
 opt-level = 1

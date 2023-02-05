@@ -64,15 +64,8 @@ use winit::{
 	window::WindowBuilder,
 };
 
-use ecs::{
-	event::*,
-};
-
 use crate::render::{
 	renderer::Renderer,
-	gui::{
-		ctx::*,
-	},
 	pbr::material::*,
 	systems::*,
 };
