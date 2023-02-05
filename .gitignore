@@ -14,5 +14,5 @@ Cargo.lock
 *.pdb
 
 # Remove custom `run --example` and `doc` scripts
-test
-doc
+test.sh
+doc.sh
