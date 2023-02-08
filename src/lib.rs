@@ -23,6 +23,7 @@
 //! 
 //!     despero
 //!         .add_setup_system(create_model)
+//!         .add_setup_system(create_camera)
 //!         .add_system(rotate_model)
 //!         .run();
 //! }
@@ -56,7 +57,19 @@
 //!        }
 //!
 //!     info!("I run in loop!");
-//! } 
+//! }
+//!  
+//! fn create_camera(
+//!     mut cmd: Write<CommandBuffer>,
+//! ){
+//!     cmd.spawn(CameraBundle{
+//!         camera: 
+//!             Camera::builder()
+//!                 .is_active(true)
+//!                 .build(),
+//!         transform: Transform::default(),
+//!     });
+//! }
 //! ```
 //! 
 

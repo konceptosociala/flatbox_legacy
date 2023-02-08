@@ -115,15 +115,3 @@ fn create_models(
         illuminance: [0.5, 0.5, 0.5],
     },));    
 }
-
-fn create_camera(
-    mut cmd: Write<CommandBuffer>,
-){
-    cmd.spawn(CameraBundle{
-        camera: 
-            Camera::builder()
-                .is_active(true)
-                .build(),
-        transform: Transform::default(),
-    });
-}
