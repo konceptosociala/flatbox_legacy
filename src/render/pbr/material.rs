@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use std::any::Any;
 use ash::vk;
 
@@ -9,6 +10,7 @@ use crate::render::{
 	},
 };
 
+#[derive(Serialize, Deserialize)]
 pub struct MaterialHandle(usize);
 
 impl MaterialHandle {
@@ -21,7 +23,7 @@ impl MaterialHandle {
 	}
 }
 
-/// Trait for materials to be used in [`ModelBundle`]
+/// Trait for materials to be used in [`Renderer`]
 pub trait Material: Any + std::fmt::Debug {
 	fn pipeline(renderer: &Renderer) -> Pipeline
 	where

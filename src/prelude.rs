@@ -6,3 +6,4 @@ pub use crate::math::*;
 pub use crate::ecs::*;
 pub use crate::physics::*;
 pub use crate::scripting::*;
+pub use crate::assets::*;

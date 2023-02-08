@@ -1,20 +1,30 @@
-pub mod modules;
-
+use serde::{Serialize, Deserialize};
 use despero::prelude::*;
+use despero::world_serializer;
 
+pub mod modules;
 use modules::materials::*;
+
+#[derive(Deserialize, Serialize)]
+struct WorldSaver;
+
+impl WorldSaver {
+	pub fn new() -> Self {
+		WorldSaver
+	}
+}
+
+world_serializer!(WorldSaver, Mesh, Transform, MaterialHandle);
 
 fn main() {	
 	let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
 	
-	let reader = despero.add_event_reader();
 	let egui_reader = despero.add_event_reader();
 	
 	despero
 		.add_setup_system(bind_mat)
 		.add_setup_system(create_models)
-		.add_setup_system(create_camera)
-		.add_system(handling(reader))
+		.add_setup_system(create_camera)		
 		.add_system(ecs_change)
 		.add_system(egui_handling(egui_reader))
 		.run();
@@ -25,20 +35,27 @@ fn bind_mat(
 ){
 	renderer.bind_material::<MyMaterial>();
 	renderer.bind_material::<TexMaterial>();
+	info!("Material's been bound");
 }
 
 fn egui_handling(
 	mut event_reader: EventReader,
-) -> impl FnMut() {
-	move || {
+) -> impl FnMut(Read<World>) {
+	move |world: Read<World>| {
+		
 		if let Ok(ctx) = event_reader.read::<GuiContext>() {
 			egui::SidePanel::left("my_panel").show(&ctx, |ui| {
-				ui.label("Hello World!");
-				if ui.button("Click me").clicked() {
-					println!("I love egui!");
+				ui.label("Click to save the world");
+				if ui.button("Save").clicked() {
+					let mut ws = WorldSaver::new();
+					match ws.save("assets/world.ron", &world) {
+						Ok(()) => debug!("World saved!"),
+						Err(e) => error!("World not saved: {:?}", e),
+					};
 				}
 			});
 		}
+		
 	}
 }
 
@@ -47,24 +64,6 @@ fn ecs_change(
 ){
 	for (_, mut t) in &mut world.query::<&mut Transform>() {
 		t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
-	}
-}
-
-fn handling(
-	mut event_reader: EventReader
-) -> impl FnMut(SubWorld<&mut Camera>) {
-	move |camera_world: SubWorld<&mut Camera>| {
-		if let Ok(event) = event_reader.read::<KeyboardInput>() {
-			for (_, mut camera) in &mut camera_world.query::<&mut Camera>() {
-				match event.virtual_keycode.unwrap() {
-					KeyCode::Up => camera.turn_up(0.02),
-					KeyCode::Down => camera.turn_down(0.02),
-					KeyCode::Left => camera.turn_left(0.02),
-					KeyCode::Right => camera.turn_right(0.02),
-					_ => {},
-				}
-			}
-		}
 	}
 }
 
@@ -93,7 +92,8 @@ fn create_models(
 	
 	cmd.spawn(ModelBundle {
 		mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-		material: renderer.create_material(DefaultMat::builder()
+		material: renderer.create_material(
+			DefaultMat::builder()
 				.texture_id(txt1)
 				.metallic(0.0)
 				.roughness(1.0)

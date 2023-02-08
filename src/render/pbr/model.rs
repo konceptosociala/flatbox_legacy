@@ -1,10 +1,18 @@
+use serde::{
+    Serialize, 
+    Deserialize,
+    Serializer, 
+    Deserializer, 
+    de::*,
+    de::Error as DeError,
+    ser::SerializeStruct,
+};
 use despero_ecs::*;
 
 use crate::render::{
 	backend::{
 		buffer::Buffer,
 	},
-	debug::Debug,
 	pbr::material::*,
 };
 
@@ -12,7 +20,7 @@ use crate::math::transform::Transform;
 
 /// Struct that handles vertex information
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct Vertex {
 	pub position: [f32; 3],
 	pub normal: [f32; 3],
@@ -105,14 +113,7 @@ impl Mesh {
 		for m in models {
 			let mut vertexdata = Vec::<Vertex>::new();
 			let indexdata = m.mesh.indices;
-			
-			Debug::info(format!(
-				"Positions: {}; Normals: {}; Texcoords: {}",
-				m.mesh.positions.len(),
-				m.mesh.normals.len(),
-				m.mesh.texcoords.len(),
-			).as_str());
-			
+            
 			for i in 0..m.mesh.positions.len() / 3 {				
 				let normal: [f32; 3];
 				let texcoord: [f32; 2];
@@ -162,6 +163,125 @@ impl std::fmt::Debug for Mesh {
 			.field("indexdata", &self.indexdata)
 			.finish()
 	}
+}
+
+impl Serialize for Mesh {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut mesh = serializer.serialize_struct("Mesh", 2)?;
+        mesh.serialize_field("vertexdata", &self.vertexdata)?;
+        mesh.serialize_field("indexdata", &self.indexdata)?;
+        mesh.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Mesh {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        enum Field { 
+            VertexData, 
+            IndexData
+        }
+        
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+                
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+                    
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        formatter.write_str("`vertexdata` or `indexdata`")
+                    }
+                    
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: DeError,
+                    {
+                        match value {
+                            "vertexdata" => Ok(Field::VertexData),
+                            "indexdata" => Ok(Field::IndexData),
+                            _ => Err(DeError::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+        
+        struct MeshVisitor;
+        
+        impl<'de> Visitor<'de> for MeshVisitor {
+            type Value = Mesh;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Mesh")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Mesh, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let vertexdata = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
+                let indexdata = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                
+                Ok(Mesh {
+                    vertexdata,
+                    indexdata,
+                    
+                    vertexbuffer: None,
+                    instancebuffer: None,
+                    indexbuffer: None,
+                })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Mesh, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut vertexdata = None;
+                let mut indexdata = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::VertexData => {
+                            if vertexdata.is_some() {
+                                return Err(DeError::duplicate_field("vertexdata"));
+                            }
+                            vertexdata = Some(map.next_value()?);
+                        }
+                        Field::IndexData => {
+                            if indexdata.is_some() {
+                                return Err(DeError::duplicate_field("indexdata"));
+                            }
+                            indexdata = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let vertexdata = vertexdata.ok_or_else(|| DeError::missing_field("vertexdata"))?;
+                let indexdata = indexdata.ok_or_else(|| DeError::missing_field("indexdata"))?;
+                
+                Ok(Mesh {
+                    vertexdata,
+                    indexdata,
+                    
+                    vertexbuffer: None,
+                    instancebuffer: None,
+                    indexbuffer: None,
+                })
+            }
+        }
+        
+        const FIELDS: &'static [&'static str] = &["vertexdata", "indexdata"];
+        deserializer.deserialize_struct("Mesh", FIELDS, MeshVisitor)
+    }
 }
 
 /// ECS model bundle

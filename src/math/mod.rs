@@ -1,6 +1,6 @@
 pub mod transform;
 
-pub use transform::*;
+pub use transform::Transform;
 
 pub use nalgebra::{
 	Matrix4,

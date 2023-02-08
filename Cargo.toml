@@ -21,14 +21,14 @@ exclude = [
 
 [dependencies]
 # Assets
-serde = "1.0.152"
+serde = { version = "1.0.152", features = ["derive"] }
 ron = "0.8.0"
 lz4 = "1.24.0"
 
 # Misc
+log = "0.4.17"
 env_logger = "0.10.0"
-colored = "2.0.0"
-nalgebra = "0.31.2"
+nalgebra = { version = "0.31.2", features = ["serde-serialize"] }
 readonly = "0.2.3"
 thiserror = "1.0.38"
 

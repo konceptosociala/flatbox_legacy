@@ -2,6 +2,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Result {
+	#[error("I/O error")]
+    IoError(#[from] std::io::Error),
+	#[error("RON error")]
+    RonError(#[from] ron::Error),
 	#[error("Event error")]
 	EventError(#[from] despero_ecs::EventError),
 	#[error("Rendering error")]

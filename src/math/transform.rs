@@ -1,5 +1,7 @@
+use serde::{Serialize, Deserialize};
 use nalgebra::*;
 
+#[derive(Serialize, Deserialize)]
 pub struct Transform {
 	pub translation: Vector3<f32>,
 	pub rotation: UnitQuaternion<f32>,

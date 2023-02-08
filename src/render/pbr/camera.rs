@@ -4,7 +4,7 @@ use despero_ecs::*;
 
 use crate::render::{
 	renderer::Renderer,
-	debug::Debug,
+	debug::*,
 };
 
 use crate::math::transform::Transform;
@@ -141,10 +141,7 @@ pub struct CameraBuilder {
 impl CameraBuilder {
 	pub fn build(self) -> Camera {
 		if self.far < self.near {
-			Debug::error(format!(
-				"Far plane (at {}) is closer than near plane (at {})!",
-				self.far, self.near
-			));
+			error!("Far plane (at {}) is closer than near plane (at {})!", self.far, self.near);
 		}
 		
 		let mut cam = Camera {
@@ -188,7 +185,7 @@ impl CameraBuilder {
 	
 	pub fn near(mut self, near: f32) -> CameraBuilder {
 		if near <= 0.0 {
-			Debug::error(format!("Near plane ({}) can't be negative!", near));
+			error!("Near plane ({}) can't be negative!", near);
 		}
 		self.near = near;
 		self
@@ -196,7 +193,7 @@ impl CameraBuilder {
 	
 	pub fn far(mut self, far: f32) -> CameraBuilder {
 		if far <= 0.0 {
-			Debug::error(format!("Far plane ({}) can't be negative!", far));
+			error!("Far plane ({}) can't be negative!", far);
 		}
 		self.far = far;
 		self

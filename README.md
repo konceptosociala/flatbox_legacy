@@ -20,7 +20,6 @@ The crate is in a very early stage of development. Use it at your own risk
 - Texture coordinates
 - Event reading (multiple event types are slow)
 - Synchronize light descriptor sets with commandbuffer
-- Recreate swapchain (synchonize pipelines' binding/recreating)
 
 ## To implement:
 
@@ -37,20 +36,22 @@ The crate is in a very early stage of development. Use it at your own risk
 	- [x] `ModelBundle`
 	- [x] `Camera`
 - [ ] Loading models
+    - [x] Wavefront
+    - [ ] Animations
+    - [ ] COLLADA
 - [ ] `RenderTexture`
 - [ ] Realistic lights
 - [ ] Shadows
 	- [ ] Simple
 	- [ ] Soft
-- [ ] UI (egui)
+- [x] UI (egui)
 - [ ] Physics (rapier3d)
 - [ ] Scripting (mlua)
 	- [ ] Simple scripts
 	- [ ] Script as resource
-- [ ] GLTF Scenes
-	- [ ] Processing
-	- [ ] GLTFExtras custom parameters
-	- [ ] Animation
-- [ ] Particle Systems
+- [ ] Scenes
+    - [ ] Serialize World (RON)
+- [ ] Particle Systems (sonja)
 - [ ] Game Settings
 - [ ] Conditional systems
+    - [ ] Pause
