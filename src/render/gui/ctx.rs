@@ -7,19 +7,19 @@
 //~ use crate::render::renderer::Renderer;
 
 //~ pub trait EguiExt {
-	//~ type InitError;
-	
-	//~ fn init(renderer: &Renderer) -> Result<Self, Self::InitError>
-	//~ where 
-		//~ Self: Sized;
+    //~ type InitError;
+    
+    //~ fn init(renderer: &Renderer) -> Result<Self, Self::InitError>
+    //~ where 
+        //~ Self: Sized;
 //~ }
 
 //~ impl EguiExt for Context {
-	//~ type InitError = vk::Result;
-	
-	//~ fn init(renderer: &Renderer) -> Result<Self, Self::InitError> {
-		
-				
-		//~ Ok(integration.context())
-	//~ }
+    //~ type InitError = vk::Result;
+    
+    //~ fn init(renderer: &Renderer) -> Result<Self, Self::InitError> {
+        
+                
+        //~ Ok(integration.context())
+    //~ }
 //~ }

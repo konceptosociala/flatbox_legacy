@@ -3,13 +3,13 @@
 //~ use crate::math::transform::Transform;
 
 //~ pub struct RigidBody {
-	//~ handle: r3d::RigidBodyHandle,
-	//~ delta_transform: Transform,
+    //~ handle: r3d::RigidBodyHandle,
+    //~ delta_transform: Transform,
 //~ }
 
 //~ impl RigidBody {
-	//~ pub fn new(set: &mut RigidBodySet) -> Self {
-		
-		//~ let handle = set.insert(rb);
-	//~ }
+    //~ pub fn new(set: &mut RigidBodySet) -> Self {
+        
+        //~ let handle = set.insert(rb);
+    //~ }
 //~ }
