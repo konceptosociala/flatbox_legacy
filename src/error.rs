@@ -1,4 +1,5 @@
 use thiserror::Error;
+use crate::ecs::*;
 
 #[derive(Debug, Error)]
 pub enum Result {
@@ -7,7 +8,7 @@ pub enum Result {
     #[error("RON error")]
     RonError(#[from] ron::Error),
     #[error("Event error")]
-    EventError(#[from] despero_ecs::EventError),
+    EventError(#[from] EventError),
     #[error("Rendering error")]
     RenderError(#[from] ash::vk::Result),
     #[error("Allocation error")]

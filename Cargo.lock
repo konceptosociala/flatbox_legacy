@@ -563,13 +563,14 @@ version = "0.0.1"
 dependencies = [
  "ash",
  "ash-window",
- "despero_ecs",
+ "bus",
  "egui",
  "egui-winit",
  "egui-winit-ash-integration",
  "env_logger",
  "gpu-allocator",
  "hecs",
+ "hecs-schedule",
  "image",
  "log",
  "lz4",
@@ -584,16 +585,6 @@ dependencies = [
  "tobj",
  "vk-shader-macros",
  "winit",
-]
-
-[[package]]
-name = "despero_ecs"
-version = "0.0.1"
-dependencies = [
- "bus",
- "hecs",
- "hecs-schedule",
- "thiserror",
 ]
 
 [[package]]
@@ -985,6 +976,7 @@ dependencies = [
 [[package]]
 name = "hecs"
 version = "0.9.1"
+source = "git+https://github.com/konceptosociala/despero-hecs#15faa480d45589396c0fc80fbabec7e41cb917d8"
 dependencies = [
  "hashbrown",
  "hecs-macros",
@@ -996,6 +988,7 @@ dependencies = [
 [[package]]
 name = "hecs-macros"
 version = "0.8.2"
+source = "git+https://github.com/konceptosociala/despero-hecs#15faa480d45589396c0fc80fbabec7e41cb917d8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1005,6 +998,7 @@ dependencies = [
 [[package]]
 name = "hecs-schedule"
 version = "0.6.2"
+source = "git+https://github.com/konceptosociala/despero-hecs-schedule#93d70ea7e2328cdb743b6aa79fcd42e7c2d4c7b3"
 dependencies = [
  "anyhow",
  "atomic_refcell",

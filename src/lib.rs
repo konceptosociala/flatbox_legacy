@@ -60,7 +60,6 @@
 //! ```
 //! 
 
-use despero_ecs::*;
 use winit::{
     event::*,
     event::Event as WinitEvent,
@@ -74,12 +73,16 @@ use crate::render::{
     systems::*,
 };
 
+use crate::ecs::*;
+
 /// Module of the main engine's error handler [`Result`]
 pub mod error;
 /// Assets and scenes handling
 pub mod assets;
 /// Structures implementing mathematics
 pub mod math;
+/// ECS components and re-exports
+pub mod ecs;
 /// Submodules and structures to work with graphics
 pub mod render;
 /// [Rapier3D](https://crates.io/crates/rapier3d) implementations
@@ -89,7 +92,6 @@ pub mod scripting;
 /// Bundle of all essential components of the engine
 pub mod prelude;
 
-pub use despero_ecs as ecs;
 pub use crate::error::Result;
 
 /// Main engine struct

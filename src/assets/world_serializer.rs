@@ -1,4 +1,4 @@
-use despero_ecs::*;
+use crate::ecs::*;
 use crate::error::DesperoResult;
 
 pub trait WorldSerializer {

@@ -11,7 +11,8 @@ use winit::{
     window::WindowBuilder,
 };
 use egui_winit_ash_integration::*;
-use despero_ecs::*;
+
+use crate::ecs::*;
 
 use crate::render::{
     backend::{

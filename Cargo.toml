@@ -43,8 +43,9 @@ vk-shader-macros = "0.2.8"
 winit = "0.27.5"
 
 # ECS
-despero_ecs = { path = "../despero_ecs" }
-hecs = { path = "../despero_ecs/crates/hecs" }
+bus = "2.3.0"
+hecs = { git = "https://github.com/konceptosociala/despero-hecs", features = ["column-serialize"] }
+hecs-schedule = { git = "https://github.com/konceptosociala/despero-hecs-schedule" }
 
 # Physics
 rapier3d = "0.16.1"

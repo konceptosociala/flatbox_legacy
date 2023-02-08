@@ -7,7 +7,6 @@ use serde::{
     de::Error as DeError,
     ser::SerializeStruct,
 };
-use despero_ecs::*;
 
 use crate::render::{
     backend::{
@@ -16,6 +15,7 @@ use crate::render::{
     pbr::material::*,
 };
 
+use crate::ecs::*;
 use crate::math::transform::Transform;
 
 /// Struct that handles vertex information

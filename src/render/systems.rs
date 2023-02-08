@@ -1,8 +1,8 @@
 use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
-use despero_ecs::*;
 
+use crate::ecs::*;
 use crate::error::DesperoResult;
 use crate::math::transform::Transform;
 use crate::ecs::event::EventWriter;
