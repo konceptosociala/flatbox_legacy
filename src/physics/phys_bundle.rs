@@ -1,49 +1,49 @@
-//~ use hecs::{Bundle};
-//~ use rapier3d as r3d;
+use hecs::{Bundle};
+use rapier3d::prelude::{ColliderHandle, RigidBodyHandle};
 
-//~ use crate::physics::{
-    //~ rigidbody::*,
-    //~ collider::*;
-//~ };
+#[derive(Bundle, Default)]
+pub struct PhysBundle {
+    pub rigidbody: RigidBodyHandle,
+    pub collider: ColliderHandle,
+}
 
-//~ #[derive(Bundle)]
-//~ pub struct PhysBundle {
-    //~ rigidbody: r3d::RigidBodyHandle,
-    //~ collider: r3d::ColliderHandle,
-//~ }
-
-//~ impl PhysBundle {
-    //~ pub fn new() -> Self {
-        //~ PhysBundle::default()
-    //~ }
+impl PhysBundle {
+    pub fn new() -> Self {
+        PhysBundle::default()
+    }
     
-    //~ pub fn builder() -> PhysBundleBuilder {
-        //~ PhysBundleBuilder::new()
-    //~ }
-//~ }
+    pub fn builder() -> PhysBundleBuilder {
+        PhysBundleBuilder::new()
+    }
+}
 
-//~ impl Default for PhysBundle {
-    //~ fn default() -> Self {
-        //~ PhysBundle {
-            
-        //~ }
-    //~ }
-//~ }
+pub struct PhysBundleBuilder {
+    rigidbody: RigidBodyHandle,
+    collider: ColliderHandle,
+}
 
-//~ pub struct PhysBundleBuilder {
+impl PhysBundleBuilder {
+    pub fn new() -> Self {
+        PhysBundleBuilder {
+            rigidbody: RigidBodyHandle::default(),
+            collider: ColliderHandle::default(),
+        }
+    }
     
-//~ }
-
-//~ impl PhysBundleBuilder {
-    //~ pub fn new() -> Self {
-        //~ PhysBundleBuilder {
-            
-        //~ }
-    //~ }
+    pub fn rigidbody(mut self, rigidbody: RigidBodyHandle) -> Self {
+        self.rigidbody = rigidbody;
+        self
+    }
     
-    //~ pub fn build(&self) -> PhysBundle {
-        //~ PhysBundle {
-            
-        //~ }
-    //~ }
-//~ }
+    pub fn collider(mut self, collider: ColliderHandle) -> Self {
+        self.collider = collider;
+        self
+    }
+    
+    pub fn build(self) -> PhysBundle {
+        PhysBundle {
+            rigidbody: self.rigidbody,
+            collider: self.collider,
+        }
+    }
+}

@@ -4,12 +4,10 @@ pub mod gui;
 pub mod renderer;
 pub mod debug;
 pub mod screenshot;
-pub mod systems;
 
 pub use screenshot::*;
 pub use renderer::*;
 pub use debug::*;
-pub use systems::*;
 
 pub use gui::*;
 pub use gui::ctx::*;

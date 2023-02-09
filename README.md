@@ -54,7 +54,8 @@ The crate is in a very early stage of development. Use it at your own risk
     - [ ] Simple scripts
     - [ ] Script as resource
 - [ ] Scenes
-    - [ ] Save World (Serialize RON)
+    - [x] Save World (Serialize RON)
+    - [ ] Save Materials and Textures
     - [ ] Load World (Deserialize RON)
     - [ ] RON-scenes (scn)
 - [ ] Particle Systems (sonja)

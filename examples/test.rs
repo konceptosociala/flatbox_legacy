@@ -73,7 +73,7 @@ fn create_models(
 ){
     let txt1 = renderer.create_texture("assets/uv.jpg", Filter::NEAREST) as u32;
     let txt2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR) as u32;
-    
+
     cmd.spawn(ModelBundle {
         mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
         material: renderer.create_material(MyMaterial {
@@ -114,4 +114,16 @@ fn create_models(
         direction: Vector3::new(-1., -1., 0.),
         illuminance: [0.5, 0.5, 0.5],
     },));    
+}
+
+fn create_camera(
+    mut cmd: Write<CommandBuffer>,
+){
+    cmd.spawn(CameraBundle{
+        camera: 
+            Camera::builder()
+                .is_active(true)
+                .build(),
+        transform: Transform::default(),
+    });
 }

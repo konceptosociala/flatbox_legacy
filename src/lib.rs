@@ -83,10 +83,10 @@ use winit::{
 use crate::render::{
     renderer::Renderer,
     pbr::material::*,
-    systems::*,
 };
 
 use crate::ecs::*;
+use crate::physics::*;
 
 /// Module of the main engine's error handler [`Result`]
 pub mod error;
@@ -114,6 +114,8 @@ pub struct Despero {
     setup_systems: ScheduleBuilder,
     event_writer: EventWriter,
     
+    physics_handler: PhysicsHandler,
+    
     renderer: Renderer,
 }
 
@@ -132,6 +134,7 @@ impl Despero {
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
             event_writer: EventWriter::new(),
+            physics_handler: PhysicsHandler::new(),
             renderer,
         }
     }
@@ -165,12 +168,14 @@ impl Despero {
             .add_system(update_models_system)
             .add_system(rendering_system)
             .add_system(update_lights)
+            .add_system(update_physics)
             .build();
         
         setup_systems.execute((
             &mut self.world,
             &mut self.renderer,
-            &mut self.event_writer
+            &mut self.event_writer,
+            &mut self.physics_handler,
         )).expect("Cannot execute setup schedule");
         
         let event_loop = (&self.renderer.window.event_loop).clone();
@@ -194,7 +199,8 @@ impl Despero {
                 systems.execute((
                     &mut self.world,
                     &mut self.renderer,
-                    &mut self.event_writer
+                    &mut self.event_writer,
+                    &mut self.physics_handler,
                 )).expect("Cannot execute loop schedule");
             }
             

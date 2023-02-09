@@ -3,9 +3,9 @@ use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
 
 use crate::ecs::*;
+use crate::physics::*;
 use crate::error::DesperoResult;
 use crate::math::transform::Transform;
-use crate::ecs::event::EventWriter;
 use crate::render::{
     renderer::Renderer,
     pbr::{
@@ -19,41 +19,6 @@ use crate::render::{
         swapchain::Swapchain,
     },
 };
-
-fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
-    let (image_index, _) = unsafe {
-        swapchain
-            .swapchain_loader
-            .acquire_next_image(
-                swapchain.swapchain,
-                std::u64::MAX,
-                swapchain.image_available[swapchain.current_image],
-                vk::Fence::null(),
-            )?
-    };
-    Ok(image_index)
-}
-
-fn check_fences(
-    logical_device: &ash::Device,
-    swapchain: &Swapchain
-) -> DesperoResult<()> {
-    unsafe {
-        logical_device
-            .wait_for_fences(
-                &[swapchain.may_begin_drawing[swapchain.current_image]],
-                true,
-                std::u64::MAX,
-            )?;
-            
-        logical_device
-            .reset_fences(&[
-                swapchain.may_begin_drawing[swapchain.current_image]
-            ])?;
-    }
-    
-    Ok(())
-}
 
 pub(crate) fn rendering_system(
     mut event_writer: Write<EventWriter>,
@@ -84,12 +49,15 @@ pub(crate) fn rendering_system(
     let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
     let semaphores_finished = [renderer.swapchain.rendering_finished[renderer.swapchain.current_image]];
     let commandbuffers = [*renderer.commandbuffer_pools.get_commandbuffer(image_index as usize).unwrap()];
-    let submit_info = [vk::SubmitInfo::builder()
-        .wait_semaphores(&semaphores_available)
-        .wait_dst_stage_mask(&waiting_stages)
-        .command_buffers(&commandbuffers)
-        .signal_semaphores(&semaphores_finished)
-        .build()];
+    let submit_info = [
+        vk::SubmitInfo::builder()
+            .wait_semaphores(&semaphores_available)
+            .wait_dst_stage_mask(&waiting_stages)
+            .command_buffers(&commandbuffers)
+            .signal_semaphores(&semaphores_finished)
+            .build()
+    ];
+    
     unsafe {
         renderer
             .device
@@ -100,6 +68,7 @@ pub(crate) fn rendering_system(
             )
             .expect("queue submission");
     };
+    
     let swapchains = [renderer.swapchain.swapchain];
     let indices = [image_index];
     let present_info = vk::PresentInfoKHR::builder()
@@ -111,7 +80,7 @@ pub(crate) fn rendering_system(
             .swapchain
             .swapchain_loader
             .queue_present(renderer.queue_families.graphics_queue, &present_info)
-            .expect("queue presentation")
+            .expect("Queue presentation error")
         {
             renderer.recreate_swapchain().expect("Cannot recreate swapchain");
             
@@ -228,7 +197,7 @@ pub(crate) fn update_models_system(
     Ok(())
 }
 
-pub fn update_lights(
+pub(crate) fn update_lights(
     plight_world: SubWorld<&PointLight>,
     dlight_world: SubWorld<&DirectionalLight>,
     mut renderer: Write<Renderer>,
@@ -286,5 +255,49 @@ pub fn update_lights(
             .build()];
         unsafe { renderer.device.update_descriptor_sets(&desc_sets_write, &[]) };
     }
+    Ok(())
+}
+
+pub(crate) fn update_physics(
+    mut physics_handler: Write<PhysicsHandler>,
+    rigidbody_world: SubWorld<(&mut Transform, &mut RigidBodyHandle)>,
+    collider_world: SubWorld<(&mut Transform, &mut ColliderHandle)>,
+) -> DesperoResult<()> {
+    physics_handler.step();
+    Ok(())
+}
+
+fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
+    let (image_index, _) = unsafe {
+        swapchain
+            .swapchain_loader
+            .acquire_next_image(
+                swapchain.swapchain,
+                std::u64::MAX,
+                swapchain.image_available[swapchain.current_image],
+                vk::Fence::null(),
+            )?
+    };
+    Ok(image_index)
+}
+
+fn check_fences(
+    logical_device: &ash::Device,
+    swapchain: &Swapchain
+) -> DesperoResult<()> {
+    unsafe {
+        logical_device
+            .wait_for_fences(
+                &[swapchain.may_begin_drawing[swapchain.current_image]],
+                true,
+                std::u64::MAX,
+            )?;
+            
+        logical_device
+            .reset_fences(&[
+                swapchain.may_begin_drawing[swapchain.current_image]
+            ])?;
+    }
+    
     Ok(())
 }

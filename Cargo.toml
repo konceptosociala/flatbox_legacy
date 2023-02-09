@@ -29,7 +29,6 @@ lz4 = "1.24.0"
 log = "0.4.17"
 env_logger = "0.10.0"
 nalgebra = { version = "0.31.2", features = ["serde-serialize"] }
-readonly = "0.2.3"
 thiserror = "1.0.38"
 
 # Rendering
@@ -48,7 +47,7 @@ hecs = { git = "https://github.com/konceptosociala/despero-hecs", features = ["c
 hecs-schedule = { git = "https://github.com/konceptosociala/despero-hecs-schedule" }
 
 # Physics
-rapier3d = "0.16.1"
+rapier3d = { version = "0.16.1", features = ["debug-render", "serde-serialize"] }
 
 # UI
 egui = "0.20.1"
