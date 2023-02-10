@@ -264,6 +264,17 @@ pub(crate) fn update_physics(
     collider_world: SubWorld<(&mut Transform, &mut ColliderHandle)>,
 ) -> DesperoResult<()> {
     physics_handler.step();
+    
+    for (_, (mut transform, handle)) in &mut rigidbody_world.query::<(
+        &mut Transform, &RigidBodyHandle
+    )>(){
+        let rigidbody = physics_handler.rigidbody(*handle)?;
+        transform.translation = *rigidbody.translation();
+        transform.rotation = *rigidbody.rotation();
+        
+        log::debug!("{}", rigidbody.translation().y);
+    }
+    
     Ok(())
 }
 

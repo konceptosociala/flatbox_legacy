@@ -24,6 +24,7 @@ fn main() {
     despero
         .add_setup_system(bind_mat)
         .add_setup_system(create_models)
+        .add_setup_system(create_physical_objects)
         .add_setup_system(create_camera)        
         .add_system(ecs_change)
         .add_system(egui_handling(egui_reader))
@@ -67,6 +68,38 @@ fn ecs_change(
     }
 }
 
+fn create_physical_objects(
+    mut cmd: Write<CommandBuffer>,
+    mut renderer: Write<Renderer>,
+    mut physics_handler: Write<PhysicsHandler>,
+) -> DesperoResult<()> {
+    let mut phys_builder = EntityBuilder::new();
+    phys_builder
+        .add_bundle(ModelBundle {
+            mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+            material: renderer.create_material(MyMaterial {
+                colour: [0.0, 0.6, 1.0]
+            }),
+            transform: Transform::from_translation(Vector3::new(-1.0, -2.0, 0.0)),
+        })
+        .add_bundle(
+            PhysBundle::builder()
+                .rigidbody(physics_handler.add_rigidbody(
+                    RigidBodyBuilder::dynamic()
+                        .translation(Vector3::new(-1.0, -2.0, 0.0))
+                        .build()
+                ))
+                .collider(physics_handler.add_collider(
+                    ColliderBuilder::cuboid(2.0, 0.1, 2.0)
+                        .build()
+                ))
+                .build()
+        );
+    cmd.spawn(phys_builder.build());
+    
+    Ok(())
+}
+
 fn create_models(
     mut cmd: Write<CommandBuffer>,
     mut renderer: Write<Renderer>,
@@ -80,14 +113,6 @@ fn create_models(
             colour: [0.7, 0.0, 0.0]
         }),
         transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
-    });
-    
-    cmd.spawn(ModelBundle {
-        mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-        material: renderer.create_material(MyMaterial {
-            colour: [0.0, 0.6, 1.0]
-        }),
-        transform: Transform::from_translation(Vector3::new(-1.0, 0.0, 0.0)),
     });
     
     cmd.spawn(ModelBundle {

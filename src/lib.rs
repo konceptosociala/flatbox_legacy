@@ -6,7 +6,7 @@
 // d8'   .8P 88.  .88 88    88 88 88.  .88 dP    88  88  88 88    88.  .88 88  88  88 88.  .88       88    88 .88'  88 88    88 
 //  Y88888P  `88888P' dP    dP 88 `88888P8 88    dP  dP  dP dP    `88888P8 dP  dP  dP `88888P8 `88888P'    8888P'   dP dP    dP oo
 //                             88          .P                                                                                   
-//                             dP                                                                                               
+//                           d8dP                                                                                               
 //
 
 //! Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
@@ -29,32 +29,32 @@
 //! }
 //! 
 //! fn create_model(
-//!        mut cmd: Write<CommandBuffer>,
-//!        mut renderer: Write<Renderer>,
-//!    ){
-//!        let texture = renderer.create_texture("assets/texture.jpg", Filter::LINEAR) as u32;
+//!     mut cmd: Write<CommandBuffer>,
+//!     mut renderer: Write<Renderer>,
+//! ){
+//!     let texture = renderer.create_texture("assets/texture.jpg", Filter::LINEAR) as u32;
 //!        
-//!        cmd.spawn(ModelBundle {
-//!            mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-//!            material: renderer.create_material(
-//!                DefaultMat::builder()
-//!                    .texture_id(texture)
-//!                    .metallic(0.0)
-//!                    .roughness(1.0)
-//!                    .build(),
-//!            ),
-//!            transform: Transform::from_translation(Vector3::new(0.0, 0.0, 0.0)),
-//!        });
+//!     cmd.spawn(ModelBundle {
+//!         mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+//!         material: renderer.create_material(
+//!             DefaultMat::builder()
+//!                 .texture_id(texture)
+//!                 .metallic(0.0)
+//!                 .roughness(1.0)
+//!                 .build(),
+//!         ),
+//!         transform: Transform::from_translation(Vector3::new(0.0, 0.0, 0.0)),
+//!     });
 //!
 //!     info!("I run only once!");
 //! }
 //! 
 //! fn rotate_model(
-//!        world: SubWorld<&mut Transform>,
+//!     world: SubWorld<&mut Transform>,
 //! ){
-//!        for (_, mut t) in &mut world.query::<&mut Transform>() {
-//!            t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
-//!        }
+//!     for (_, mut t) in &mut world.query::<&mut Transform>() {
+//!         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
+//!     }
 //!
 //!     info!("I run in loop!");
 //! }

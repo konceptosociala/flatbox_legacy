@@ -1,8 +1,11 @@
 use thiserror::Error;
 use crate::ecs::*;
+use crate::physics::*;
 
 #[derive(Debug, Error)]
 pub enum Result {
+    #[error("Physics error")]
+    PhysicsError(#[from] PhysicsError),
     #[error("I/O error")]
     IoError(#[from] std::io::Error),
     #[error("RON error")]
