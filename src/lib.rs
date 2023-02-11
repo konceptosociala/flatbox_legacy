@@ -122,8 +122,14 @@ pub struct Despero {
 impl Despero {
     /// Initialize Despero application
     pub fn init(window_builder: WindowBuilder) -> Despero {
+        #[cfg(debug_assertions)]
         env_logger::builder()
             .filter_level(log::LevelFilter::Debug)
+            .init();
+            
+        #[cfg(not(debug_assertions))]
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
             .init();
         
         let mut renderer = Renderer::init(window_builder).expect("Cannot create renderer");
@@ -202,6 +208,8 @@ impl Despero {
                     &mut self.event_writer,
                     &mut self.physics_handler,
                 )).expect("Cannot execute loop schedule");
+                
+                self.world.clear_trackers();
             }
             
             _ => {}

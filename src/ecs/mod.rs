@@ -8,8 +8,10 @@ pub use hecs_schedule::{
 
 pub use hecs::{
     Archetype,
+    Added,
     BuiltEntity,
     Bundle,
+    Changed,
     Entity,
     EntityBuilder,
     Query,

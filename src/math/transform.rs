@@ -1,7 +1,9 @@
+// TODO: implement local transform (M_local = M_parent_inverse * M)
+
 use serde::{Serialize, Deserialize};
 use nalgebra::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Transform {
     pub translation: Vector3<f32>,
     pub rotation: UnitQuaternion<f32>,

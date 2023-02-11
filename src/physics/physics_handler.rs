@@ -72,34 +72,6 @@ impl PhysicsHandler {
         }
     }
     
-    /// Remove RigidBody from set
-    pub fn remove_rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<RigidBody> {
-        match self.rigidbody_set.remove(
-            handle,
-            &mut self.island_manager,
-            &mut self.collider_set,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
-            false,
-        ){
-            Some(rb) => Ok(rb),
-            None => Err(PhysicsError::InvalidRigidBody.into()),
-        }
-    }
-    
-    /// Remove Collider from set
-    pub fn remove_collider(&mut self, handle: ColliderHandle) -> DesperoResult<Collider> {
-        match self.collider_set.remove(
-            handle,
-            &mut self.island_manager,
-            &mut self.rigidbody_set,
-            false,
-        ){
-            Some(col) => Ok(col),
-            None => Err(PhysicsError::InvalidCollider.into()),
-        }
-    }
-    
     /// Does a physical simulations step. Run in a loop
     pub fn step(&mut self){
         self.physics_pipeline.step(
@@ -116,6 +88,44 @@ impl PhysicsHandler {
             &self.physics_hooks,
             &self.event_handler,
         )
+    }
+    
+    /// Remove RigidBody from set
+    pub(crate) fn remove_rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<RigidBody> {
+        match self.rigidbody_set.remove(
+            handle,
+            &mut self.island_manager,
+            &mut self.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            false,
+        ){
+            Some(rb) => Ok(rb),
+            None => Err(PhysicsError::InvalidRigidBody.into()),
+        }
+    }
+    
+    /// Remove Collider from set
+    pub(crate) fn remove_collider(&mut self, handle: ColliderHandle) -> DesperoResult<Collider> {
+        match self.collider_set.remove(
+            handle,
+            &mut self.island_manager,
+            &mut self.rigidbody_set,
+            false,
+        ){
+            Some(col) => Ok(col),
+            None => Err(PhysicsError::InvalidCollider.into()),
+        }
+    }
+    
+    pub(crate) fn combine(
+        &mut self,
+        rb: RigidBodyHandle,
+        col: ColliderHandle,
+    ) -> DesperoResult<()> {
+        let col = self.remove_collider(col)?;
+        self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set);
+        Ok(())
     }
 }
 

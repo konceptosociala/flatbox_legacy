@@ -1,6 +1,7 @@
 use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
+use nalgebra::Vector3;
 
 use crate::ecs::*;
 use crate::physics::*;
@@ -260,19 +261,32 @@ pub(crate) fn update_lights(
 
 pub(crate) fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
-    rigidbody_world: SubWorld<(&mut Transform, &mut RigidBodyHandle)>,
-    collider_world: SubWorld<(&mut Transform, &mut ColliderHandle)>,
+    rigidbody_world: SubWorld<(&mut Transform, &RigidBodyHandle)>,
+    added_world: SubWorld<(&RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>)>,
 ) -> DesperoResult<()> {
+    for (e, (rb, col, rb_added, col_added)) in &mut added_world.query::<(
+        &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
+    )>(){
+        if rb_added && col_added {
+            physics_handler.combine(*rb, *col)?;
+            log::debug!("{e:?} added!");
+        }
+    }
+    
     physics_handler.step();
     
-    for (_, (mut transform, handle)) in &mut rigidbody_world.query::<(
+    for (e, (mut transform, handle)) in &mut rigidbody_world.query::<(
         &mut Transform, &RigidBodyHandle
     )>(){
         let rigidbody = physics_handler.rigidbody(*handle)?;
-        transform.translation = *rigidbody.translation();
+        transform.translation = Vector3::new(
+            rigidbody.translation().x,
+            -rigidbody.translation().y,
+            rigidbody.translation().x,
+        );
         transform.rotation = *rigidbody.rotation();
         
-        log::debug!("{}", rigidbody.translation().y);
+        log::debug!("{e:?}: {}", rigidbody.translation().y);
     }
     
     Ok(())
