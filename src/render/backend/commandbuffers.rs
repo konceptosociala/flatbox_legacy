@@ -12,6 +12,7 @@ pub struct CommandBufferPools {
     pub commandpool_graphics: vk::CommandPool,
     pub commandpool_transfer: vk::CommandPool,
     pub commandbuffers: Vec<vk::CommandBuffer>,
+    pub current_commandbuffer: Option<vk::CommandBuffer>,
 }
 
 impl CommandBufferPools {
@@ -31,6 +32,7 @@ impl CommandBufferPools {
             commandpool_graphics,
             commandpool_transfer,
             commandbuffers,
+            current_commandbuffer: None,
         })
     }
     

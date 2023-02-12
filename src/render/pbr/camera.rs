@@ -3,7 +3,7 @@ use nalgebra as na;
 
 use crate::render::{
     renderer::Renderer,
-    debug::debugger::*,
+    debug::*,
 };
 
 use crate::ecs::*;

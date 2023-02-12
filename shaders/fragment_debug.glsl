@@ -3,7 +3,7 @@
 
 layout (location=0) out vec4 theColour;
 
-layout (location=0) in vec3 colour;
+layout (location=0) in vec4 colour;
 
 layout (set=1, binding=0) uniform sampler2D texturesamplers[];
 
@@ -24,5 +24,5 @@ struct PointLight{
 };
 
 void main() {
-	theColour = vec4(colour, 1.0);
+	theColour = colour;
 }

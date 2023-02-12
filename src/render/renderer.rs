@@ -30,12 +30,12 @@ use crate::render::{
         texture::*,
         material::*,
     },
-    debug::{
-        debug_renderer::DebugRenderer,
-    },
 };
 
-use crate::physics::physics_handler::PhysicsHandler;
+use crate::physics::{
+    physics_handler::PhysicsHandler,
+    debug_render::*,
+};
 use crate::math::transform::Transform;
 use crate::ecs::event::EventWriter;
 use crate::error::DesperoResult;
@@ -207,6 +207,8 @@ impl Renderer {
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
         
+        self.commandbuffer_pools.current_commandbuffer = Some(commandbuffer);
+        
         let clear_values = Self::set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
         
         let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
@@ -303,7 +305,7 @@ impl Renderer {
             }
         }
         
-        //~ physics_handler.debug_render(self);
+        physics_handler.debug_render(self);
         
         self.device.cmd_end_render_pass(commandbuffer);
         
@@ -320,6 +322,8 @@ impl Renderer {
         );
         
         self.device.end_command_buffer(commandbuffer)?;
+        
+        self.commandbuffer_pools.current_commandbuffer = None;
             
         Ok(())
     }
@@ -368,7 +372,8 @@ impl Renderer {
     /// Function to destroy renderer. Used in [`Despero`]'s ['Drop'] function
     pub(crate) fn cleanup(&mut self, world: &mut World){
         unsafe {
-            self.device.device_wait_idle().expect("Error halting device");    
+            self.device.device_wait_idle().expect("Error halting device");  
+            self.debug_renderer.cleanup(&self.device, &self.allocator);  
             self.egui.destroy();
             self.texture_storage.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
             self.descriptor_pool.cleanup(&self.device);
