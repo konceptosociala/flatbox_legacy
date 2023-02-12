@@ -288,7 +288,7 @@ pub(crate) fn update_physics(
         let rigidbody = physics_handler.rigidbody(*handle)?;
         transform.translation = Vector3::new(
             rigidbody.translation().x,
-            -rigidbody.translation().y,
+            rigidbody.translation().y,
             rigidbody.translation().x,
         );
         transform.rotation = *rigidbody.rotation();

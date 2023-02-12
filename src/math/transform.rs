@@ -3,7 +3,7 @@
 use serde::{Serialize, Deserialize};
 use nalgebra::*;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Transform {
     pub translation: Vector3<f32>,
     pub rotation: UnitQuaternion<f32>,
@@ -22,7 +22,12 @@ impl Default for Transform {
 
 impl Transform {
     pub fn to_matrices(&self) -> (Matrix4<f32>, Matrix4<f32>) {
-        let new_matrix = Matrix4::new_translation(&self.translation)
+        let new_matrix = 
+            Matrix4::new_translation(&Vector3::new(
+                self.translation.x,
+                -self.translation.y,
+                self.translation.z,
+            ))
             * Matrix4::from(self.rotation)
             * Matrix4::from([
                 [self.scale, 0.0, 0.0, 0.0],

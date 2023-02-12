@@ -55,6 +55,7 @@ impl CommandBufferPools {
             vk::CommandPoolCreateInfo::builder()
                 .queue_family_index(queue_families.graphics_index.unwrap())
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+                
         logical_device.create_command_pool(&graphics_commandpool_info, None)
     }
     
@@ -66,6 +67,7 @@ impl CommandBufferPools {
             vk::CommandPoolCreateInfo::builder()
                 .queue_family_index(queue_families.transfer_index.unwrap())
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+                
         logical_device.create_command_pool(&transfer_commandpool_info, None)
     }
     
@@ -78,6 +80,7 @@ impl CommandBufferPools {
             vk::CommandBufferAllocateInfo::builder()
                 .command_pool(*commandpool_graphics)
                 .command_buffer_count(amount as u32);
+                
         logical_device.allocate_command_buffers(&commandbuf_allocate_info)
     }
 }

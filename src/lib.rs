@@ -170,6 +170,7 @@ impl Despero {
     /// Run main event loop
     pub fn run(mut self) {
         let mut setup_systems = self.setup_systems.build();
+        
         let mut systems = self.systems
             .add_system(update_models_system)
             .add_system(rendering_system)

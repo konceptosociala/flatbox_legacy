@@ -39,11 +39,14 @@ The crate is in a very early stage of development. Use it at your own risk
     - [x] Wavefront
     - [ ] Animations
     - [ ] COLLADA
+    - [ ] LOD
 - [ ] Resource compressing (lz4)
     - [ ] Scene (scn)
     - [ ] Model (mdl)
     - [ ] Texture (tex)
 - [ ] `RenderTexture`
+- [ ] SkyBoxes
+- [ ] DESL Shaders
 - [ ] Realistic lights
 - [ ] Shadows
     - [ ] Simple

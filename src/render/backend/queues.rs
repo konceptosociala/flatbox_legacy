@@ -50,7 +50,7 @@ impl QueueFamilies {
         let queue_family_properties = unsafe { instance.get_queue_family_properties() };
         for (index, qfam) in queue_family_properties.iter().enumerate() {
             if qfam.queue_count > 0 && qfam.queue_flags.contains(vk::QueueFlags::GRAPHICS) && 
-                window.surface.get_physical_device_surface_support(*instance.physical_device, index)?
+                window.surface.get_physical_device_surface_support(instance.physical_device, index)?
             {
                 graphics_index = Some(index as u32);
             }
@@ -92,7 +92,7 @@ impl QueueFamilies {
             .enabled_features(&physical_device_features)
             .push_next(&mut indexing_features);
             
-        let logical_device = unsafe { instance.instance.create_device(*instance.physical_device, &device_create_info, None)? };
+        let logical_device = unsafe { instance.instance.create_device(instance.physical_device, &device_create_info, None)? };
         let graphics_queue = unsafe { logical_device.get_device_queue(graphics_index.unwrap(), 0) };
         let transfer_queue = unsafe { logical_device.get_device_queue(transfer_index.unwrap(), 0) };
         

@@ -72,14 +72,14 @@ impl Renderer {
         let mut allocator = Allocator::new(&AllocatorCreateDesc {
             instance: instance.instance.clone(),
             device: device.clone(),
-            physical_device: *instance.physical_device.clone(),
+            physical_device: instance.physical_device.clone(),
             debug_settings: Default::default(),
             buffer_device_address: true,
         }).expect("Cannot create allocator");
         
         let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator)?;
         
-        let renderpass = Pipeline::init_renderpass(&device, *instance.physical_device.clone(), &window.surface)?;
+        let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
         swapchain.create_framebuffers(&device, renderpass)?;
                 
         let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
@@ -135,7 +135,7 @@ impl Renderer {
             queue_families.graphics_queue,
             swapchain.swapchain_loader.clone(),
             swapchain.swapchain,
-            *window.surface.get_formats(*instance.physical_device)?.first().unwrap(),
+            *window.surface.get_formats(instance.physical_device)?.first().unwrap(),
         ));
          
         Ok(Renderer {
@@ -355,7 +355,7 @@ impl Renderer {
             self.swapchain.extent.width,
             self.swapchain.extent.height,
             self.swapchain.swapchain,
-            *self.window.surface.get_formats(*self.instance.physical_device)?.first().unwrap(),
+            *self.window.surface.get_formats(self.instance.physical_device)?.first().unwrap(),
         );
     
         Ok(())

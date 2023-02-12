@@ -10,7 +10,7 @@ use crate::render::{
     },
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct MaterialHandle(usize);
 
 impl MaterialHandle {

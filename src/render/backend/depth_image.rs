@@ -30,6 +30,7 @@ impl DepthImage {
         let mut alloc: Option<Allocation> = None;
         std::mem::swap(&mut alloc, &mut self.depth_image_allocation);        
         allocator.free(alloc.unwrap()).unwrap();
+        
         logical_device.destroy_image_view(self.depth_imageview, None);
         logical_device.destroy_image(self.depth_image, None);
     }
@@ -81,7 +82,7 @@ impl DepthImage {
             depth_image_allocation.offset()
         ).unwrap();
         
-        return depth_image_allocation;
+        depth_image_allocation
     }
     
     unsafe fn new_depth_imageview(

@@ -16,7 +16,7 @@ use crate::render::{
     renderer::Renderer,
 };
 
-const DEBUG_TOPOLOGY: vk::PrimitiveTopology = vk::PrimitiveTopology::LINE_LIST;
+pub const DEBUG_TOPOLOGY: vk::PrimitiveTopology = vk::PrimitiveTopology::LINE_LIST;
 
 pub struct DebugRenderer {
     pub pipeline: Pipeline,
@@ -173,7 +173,7 @@ impl DebugRenderBackend for Renderer {
             self.device.cmd_draw(
                 self.commandbuffer_pools.current_commandbuffer.unwrap(),
                 2,
-                1,
+                2,
                 0,
                 0,
             );

@@ -179,7 +179,9 @@ impl Pipeline {
             .attachments(&attachments)
             .subpasses(&subpasses)
             .dependencies(&subpass_dependencies);
+            
         let renderpass = unsafe { logical_device.create_render_pass(&renderpass_info, None)? };
+        
         Ok(renderpass)
     }
     

@@ -63,7 +63,7 @@ fn ecs_change(
     world: SubWorld<&mut Transform>,
 ){
     for (_, mut t) in &mut world.query::<&mut Transform>() {
-        t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
+        //~ t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
     }
 }
 
@@ -112,7 +112,7 @@ fn create_models(
                         .build()
                 ))
                 .collider(physics_handler.add_collider(
-                    ColliderBuilder::cuboid(2.0, 2.0, 2.0)
+                    ColliderBuilder::cuboid(1.0, 1.0, 1.0)
                         .build()
                 ))
                 .build()
@@ -136,7 +136,7 @@ fn create_models(
                         .build()
                 ))
                 .collider(physics_handler.add_collider(
-                    ColliderBuilder::cuboid(2.0, 2.0, 2.0)
+                    ColliderBuilder::cuboid(1.0, 1.0, 1.0)
                         .build()
                 ))
                 .build()
