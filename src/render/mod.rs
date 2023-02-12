@@ -7,7 +7,9 @@ pub mod screenshot;
 
 pub use screenshot::*;
 pub use renderer::*;
-pub use debug::*;
+
+pub use debug::debugger::*;
+pub use debug::debug_renderer::*;
 
 pub use gui::*;
 pub use gui::ctx::*;

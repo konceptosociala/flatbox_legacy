@@ -119,29 +119,29 @@ fn create_models(
         );
     cmd.spawn(phys_builder.build());
     
-    //~ let mut static_builder = EntityBuilder::new();
-    //~ static_builder
-        //~ .add_bundle(ModelBundle {
-            //~ mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-            //~ material: renderer.create_material(TexMaterial {
-                //~ texture_id: txt2
-            //~ }),
-            //~ transform: Transform::from_translation(Vector3::new(-1.0, 0.0, -2.0)),
-        //~ })
-        //~ .add_bundle(
-            //~ PhysBundle::builder()
-                //~ .rigidbody(physics_handler.add_rigidbody(
-                    //~ RigidBodyBuilder::fixed()
-                        //~ .translation(Vector3::new(-1.0, 0.0, -2.0))
-                        //~ .build()
-                //~ ))
-                //~ .collider(physics_handler.add_collider(
-                    //~ ColliderBuilder::cuboid(2.0, 2.0, 2.0)
-                        //~ .build()
-                //~ ))
-                //~ .build()
-        //~ );
-    //~ cmd.spawn(static_builder.build());
+    let mut static_builder = EntityBuilder::new();
+    static_builder
+        .add_bundle(ModelBundle {
+            mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+            material: renderer.create_material(TexMaterial {
+                texture_id: txt2
+            }),
+            transform: Transform::from_translation(Vector3::new(-1.0, -2.0, -2.0)),
+        })
+        .add_bundle(
+            PhysBundle::builder()
+                .rigidbody(physics_handler.add_rigidbody(
+                    RigidBodyBuilder::fixed()
+                        .translation(Vector3::new(-1.0, -2.0, -2.0))
+                        .build()
+                ))
+                .collider(physics_handler.add_collider(
+                    ColliderBuilder::cuboid(2.0, 2.0, 2.0)
+                        .build()
+                ))
+                .build()
+        );
+    cmd.spawn(static_builder.build());
     
     cmd.spawn((DirectionalLight {
         direction: Vector3::new(-1., -1., 0.),

@@ -22,6 +22,7 @@ use crate::render::{
 };
 
 pub(crate) fn rendering_system(
+    mut physics_handler: Write<PhysicsHandler>,
     mut event_writer: Write<EventWriter>,
     mut renderer: Write<Renderer>,
     mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
@@ -41,6 +42,7 @@ pub(crate) fn rendering_system(
         renderer.update_commandbuffer(
             &mut model_world,
             &mut event_writer,
+            &mut physics_handler,
             image_index as usize,
         )? 
     };
@@ -262,13 +264,18 @@ pub(crate) fn update_lights(
 pub(crate) fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
     rigidbody_world: SubWorld<(&mut Transform, &RigidBodyHandle)>,
-    added_world: SubWorld<(&RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>)>,
-) -> DesperoResult<()> {
-    for (e, (rb, col, rb_added, col_added)) in &mut added_world.query::<(
-        &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
+    added_world: SubWorld<(&Transform, &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>)>,
+) -> DesperoResult<()> {    
+    for (e, (t, rb, col, rb_added, col_added)) in &mut added_world.query::<(
+        &Transform, &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
     )>(){
         if rb_added && col_added {
             physics_handler.combine(*rb, *col)?;
+            
+            let rb = physics_handler.rigidbody_mut(*rb)?;
+            rb.set_translation(t.translation, false);
+            rb.set_rotation(t.rotation, false);
+            
             log::debug!("{e:?} added!");
         }
     }

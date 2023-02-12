@@ -42,6 +42,7 @@ impl Material for MyMaterial {
             &fragment_shader,
             instance_attributes,
             12,
+            vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
     }
 }
@@ -75,6 +76,7 @@ impl Material for TexMaterial {
             &fragment_shader,
             instance_attributes,
             4,
+            vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
     }
 }

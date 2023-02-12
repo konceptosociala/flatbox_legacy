@@ -100,6 +100,7 @@ impl Material for DefaultMat {
             &fragment_shader,
             instance_attributes,
             12,
+            vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
     }
 }

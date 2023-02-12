@@ -16,10 +16,12 @@ use crate::error::*;
 #[derive(Clone)]
 pub struct Pipeline {
     pub pipeline: vk::Pipeline,
-    vertex_shader: vk::ShaderModuleCreateInfo,
-    fragment_shader: vk::ShaderModuleCreateInfo,
-    instance_attributes: Vec<ShaderInputAttribute>,
-    instance_bytes: usize,
+    pub(crate) vertex_shader: vk::ShaderModuleCreateInfo,
+    pub(crate) fragment_shader: vk::ShaderModuleCreateInfo,
+    pub(crate) vertex_attributes: Vec<ShaderInputAttribute>,
+    pub(crate) vertex_bytes: usize,
+    pub(crate) instance_bytes: usize,
+    pub(crate) topology: vk::PrimitiveTopology,
 }
 
 impl Pipeline {    
@@ -29,7 +31,30 @@ impl Pipeline {
         fragment_shader: &vk::ShaderModuleCreateInfo,
         instance_attributes: Vec<ShaderInputAttribute>,
         instance_bytes: usize,
+        topology: vk::PrimitiveTopology,
     ) -> DesperoResult<Pipeline> {
+        let mut vertex_attributes = vec![
+            ShaderInputAttribute {
+                binding: 0,
+                location: 0,
+                offset: 0,
+                format: ShaderInputFormat::R32G32B32_SFLOAT,
+            },
+            ShaderInputAttribute {
+                binding: 0,
+                location: 1,
+                offset: 12,
+                format: ShaderInputFormat::R32G32B32_SFLOAT,
+            },
+            ShaderInputAttribute {
+                binding: 0,
+                location: 2,
+                offset: 24,
+                format: ShaderInputFormat::R32G32_SFLOAT,
+            },
+        ];
+        
+        vertex_attributes.extend(instance_attributes);
         
         let pipeline = unsafe {Self::init_internal(
             &renderer.device,
@@ -38,26 +63,30 @@ impl Pipeline {
             renderer.renderpass,
             vertex_shader,
             fragment_shader,
-            instance_attributes.clone(),
+            vertex_attributes.clone(),
+            32,
             instance_bytes,
+            topology,
         )?};
         
         Ok(Pipeline {
             pipeline,
             vertex_shader: *vertex_shader,
             fragment_shader: *fragment_shader,
-            instance_attributes,
+            vertex_attributes,
+            vertex_bytes: 32,
             instance_bytes,
+            topology,
         })
     }
-    
+        
     pub unsafe fn recreate_pipeline(
         &mut self, 
         logical_device: &ash::Device,
         swapchain: &Swapchain,
         descriptor_pool: &DescriptorPool,
         renderpass: vk::RenderPass,
-    ) -> DesperoResult<()> {
+    ) -> DesperoResult<()> {        
         let new_pipeline = Pipeline::init_internal(
             &logical_device,
             &swapchain,
@@ -65,8 +94,10 @@ impl Pipeline {
             renderpass,
             &self.vertex_shader,
             &self.fragment_shader,
-            self.instance_attributes.clone(),
+            self.vertex_attributes.clone(),
+            self.vertex_bytes,
             self.instance_bytes,
+            self.topology,
         )?;
         
         self.pipeline = new_pipeline;
@@ -152,41 +183,22 @@ impl Pipeline {
         Ok(renderpass)
     }
     
-    unsafe fn init_internal(
+    pub(crate) unsafe fn init_internal(
         logical_device: &ash::Device,
         swapchain: &Swapchain,
         descriptor_pool: &DescriptorPool,
         renderpass: vk::RenderPass,
         vertex_shader: &vk::ShaderModuleCreateInfo,
         fragment_shader: &vk::ShaderModuleCreateInfo,
-        instance_attributes: Vec<ShaderInputAttribute>,
+        vertex_attributes: Vec<ShaderInputAttribute>,
+        vertex_bytes: usize,
         instance_bytes: usize,
-    ) -> DesperoResult<vk::Pipeline> {
-        let mut vertex_attributes = vec![
-            ShaderInputAttribute {
-                binding: 0,
-                location: 0,
-                offset: 0,
-                format: ShaderInputFormat::R32G32B32_SFLOAT,
-            },
-            ShaderInputAttribute {
-                binding: 0,
-                location: 1,
-                offset: 12,
-                format: ShaderInputFormat::R32G32B32_SFLOAT,
-            },
-            ShaderInputAttribute {
-                binding: 0,
-                location: 2,
-                offset: 24,
-                format: ShaderInputFormat::R32G32_SFLOAT,
-            },
-        ];
-        
+        topology: vk::PrimitiveTopology,
+    ) -> DesperoResult<vk::Pipeline> {        
         let vertex_bindings = vec![
             ShaderInputBinding {
                 binding: 0,
-                stride: 32,
+                stride: vertex_bytes as u32,
                 input_rate: vk::VertexInputRate::VERTEX,
             },
             ShaderInputBinding {
@@ -195,9 +207,7 @@ impl Pipeline {
                 input_rate: vk::VertexInputRate::INSTANCE,
             },
         ];
-        
-        vertex_attributes.extend(instance_attributes.clone());
-                
+                        
         let vertex_module = logical_device.create_shader_module(&vertex_shader, None)?;
         let fragment_module = logical_device.create_shader_module(&fragment_shader, None)?;
         
@@ -220,7 +230,7 @@ impl Pipeline {
             .vertex_binding_descriptions(&vertex_bindings);
             
         let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
-            .topology(vk::PrimitiveTopology::TRIANGLE_LIST);    
+            .topology(topology);    
             
         let viewports = [Self::create_viewports(&swapchain)];
         let scissors = [Self::create_scissors(&swapchain)];

@@ -4,7 +4,7 @@ use std::mem::ManuallyDrop;
 use std::ffi::CString;
 use ash::vk;
 use crate::render::{
-    debug::Debug,
+    debug::debugger::Debug,
 };
 
 /// Structure controlling Vulkan instance and physical device

@@ -30,8 +30,12 @@ use crate::render::{
         texture::*,
         material::*,
     },
+    debug::{
+        debug_renderer::DebugRenderer,
+    },
 };
 
+use crate::physics::physics_handler::PhysicsHandler;
 use crate::math::transform::Transform;
 use crate::ecs::event::EventWriter;
 use crate::error::DesperoResult;
@@ -47,7 +51,8 @@ pub struct Renderer {
     pub(crate) device: Device,
     pub(crate) swapchain: Swapchain,
     pub(crate) renderpass: vk::RenderPass,
-    pub(crate) pipelines: HashMap<TypeId, Pipeline>,
+    pub(crate) material_pipelines: HashMap<TypeId, Pipeline>,
+    pub(crate) debug_renderer: DebugRenderer,
     pub(crate) commandbuffer_pools: CommandBufferPools,
     pub(crate) allocator: Arc<Mutex<Allocator>>,
     pub(crate) camera_buffer: Buffer,
@@ -76,7 +81,7 @@ impl Renderer {
         
         let renderpass = Pipeline::init_renderpass(&device, *instance.physical_device.clone(), &window.surface)?;
         swapchain.create_framebuffers(&device, renderpass)?;
-        
+                
         let commandbuffer_pools = CommandBufferPools::init(&device, &queue_families, &swapchain)?;
         
         let mut camera_buffer = Buffer::new(
@@ -107,6 +112,14 @@ impl Renderer {
         let descriptor_pool = unsafe { DescriptorPool::init(&device, &swapchain)? };
         unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
         
+        let debug_renderer = DebugRenderer::new(
+            &device,
+            &swapchain,
+            &descriptor_pool,
+            &renderpass,
+            &mut allocator,
+        )?;
+        
         let allocator = Arc::new(Mutex::new(allocator));
         
         let egui = ManuallyDrop::new(Integration::new(
@@ -132,7 +145,8 @@ impl Renderer {
             device,
             swapchain,
             renderpass,
-            pipelines: HashMap::new(),
+            material_pipelines: HashMap::new(),
+            debug_renderer,
             commandbuffer_pools,
             allocator,
             camera_buffer,
@@ -169,13 +183,14 @@ impl Renderer {
     }
     
     pub fn bind_material<M: Material + Sync + Send>(&mut self) {
-        self.pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
+        self.material_pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
     }
     
     pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
         &mut self,
         world: &mut SubWorld<W>,
         event_writer: &mut EventWriter,
+        physics_handler: &mut PhysicsHandler,
         index: usize,
     ) -> DesperoResult<()> {
         let imageinfos = self.texture_storage.get_descriptor_image_info();
@@ -224,8 +239,8 @@ impl Renderer {
             &[],
         );
         
-        for material_type in self.pipelines.keys() {
-            let pipeline = self.pipelines.get(&material_type).unwrap();
+        for material_type in self.material_pipelines.keys() {
+            let pipeline = self.material_pipelines.get(&material_type).unwrap();
                         
             self.device.cmd_bind_pipeline(
                 commandbuffer,
@@ -288,6 +303,8 @@ impl Renderer {
             }
         }
         
+        //~ physics_handler.debug_render(self);
+        
         self.device.cmd_end_render_pass(commandbuffer);
         
         self.egui.context().set_visuals(egui::style::Visuals::dark());
@@ -320,7 +337,7 @@ impl Renderer {
         )?;
         
         self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
-        for p in self.pipelines.values_mut() {
+        for p in self.material_pipelines.values_mut() {
             p.cleanup(&self.device);
             p.recreate_pipeline(
                 &self.device,
@@ -366,7 +383,7 @@ impl Renderer {
             }
             
             self.commandbuffer_pools.cleanup(&self.device);
-            for pipeline in self.pipelines.values() {
+            for pipeline in self.material_pipelines.values() {
                 pipeline.cleanup(&self.device);
             }
             self.device.destroy_render_pass(self.renderpass, None);

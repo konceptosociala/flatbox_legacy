@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use nalgebra::Vector3;
 use rapier3d::prelude::*;
 
+use crate::render::renderer::Renderer;
 use crate::error::DesperoResult;
 use super::error::*;
 
@@ -11,10 +12,13 @@ pub struct PhysicsHandler {
     rigidbody_set: RigidBodySet,
     collider_set: ColliderSet,
     
-    pub gravity: Vector3<f32>,
-    pub integration_parameters: IntegrationParameters,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub render_pipeline: DebugRenderPipeline,
     #[serde(skip_serializing, skip_deserializing)]
     pub physics_pipeline: PhysicsPipeline,
+    
+    pub gravity: Vector3<f32>,
+    pub integration_parameters: IntegrationParameters,
     pub island_manager: IslandManager,
     pub broad_phase: BroadPhase,
     pub narrow_phase: NarrowPhase,
@@ -72,8 +76,62 @@ impl PhysicsHandler {
         }
     }
     
+    /// Remove RigidBody from set
+    pub fn remove_rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<RigidBody> {
+        match self.rigidbody_set.remove(
+            handle,
+            &mut self.island_manager,
+            &mut self.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            false,
+        ){
+            Some(rb) => Ok(rb),
+            None => Err(PhysicsError::InvalidRigidBody.into()),
+        }
+    }
+    
+    /// Remove Collider from set
+    pub fn remove_collider(&mut self, handle: ColliderHandle) -> DesperoResult<Collider> {
+        match self.collider_set.remove(
+            handle,
+            &mut self.island_manager,
+            &mut self.rigidbody_set,
+            false,
+        ){
+            Some(col) => Ok(col),
+            None => Err(PhysicsError::InvalidCollider.into()),
+        }
+    }
+    
+    /// Set physics debug rendering style and mode
+    pub fn set_debug_renderer(&mut self, style: DebugRenderStyle, mode: DebugRenderMode){
+        self.render_pipeline = DebugRenderPipeline::new(style, mode);
+    }
+    
+    pub(crate) fn debug_render(&mut self, renderer: &mut Renderer){
+        self.render_pipeline.render(
+            renderer,
+            &self.rigidbody_set,
+            &self.collider_set,
+            &self.impulse_joint_set,
+            &self.multibody_joint_set,
+            &self.narrow_phase,
+        );
+    }
+    
+    pub(crate) fn combine(
+        &mut self,
+        rb: RigidBodyHandle,
+        col: ColliderHandle,
+    ) -> DesperoResult<()> {
+        let col = self.remove_collider(col)?;
+        self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set);
+        Ok(())
+    }
+    
     /// Does a physical simulations step. Run in a loop
-    pub fn step(&mut self){
+    pub(crate) fn step(&mut self){
         self.physics_pipeline.step(
             &self.gravity,
             &self.integration_parameters,
@@ -89,44 +147,6 @@ impl PhysicsHandler {
             &self.event_handler,
         )
     }
-    
-    /// Remove RigidBody from set
-    pub(crate) fn remove_rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<RigidBody> {
-        match self.rigidbody_set.remove(
-            handle,
-            &mut self.island_manager,
-            &mut self.collider_set,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
-            false,
-        ){
-            Some(rb) => Ok(rb),
-            None => Err(PhysicsError::InvalidRigidBody.into()),
-        }
-    }
-    
-    /// Remove Collider from set
-    pub(crate) fn remove_collider(&mut self, handle: ColliderHandle) -> DesperoResult<Collider> {
-        match self.collider_set.remove(
-            handle,
-            &mut self.island_manager,
-            &mut self.rigidbody_set,
-            false,
-        ){
-            Some(col) => Ok(col),
-            None => Err(PhysicsError::InvalidCollider.into()),
-        }
-    }
-    
-    pub(crate) fn combine(
-        &mut self,
-        rb: RigidBodyHandle,
-        col: ColliderHandle,
-    ) -> DesperoResult<()> {
-        let col = self.remove_collider(col)?;
-        self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set);
-        Ok(())
-    }
 }
 
 impl Default for PhysicsHandler {
@@ -135,9 +155,14 @@ impl Default for PhysicsHandler {
             rigidbody_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
             
+            render_pipeline: DebugRenderPipeline::new(
+                DebugRenderStyle::default(),
+                DebugRenderMode::COLLIDER_SHAPES,
+            ),
+            physics_pipeline: PhysicsPipeline::new(),
+            
             gravity: vector![0.0, -9.81, 0.0],
             integration_parameters: IntegrationParameters::default(),
-            physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
