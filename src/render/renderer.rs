@@ -182,8 +182,12 @@ impl Renderer {
         return MaterialHandle::new(index);
     }
     
-    pub fn bind_material<M: Material + Sync + Send>(&mut self) {
-        self.material_pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
+    pub fn bind_material<M: Material + Sync + Send>(&mut self){
+        if self.material_pipelines.contains_key(&TypeId::of::<M>()) {
+            log::error!("Material type '{}' is already bound!", std::any::type_name::<M>());
+        } else {
+            self.material_pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
+        }
     }
     
     pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(

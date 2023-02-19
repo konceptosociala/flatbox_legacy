@@ -1,7 +1,6 @@
 use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
-use nalgebra::Vector3;
 
 use crate::ecs::*;
 use crate::physics::*;
@@ -263,18 +262,33 @@ pub(crate) fn update_lights(
 
 pub(crate) fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
-    rigidbody_world: SubWorld<(&mut Transform, &RigidBodyHandle)>,
-    added_world: SubWorld<(&Transform, &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>)>,
+    physics_world: SubWorld<(
+        &mut Transform, 
+        &RigidBodyHandle, 
+        &ColliderHandle
+    )>,
+    added_world: SubWorld<(
+        &Transform, 
+        &RigidBodyHandle, 
+        &mut ColliderHandle, 
+        Added<RigidBodyHandle>, 
+        Added<ColliderHandle>
+    )>,
 ) -> DesperoResult<()> {    
-    for (e, (t, rb, col, rb_added, col_added)) in &mut added_world.query::<(
-        &Transform, &RigidBodyHandle, &ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
+    for (e, (t, rb, mut col, rb_added, col_added)) in &mut added_world.query::<(
+        &Transform, &RigidBodyHandle, &mut ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
     )>(){
-        if rb_added && col_added {
-            physics_handler.combine(*rb, *col)?;
+        if rb_added && col_added {                        
+            let rigidbody = physics_handler.rigidbody_mut(*rb)?;
+            rigidbody.set_translation(t.translation, false);
+            rigidbody.set_rotation(t.rotation, false);
             
-            let rb = physics_handler.rigidbody_mut(*rb)?;
-            rb.set_translation(t.translation, false);
-            rb.set_rotation(t.rotation, false);
+            let collider = physics_handler.collider_mut(*col)?;
+            collider.set_translation(t.translation);
+            collider.set_rotation(t.rotation);
+            
+            let new_col = physics_handler.combine(*rb, *col)?;
+            *col = new_col;
             
             log::debug!("{e:?} added!");
         }
@@ -282,18 +296,15 @@ pub(crate) fn update_physics(
     
     physics_handler.step();
     
-    for (e, (mut transform, handle)) in &mut rigidbody_world.query::<(
-        &mut Transform, &RigidBodyHandle
+    for (e, (mut transform, rb, col)) in &mut physics_world.query::<(
+        &mut Transform, &RigidBodyHandle, &ColliderHandle,
     )>(){
-        let rigidbody = physics_handler.rigidbody(*handle)?;
-        transform.translation = Vector3::new(
-            rigidbody.translation().x,
-            rigidbody.translation().y,
-            rigidbody.translation().x,
-        );
-        transform.rotation = *rigidbody.rotation();
+        let rb = physics_handler.rigidbody(*rb)?;
+        transform.translation = *rb.translation();
+        transform.rotation = *rb.rotation();
         
-        log::debug!("{e:?}: {}", rigidbody.translation().y);
+        log::debug!("{e:?}: {}", rb.translation().y);
+        log::debug!("Collider: {}\n", physics_handler.collider(*col)?.translation().y);
     }
     
     Ok(())

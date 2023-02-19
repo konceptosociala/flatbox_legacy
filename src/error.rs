@@ -20,7 +20,7 @@ pub enum Result {
     RonError(#[from] ron::Error),
     
     #[error("Error happened: {0}")]
-    CustomError(&'static str),
+    CustomError(String),
 }
 
 pub type DesperoResult<T> = std::result::Result<T, Result>;

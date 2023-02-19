@@ -124,10 +124,9 @@ impl PhysicsHandler {
         &mut self,
         rb: RigidBodyHandle,
         col: ColliderHandle,
-    ) -> DesperoResult<()> {
+    ) -> DesperoResult<ColliderHandle> {
         let col = self.remove_collider(col)?;
-        self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set);
-        Ok(())
+        Ok(self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set))
     }
     
     /// Does a physical simulations step. Run in a loop
