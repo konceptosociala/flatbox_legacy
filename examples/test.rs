@@ -34,7 +34,6 @@ fn bind_mat(
     mut renderer: Write<Renderer>
 ){
     renderer.bind_material::<MyMaterial>();
-    renderer.bind_material::<MyMaterial>();
     renderer.bind_material::<TexMaterial>();
     info!("Material's been bound");
 }
@@ -105,16 +104,10 @@ fn create_models(
             }),
             transform: Transform::from_translation(Vector3::new(-1.0, 2.0, 0.0)),
         })
-        .add_bundle(
-            PhysBundle::builder()
-                .rigidbody(physics_handler.add_rigidbody(
-                    RigidBodyBuilder::dynamic().build()
-                ))
-                .collider(physics_handler.add_collider(
-                    ColliderBuilder::cuboid(0.5, 0.5, 0.5).build()
-                ))
-                .build()
-        );
+        .add(physics_handler.new_instance(
+            RigidBodyBuilder::dynamic().build(),
+            ColliderBuilder::cuboid(0.5, 0.5, 0.5).build(),
+        ));
     cmd.spawn(phys_builder.build());
     
     let mut static_builder = EntityBuilder::new();
@@ -126,16 +119,10 @@ fn create_models(
             }),
             transform: Transform::from_translation(Vector3::new(-1.0, -2.0, 0.0)),
         })
-        .add_bundle(
-            PhysBundle::builder()
-                .rigidbody(physics_handler.add_rigidbody(
-                    RigidBodyBuilder::fixed().build()
-                ))
-                .collider(physics_handler.add_collider(
-                    ColliderBuilder::cuboid(0.5, 0.5, 0.5).build()
-                ))
-                .build()
-        );
+        .add(physics_handler.new_instance(
+            RigidBodyBuilder::fixed().build(),
+            ColliderBuilder::cuboid(0.5, 0.5, 0.5).build(),
+        ));
     cmd.spawn(static_builder.build());
     
     cmd.spawn((DirectionalLight {

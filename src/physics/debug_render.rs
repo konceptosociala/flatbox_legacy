@@ -173,7 +173,7 @@ impl DebugRenderBackend for Renderer {
             self.device.cmd_draw(
                 self.commandbuffer_pools.current_commandbuffer.unwrap(),
                 2,
-                2,
+                1,
                 0,
                 0,
             );

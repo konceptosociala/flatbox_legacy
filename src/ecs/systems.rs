@@ -262,49 +262,27 @@ pub(crate) fn update_lights(
 
 pub(crate) fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
-    physics_world: SubWorld<(
-        &mut Transform, 
-        &RigidBodyHandle, 
-        &ColliderHandle
-    )>,
-    added_world: SubWorld<(
-        &Transform, 
-        &RigidBodyHandle, 
-        &mut ColliderHandle, 
-        Added<RigidBodyHandle>, 
-        Added<ColliderHandle>
-    )>,
+    physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
+    added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
 ) -> DesperoResult<()> {    
-    for (e, (t, rb, mut col, rb_added, col_added)) in &mut added_world.query::<(
-        &Transform, &RigidBodyHandle, &mut ColliderHandle, Added<RigidBodyHandle>, Added<ColliderHandle>
+    for (_, (transform, handle, added)) in &mut added_world.query::<(
+        &Transform, &BodyHandle, Added<BodyHandle>
     )>(){
-        if rb_added && col_added {                        
-            let rigidbody = physics_handler.rigidbody_mut(*rb)?;
-            rigidbody.set_translation(t.translation, false);
-            rigidbody.set_rotation(t.rotation, false);
-            
-            let collider = physics_handler.collider_mut(*col)?;
-            collider.set_translation(t.translation);
-            collider.set_rotation(t.rotation);
-            
-            let new_col = physics_handler.combine(*rb, *col)?;
-            *col = new_col;
-            
-            log::debug!("{e:?} added!");
+        if added {                        
+            let rigidbody = physics_handler.rigidbody_mut(*handle)?;
+            rigidbody.set_translation(transform.translation, false);
+            rigidbody.set_rotation(transform.rotation, false);          
         }
     }
     
     physics_handler.step();
     
-    for (e, (mut transform, rb, col)) in &mut physics_world.query::<(
-        &mut Transform, &RigidBodyHandle, &ColliderHandle,
+    for (_, (mut transform, handle)) in &mut physics_world.query::<(
+        &mut Transform, &BodyHandle,
     )>(){
-        let rb = physics_handler.rigidbody(*rb)?;
-        transform.translation = *rb.translation();
-        transform.rotation = *rb.rotation();
-        
-        log::debug!("{e:?}: {}", rb.translation().y);
-        log::debug!("Collider: {}\n", physics_handler.collider(*col)?.translation().y);
+        let rigidbody = physics_handler.rigidbody(*handle)?;
+        transform.translation = *rigidbody.translation();
+        transform.rotation = *rigidbody.rotation();        
     }
     
     Ok(())

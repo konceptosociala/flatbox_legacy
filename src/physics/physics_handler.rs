@@ -1,10 +1,16 @@
+#[allow(unused_imports)]
+use crate::Despero;
+
 use serde::{Serialize, Deserialize};
 use nalgebra::Vector3;
 use rapier3d::prelude::*;
 
 use crate::render::renderer::Renderer;
 use crate::error::DesperoResult;
-use super::error::*;
+use super::{
+    error::PhysicsError,
+    components::BodyHandle,
+};
 
 /// Collection for physics simulations
 #[derive(Serialize, Deserialize)]
@@ -31,77 +37,76 @@ pub struct PhysicsHandler {
 
 impl PhysicsHandler {
     /// Create new [`PhysicsHandler`] instance
+    ///
+    /// It's usually not necessary, as it's part of the [`Despero`] application
     pub fn new() -> Self {
         PhysicsHandler::default()
     }
     
-    /// Add RigidBody to set
-    pub fn add_rigidbody(&mut self, rb: RigidBody) -> RigidBodyHandle {
-        self.rigidbody_set.insert(rb)
-    }
-    /// Add Collider to set
-    pub fn add_collider(&mut self, col: Collider) -> ColliderHandle {
-        self.collider_set.insert(col)
+    /// Create new physical instance from [`RigidBody`] and [`Collider`]
+    pub fn new_instance(&mut self, rigidbody: RigidBody, collider: Collider) -> BodyHandle {
+        let rigidbody = self.rigidbody_set.insert(rigidbody);
+        let collider = self.collider_set.insert_with_parent(collider, rigidbody, &mut self.rigidbody_set);
+        
+        BodyHandle(rigidbody, collider)
     }
     
     /// Get RigidBody from set
-    pub fn rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<&RigidBody> {
-        match self.rigidbody_set.get(handle){
+    pub fn rigidbody(&self, handle: BodyHandle) -> DesperoResult<&RigidBody> {
+        match self.rigidbody_set.get(handle.0){
             Some(rb) => Ok(rb),
             None => Err(PhysicsError::InvalidRigidBody.into()),
         }
     }
     
     /// Get Collider from set
-    pub fn collider(&mut self, handle: ColliderHandle) -> DesperoResult<&Collider> {
-        match self.collider_set.get(handle){
+    pub fn collider(&self, handle: BodyHandle) -> DesperoResult<&Collider> {
+        match self.collider_set.get(handle.1){
             Some(col) => Ok(col),
             None => Err(PhysicsError::InvalidCollider.into()),
         }
     }
     
     /// Mutably get RigidBody from set
-    pub fn rigidbody_mut(&mut self, handle: RigidBodyHandle) -> DesperoResult<&mut RigidBody> {
-        match self.rigidbody_set.get_mut(handle){
+    pub fn rigidbody_mut(&mut self, handle: BodyHandle) -> DesperoResult<&mut RigidBody> {
+        match self.rigidbody_set.get_mut(handle.0){
             Some(rb) => Ok(rb),
             None => Err(PhysicsError::InvalidRigidBody.into()),
         }
     }
     
     /// Mutably get Collider from set
-    pub fn collider_mut(&mut self, handle: ColliderHandle) -> DesperoResult<&mut Collider> {
-        match self.collider_set.get_mut(handle){
+    pub fn collider_mut(&mut self, handle: BodyHandle) -> DesperoResult<&mut Collider> {
+        match self.collider_set.get_mut(handle.1){
             Some(col) => Ok(col),
             None => Err(PhysicsError::InvalidCollider.into()),
         }
     }
     
-    /// Remove RigidBody from set
-    pub fn remove_rigidbody(&mut self, handle: RigidBodyHandle) -> DesperoResult<RigidBody> {
-        match self.rigidbody_set.remove(
-            handle,
+    /// Destroy physical instance and return attached RigidBody and Collider as tuple
+    ///
+    /// ```rust
+    /// let (rigidbody, collider) = physics_handler.remove_instance(handle).unwrap();
+    /// ```
+    ///
+    pub fn remove_instance(&mut self, handle: BodyHandle) -> DesperoResult<(RigidBody, Collider)> {
+        let rigidbody = self.rigidbody_set.remove(
+            handle.0,
             &mut self.island_manager,
             &mut self.collider_set,
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             false,
-        ){
-            Some(rb) => Ok(rb),
-            None => Err(PhysicsError::InvalidRigidBody.into()),
-        }
-    }
-    
-    /// Remove Collider from set
-    pub fn remove_collider(&mut self, handle: ColliderHandle) -> DesperoResult<Collider> {
-        match self.collider_set.remove(
-            handle,
+        ).ok_or(PhysicsError::InvalidRigidBody)?;
+        
+        let collider = self.collider_set.remove(
+            handle.1,
             &mut self.island_manager,
             &mut self.rigidbody_set,
             false,
-        ){
-            Some(col) => Ok(col),
-            None => Err(PhysicsError::InvalidCollider.into()),
-        }
+        ).ok_or(PhysicsError::InvalidCollider)?;
+        
+        Ok((rigidbody, collider))
     }
     
     /// Set physics debug rendering style and mode
@@ -118,15 +123,6 @@ impl PhysicsHandler {
             &self.multibody_joint_set,
             &self.narrow_phase,
         );
-    }
-    
-    pub(crate) fn combine(
-        &mut self,
-        rb: RigidBodyHandle,
-        col: ColliderHandle,
-    ) -> DesperoResult<ColliderHandle> {
-        let col = self.remove_collider(col)?;
-        Ok(self.collider_set.insert_with_parent(col, rb, &mut self.rigidbody_set))
     }
     
     /// Does a physical simulations step. Run in a loop

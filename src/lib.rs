@@ -124,12 +124,22 @@ impl Despero {
     pub fn init(window_builder: WindowBuilder) -> Despero {
         #[cfg(debug_assertions)]
         env_logger::builder()
-            .filter_level(log::LevelFilter::Debug)
+            .filter_level(
+                env_logger::filter::Builder::new()
+                    .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
+                    .build()
+                    .filter()
+            )
             .init();
             
         #[cfg(not(debug_assertions))]
         env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
+            .filter_level(
+                env_logger::filter::Builder::new()
+                    .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
+                    .build()
+                    .filter()
+            )
             .init();
         
         let mut renderer = Renderer::init(window_builder).expect("Cannot create renderer");
