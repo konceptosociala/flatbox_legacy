@@ -74,17 +74,12 @@ fn create_models(
 ){
     let txt1 = renderer.create_texture("assets/uv.jpg", Filter::NEAREST) as u32;
     let txt2 = renderer.create_texture("assets/image.jpg", Filter::LINEAR) as u32;
+    
+    let mesh = Mesh::load_obj("assets/model.obj").swap_remove(0);
+    let mesh_flat = Mesh::load_obj("assets/model_flat.obj").swap_remove(0);
 
     cmd.spawn(ModelBundle {
-        mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-        material: renderer.create_material(MyMaterial {
-            colour: [0.7, 0.0, 0.0]
-        }),
-        transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
-    });
-    
-    cmd.spawn(ModelBundle {
-        mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+        mesh: mesh_flat.clone(),
         material: renderer.create_material(
             DefaultMat::builder()
                 .texture_id(txt1)
@@ -92,13 +87,25 @@ fn create_models(
                 .roughness(1.0)
                 .build(),
         ),
-        transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
+        transform: Transform::from_translation(Vector3::new(1.0, 0.0, -1.0)),
+    });
+    
+    cmd.spawn(ModelBundle {
+        mesh: mesh.clone(),
+        material: renderer.create_material(
+            DefaultMat::builder()
+                .texture_id(txt1)
+                .metallic(0.0)
+                .roughness(1.0)
+                .build(),
+        ),
+        transform: Transform::from_translation(Vector3::new(1.0, 0.0, 1.0)),
     });
     
     let mut phys_builder = EntityBuilder::new();
     phys_builder
         .add_bundle(ModelBundle {
-            mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+            mesh: mesh.clone(),
             material: renderer.create_material(MyMaterial {
                 colour: [0.0, 0.6, 1.0]
             }),
@@ -113,7 +120,7 @@ fn create_models(
     let mut static_builder = EntityBuilder::new();
     static_builder
         .add_bundle(ModelBundle {
-            mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+            mesh: mesh.clone(),
             material: renderer.create_material(TexMaterial {
                 texture_id: txt2
             }),

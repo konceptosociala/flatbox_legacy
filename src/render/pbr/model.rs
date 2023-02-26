@@ -9,6 +9,7 @@ use serde::{
     de::Error as DeError,
     ser::SerializeStruct,
 };
+use nalgebra as na;
 
 use crate::render::{
     backend::{
@@ -70,26 +71,34 @@ pub struct Mesh {
 impl Mesh {
     /// Create a textured plane mesh
     pub fn plane() -> Self {
+        let p1 = na::Point3::new(-1.0, 1.0, 0.0);
+        let p2 = na::Point3::new(1.0, 1.0, 0.0);
+        let p3 = na::Point3::new(-1.0, -1.0, 0.0);
+        
+        let v1 = p2 - p1;
+        let v2 = p3 - p1;
+        let normal: [f32; 3] = v1.cross(&v2).into();
+                
         Mesh {
             vertexdata: vec![
                 Vertex {
                     position: [-1.0, 1.0, 0.0],
-                    normal: Vertex::normalize([-1.0, 1.0, 0.0]),
+                    normal,
                     texcoord: [0.0, 1.0],
                 },
                 Vertex {
                     position: [-1.0, -1.0, 0.0],
-                    normal: Vertex::normalize([-1.0, -1.0, 0.0]),
+                    normal,
                     texcoord: [0.0, 0.0],
                 },
                 Vertex {
                     position: [1.0, 1.0, 0.0],
-                    normal: Vertex::normalize([1.0, 1.0, 0.0]),
+                    normal,
                     texcoord: [1.0, 1.0],
                 },
                 Vertex {
                     position: [1.0, -1.0, 0.0],
-                    normal: Vertex::normalize([1.0, -1.0, 0.0]),
+                    normal,
                     texcoord: [1.0, 0.0],
                 }
             ],
@@ -281,11 +290,14 @@ impl Mesh {
     /// Load model from `.obj` file
     pub fn load_obj<P>(path: P) -> Vec<Self>
     where 
-        P: AsRef<std::path::Path> + std::fmt::Debug
+        P: AsRef<std::path::Path> + Debug
     {
         let (models, _) = tobj::load_obj(
             path,
-            &tobj::LoadOptions::default(),
+            &tobj::LoadOptions {
+                single_index: true,
+                ..Default::default()
+            },
         ).expect("Cannot load OBJ file");
         
         let mut meshes = Vec::<Mesh>::new();
@@ -295,7 +307,6 @@ impl Mesh {
             let indexdata = m.mesh.indices;
             
             for i in 0..m.mesh.positions.len() / 3 {                
-                let normal: [f32; 3];
                 let texcoord: [f32; 2];
                 
                 let position = [
@@ -304,7 +315,11 @@ impl Mesh {
                     m.mesh.positions[i*3+2],
                 ];
                 
-                normal = Vertex::normalize(position);
+                let normal = [
+                    m.mesh.normals[i*3],
+                    m.mesh.normals[i*3+1],
+                    m.mesh.normals[i*3+2],
+                ];
                 
                 if i*2 < m.mesh.texcoords.len() {
                     texcoord = [
@@ -321,7 +336,7 @@ impl Mesh {
                     texcoord,
                 });
             }
-            
+                        
             meshes.push(Mesh {
                 vertexdata,
                 indexdata,

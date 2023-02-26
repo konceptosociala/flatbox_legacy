@@ -34,18 +34,21 @@ impl Pipeline {
         topology: vk::PrimitiveTopology,
     ) -> DesperoResult<Pipeline> {
         let mut vertex_attributes = vec![
+            // Position
             ShaderInputAttribute {
                 binding: 0,
                 location: 0,
                 offset: 0,
                 format: ShaderInputFormat::R32G32B32_SFLOAT,
             },
+            // Normal
             ShaderInputAttribute {
                 binding: 0,
                 location: 1,
                 offset: 12,
                 format: ShaderInputFormat::R32G32B32_SFLOAT,
             },
+            // Texcoord
             ShaderInputAttribute {
                 binding: 0,
                 location: 2,
