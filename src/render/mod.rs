@@ -10,7 +10,6 @@ pub use renderer::*;
 pub use debug::*;
 
 pub use gui::*;
-pub use gui::ctx::*;
 
 pub use pbr::camera::*;
 pub use pbr::model::*;

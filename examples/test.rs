@@ -63,7 +63,7 @@ fn ecs_change(
     world: SubWorld<&mut Transform>,
 ){
     for (_, mut t) in &mut world.query::<&mut Transform>() {
-        //~ t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
+        t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
     }
 }
 
@@ -80,7 +80,7 @@ fn create_models(
         material: renderer.create_material(MyMaterial {
             colour: [0.7, 0.0, 0.0]
         }),
-        transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
+        transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
     });
     
     cmd.spawn(ModelBundle {
@@ -92,7 +92,7 @@ fn create_models(
                 .roughness(1.0)
                 .build(),
         ),
-        transform: Transform::from_translation(Vector3::new(1.0, 0.0, -2.0)),
+        transform: Transform::from_translation(Vector3::new(1.0, 0.0, 0.0)),
     });
     
     let mut phys_builder = EntityBuilder::new();

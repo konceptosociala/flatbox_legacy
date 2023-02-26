@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use std::any::Any;
 use ash::vk;
@@ -9,6 +10,8 @@ use crate::render::{
         shader::*,
     },
 };
+
+pub type MaterialStorage = Vec<Arc<(dyn Material + Send + Sync)>>;
 
 #[derive(Default, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct MaterialHandle(usize);

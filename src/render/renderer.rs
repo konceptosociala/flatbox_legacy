@@ -30,6 +30,7 @@ use crate::render::{
         texture::*,
         material::*,
     },
+    gui::GuiHandler,
 };
 
 use crate::physics::{
@@ -59,8 +60,8 @@ pub struct Renderer {
     pub(crate) light_buffer: Buffer,
     pub(crate) descriptor_pool: DescriptorPool,
     pub(crate) texture_storage: TextureStorage,
-    pub(crate) materials: Vec<Arc<(dyn Material + Send + Sync)>>,
-    pub(crate) egui: ManuallyDrop<Integration<Arc<Mutex<Allocator>>>>,
+    pub(crate) materials: MaterialStorage,
+    pub(crate) egui: GuiHandler,
 }
 
 impl Renderer {    
@@ -257,53 +258,57 @@ impl Renderer {
             for (_, (mesh, handle, transform)) in &mut world.query::<(
                 &Mesh, &MaterialHandle, &Transform,
             )>(){
-                if let Some(vertexbuffer) = &mesh.vertexbuffer {
-                    if let Some(instancebuffer) = &mesh.instancebuffer {
-                        if let Some(indexbuffer) = &mesh.indexbuffer {
-                            let material = &self.materials[handle.get()];
-                            if (**material).type_id() == *material_type {
-                                self.device.cmd_bind_index_buffer(
-                                    commandbuffer,
-                                    indexbuffer.buffer,
-                                    0,
-                                    vk::IndexType::UINT32,
-                                );
-                                
-                                self.device.cmd_bind_vertex_buffers(
-                                    commandbuffer,
-                                    0,
-                                    &[vertexbuffer.buffer],
-                                    &[0],
-                                );
-                                
-                                self.device.cmd_bind_vertex_buffers(
-                                    commandbuffer,
-                                    1,
-                                    &[instancebuffer.buffer],
-                                    &[0],
-                                );
-                                
-                                let transform_matrices = transform.to_matrices();
-                                let transform_ptr = &transform_matrices as *const _ as *const u8;
-                                let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
-                                self.device.cmd_push_constants(
-                                    commandbuffer,
-                                    self.descriptor_pool.pipeline_layout,
-                                    vk::ShaderStageFlags::VERTEX,
-                                    0,
-                                    transform_slice,
-                                );
-                                
-                                self.device.cmd_draw_indexed(
-                                    commandbuffer,
-                                    mesh.indexdata.len() as u32,
-                                    1,
-                                    0,
-                                    0,
-                                    0,
-                                );                                    
-                            }
-                        }
+                if let (
+                    Some(vertexbuffer), 
+                    Some(instancebuffer), 
+                    Some(indexbuffer),
+                ) = (
+                    &mesh.vertexbuffer, 
+                    &mesh.instancebuffer, 
+                    &mesh.indexbuffer
+                ){
+                    let material = &self.materials[handle.get()];
+                    if (**material).type_id() == *material_type {
+                        self.device.cmd_bind_index_buffer(
+                            commandbuffer,
+                            indexbuffer.buffer,
+                            0,
+                            vk::IndexType::UINT32,
+                        );
+                        
+                        self.device.cmd_bind_vertex_buffers(
+                            commandbuffer,
+                            0,
+                            &[vertexbuffer.buffer],
+                            &[0],
+                        );
+                        
+                        self.device.cmd_bind_vertex_buffers(
+                            commandbuffer,
+                            1,
+                            &[instancebuffer.buffer],
+                            &[0],
+                        );
+                        
+                        let transform_matrices = transform.to_matrices();
+                        let transform_ptr = &transform_matrices as *const _ as *const u8;
+                        let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
+                        self.device.cmd_push_constants(
+                            commandbuffer,
+                            self.descriptor_pool.pipeline_layout,
+                            vk::ShaderStageFlags::VERTEX,
+                            0,
+                            transform_slice,
+                        );
+                        
+                        self.device.cmd_draw_indexed(
+                            commandbuffer,
+                            mesh.indexdata.len() as u32,
+                            1,
+                            0,
+                            0,
+                            0,
+                        );                                    
                     }
                 }
             }
