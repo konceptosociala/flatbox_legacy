@@ -73,6 +73,7 @@
 //! ```
 //! 
 
+#[cfg(feature = "winit")]
 use winit::{
     event::*,
     event::Event as WinitEvent,
@@ -121,7 +122,13 @@ pub struct Despero {
 
 impl Despero {
     /// Initialize Despero application
-    pub fn init(window_builder: WindowBuilder) -> Despero {
+    pub fn init(
+        #[cfg(feature = "winit")]
+        window_builder: WindowBuilder,
+        
+        #[cfg(feature = "gtk")]
+        window_builder: gtk::GLArea,
+    ) -> Despero {
         #[cfg(debug_assertions)]
         env_logger::builder()
             .filter_level(
@@ -195,36 +202,40 @@ impl Despero {
             &mut self.physics_handler,
         )).expect("Cannot execute setup schedule");
         
-        let event_loop = (&self.renderer.window.event_loop).clone();
-        (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
-            WinitEvent::WindowEvent { event, window_id: _ } => {
-                let _response = self.renderer.egui.handle_event(&event);
-                
-                match event {
-                    WindowEvent::CloseRequested => {
-                        *controlflow = winit::event_loop::ControlFlow::Exit;
-                    }
-                    _ => (),
-                }
-            }
+        #[cfg(feature = "winit")]
+        {
+            let event_loop = (&self.renderer.window.event_loop).clone();
+            (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
+                WinitEvent::WindowEvent { event, window_id: _ } => {
+                    #[cfg(feature = "egui")]
+                    let _response = self.renderer.egui.handle_event(&event);
                     
-            WinitEvent::MainEventsCleared => {
-                self.renderer.window.request_redraw();
-            }
-            
-            WinitEvent::RedrawRequested(_) => {
-                systems.execute((
-                    &mut self.world,
-                    &mut self.renderer,
-                    &mut self.event_writer,
-                    &mut self.physics_handler,
-                )).expect("Cannot execute loop schedule");
+                    match event {
+                        WindowEvent::CloseRequested => {
+                            *controlflow = winit::event_loop::ControlFlow::Exit;
+                        }
+                        _ => (),
+                    }
+                }
+                        
+                WinitEvent::MainEventsCleared => {
+                    self.renderer.window.request_redraw();
+                }
                 
-                self.world.clear_trackers();
-            }
-            
-            _ => {}
-        });
+                WinitEvent::RedrawRequested(_) => {
+                    systems.execute((
+                        &mut self.world,
+                        &mut self.renderer,
+                        &mut self.event_writer,
+                        &mut self.physics_handler,
+                    )).expect("Cannot execute loop schedule");
+                    
+                    self.world.clear_trackers();
+                }
+                
+                _ => {}
+            });
+        }
     }
 }
 

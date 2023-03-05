@@ -7,9 +7,11 @@ use ash::Device;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
+#[cfg(feature = "winit")]
 use winit::{
     window::WindowBuilder,
 };
+#[cfg(feature = "egui")]
 use egui_winit_ash_integration::*;
 
 use crate::ecs::*;
@@ -30,8 +32,9 @@ use crate::render::{
         texture::*,
         material::*,
     },
-    gui::GuiHandler,
 };
+#[cfg(feature = "egui")]
+use crate::render::gui::GuiHandler;
 
 use crate::physics::{
     physics_handler::PhysicsHandler,
@@ -40,6 +43,12 @@ use crate::physics::{
 use crate::math::transform::Transform;
 use crate::ecs::event::EventWriter;
 use crate::error::DesperoResult;
+
+#[cfg(all(feature = "gtk", feature = "winit"))]
+compile_error!("cannot use \"gtk\" and \"winit\" at the same time!");
+
+#[cfg(all(feature = "egui", not(feature = "winit")))]
+compile_error!("cannot use \"egui\" without \"winit\"!");
 
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
@@ -61,13 +70,20 @@ pub struct Renderer {
     pub(crate) descriptor_pool: DescriptorPool,
     pub(crate) texture_storage: TextureStorage,
     pub(crate) materials: MaterialStorage,
+    #[cfg(feature = "egui")]
     pub(crate) egui: GuiHandler,
 }
 
 impl Renderer {    
-    pub(crate) fn init(window_builder: WindowBuilder) -> DesperoResult<Renderer> {
+    pub(crate) fn init(
+        #[cfg(feature = "gtk")]
+        window_builder: gtk::GLArea,
+        
+        #[cfg(feature = "winit")]
+        window_builder: WindowBuilder,
+    ) -> DesperoResult<Renderer> {
         let instance = Instance::init()?;
-        let window    = Window::init(&instance, window_builder)?;
+        let window = Window::init(&instance, window_builder)?;
         let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
             
         let mut allocator = Allocator::new(&AllocatorCreateDesc {
@@ -123,6 +139,7 @@ impl Renderer {
         
         let allocator = Arc::new(Mutex::new(allocator));
         
+        #[cfg(feature = "egui")]
         let egui = ManuallyDrop::new(Integration::new(
             &*window.event_loop.lock().unwrap(),
             swapchain.extent.width,
@@ -155,6 +172,7 @@ impl Renderer {
             descriptor_pool,
             texture_storage: TextureStorage::new(),
             materials: vec![],
+            #[cfg(feature = "egui")]
             egui,
         })
     }
@@ -318,17 +336,20 @@ impl Renderer {
         
         self.device.cmd_end_render_pass(commandbuffer);
         
-        self.egui.context().set_visuals(egui::style::Visuals::dark());
-        self.egui.begin_frame(&self.window.window);
-        event_writer.send(Arc::new(self.egui.context()))?;
-        let output = self.egui.end_frame(&mut self.window.window);
-        let clipped_meshes = self.egui.context().tessellate(output.shapes);
-        self.egui.paint(
-            commandbuffer,
-            index,
-            clipped_meshes,
-            output.textures_delta
-        );
+        #[cfg(feature = "egui")]
+        {
+            self.egui.context().set_visuals(egui::style::Visuals::dark());
+            self.egui.begin_frame(&self.window.window);
+            event_writer.send(Arc::new(self.egui.context()))?;
+            let output = self.egui.end_frame(&mut self.window.window);
+            let clipped_meshes = self.egui.context().tessellate(output.shapes);
+            self.egui.paint(
+                commandbuffer,
+                index,
+                clipped_meshes,
+                output.textures_delta
+            );
+        }
         
         self.device.end_command_buffer(commandbuffer)?;
         
@@ -360,6 +381,7 @@ impl Renderer {
             )?;
         }
         
+        #[cfg(feature = "egui")]
         self.egui.update_swapchain(
             self.swapchain.extent.width,
             self.swapchain.extent.height,
@@ -382,7 +404,8 @@ impl Renderer {
     pub(crate) fn cleanup(&mut self, world: &mut World){
         unsafe {
             self.device.device_wait_idle().expect("Error halting device");  
-            self.debug_renderer.cleanup(&self.device, &self.allocator);  
+            self.debug_renderer.cleanup(&self.device, &self.allocator); 
+            #[cfg(feature = "egui")] 
             self.egui.destroy();
             self.texture_storage.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
             self.descriptor_pool.cleanup(&self.device);

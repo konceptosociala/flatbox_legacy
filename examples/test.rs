@@ -109,7 +109,7 @@ fn create_models(
             material: renderer.create_material(MyMaterial {
                 colour: [0.0, 0.6, 1.0]
             }),
-            transform: Transform::from_translation(Vector3::new(-1.0, 2.0, 0.0)),
+            transform: Transform::from_translation(Vector3::new(-1.0, 2.0, 0.5)),
         })
         .add(physics_handler.new_instance(
             RigidBodyBuilder::dynamic().build(),

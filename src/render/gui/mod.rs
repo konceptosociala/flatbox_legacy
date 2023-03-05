@@ -1,3 +1,5 @@
+#![cfg(feature = "egui")]
+
 use std::mem::ManuallyDrop;
 use std::sync::{Arc, Mutex};
 use gpu_allocator::vulkan::Allocator;

@@ -12,21 +12,30 @@ pub struct Surface {
 
 impl Surface {
     pub(crate) fn init(
+        #[cfg(feature = "winit")]
         window: &winit::window::Window,
+        #[cfg(feature = "gtk")]
+        window: &gtk::GLArea,
         instance: &Instance,
     ) -> Result<Surface, vk::Result> {
-        let surface = unsafe { ash_window::create_surface(
-            &instance.entry, 
-            &instance.instance, 
-            &window, 
-            None,
-        )? };
+        #[cfg(feature = "winit")]
+        {
+            let surface = unsafe { ash_window::create_surface(
+                &instance.entry, 
+                &instance.instance, 
+                &window, 
+                None,
+            )? };
+            
+            let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
+            Ok(Surface {
+                surface,
+                surface_loader,
+            })
+        }
         
-        let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
-        Ok(Surface {
-            surface,
-            surface_loader,
-        })
+        #[cfg(feature = "gtk")]
+        todo!();
     }
     
     pub(crate) fn get_capabilities(
