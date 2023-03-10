@@ -39,7 +39,7 @@ fn egui_handling(
 ){
     if let Some(ctx) = gui_events.read() {
         
-        egui::SidePanel::left("my_panel").show(&ctx, |ui| {
+        gui::SidePanel::left("my_panel").show(&ctx, |ui| {
             if ui.input().key_pressed(Key::A) {
                 error!("`A` is pressed!!!");
             }
