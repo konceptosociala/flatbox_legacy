@@ -32,6 +32,7 @@ use crate::render::{
         texture::*,
         material::*,
     },
+    gui::GuiContext,
 };
 #[cfg(feature = "egui")]
 use crate::render::gui::GuiHandler;
@@ -41,7 +42,7 @@ use crate::physics::{
     debug_render::*,
 };
 use crate::math::transform::Transform;
-use crate::ecs::event::EventWriter;
+use crate::ecs::event::EventHandler;
 use crate::error::DesperoResult;
 
 #[cfg(all(feature = "gtk", feature = "winit"))]
@@ -212,7 +213,7 @@ impl Renderer {
     pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
         &mut self,
         world: &mut SubWorld<W>,
-        event_writer: &mut EventWriter,
+        event_handler: &mut EventHandler<GuiContext>,
         physics_handler: &mut PhysicsHandler,
         index: usize,
     ) -> DesperoResult<()> {
@@ -340,7 +341,7 @@ impl Renderer {
         {
             self.egui.context().set_visuals(egui::style::Visuals::dark());
             self.egui.begin_frame(&self.window.window);
-            event_writer.send(Arc::new(self.egui.context()))?;
+            event_handler.send(self.egui.context());
             let output = self.egui.end_frame(&mut self.window.window);
             let clipped_meshes = self.egui.context().tessellate(output.shapes);
             self.egui.paint(

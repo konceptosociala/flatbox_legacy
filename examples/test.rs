@@ -17,16 +17,12 @@ impl WorldSaver {
 world_serializer!(WorldSaver, Mesh, Transform, MaterialHandle);
 
 fn main() {    
-    let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
-    
-    let egui_reader = despero.add_event_reader();
-    
-    despero
+    Despero::init(WindowBuilder::new().with_title("The Game"))
         .add_setup_system(bind_mat)
         .add_setup_system(create_models)
         .add_setup_system(create_camera)        
         .add_system(ecs_change)
-        .add_system(egui_handling(egui_reader))
+        .add_system(egui_handling)
         .run();
 }
 
@@ -39,22 +35,26 @@ fn bind_mat(
 }
 
 fn egui_handling(
-    mut event_reader: EventReader,
-) -> impl FnMut(Read<World>) {
-    move |world: Read<World>| {
+    gui_events: Write<EventHandler<GuiContext>>,
+){
+    if let Some(ctx) = gui_events.read() {
         
-        if let Ok(ctx) = event_reader.read::<GuiContext>() {
-            egui::SidePanel::left("my_panel").show(&ctx, |ui| {
-                ui.label("Click to save the world");
-                if ui.button("Save").clicked() {
-                    let mut ws = WorldSaver::new();
-                    match ws.save("assets/world.ron", &world) {
-                        Ok(()) => debug!("World saved!"),
-                        Err(e) => error!("World not saved: {:?}", e),
-                    };
-                }
-            });
-        }
+        egui::SidePanel::left("my_panel").show(&ctx, |ui| {
+            if ui.input().key_pressed(Key::A) {
+                error!("`A` is pressed!!!");
+            }
+            
+            ui.label("Click to say hello to the world");
+            if ui.button("Hello World!").clicked() {
+                //~ let mut ws = WorldSaver::new();
+                //~ match ws.save("assets/world.ron", &world) {
+                    //~ Ok(()) => debug!("World saved!"),
+                    //~ Err(e) => error!("World not saved: {:?}", e),
+                //~ };
+                debug!("Hello World");
+            }
+            
+        });
         
     }
 }

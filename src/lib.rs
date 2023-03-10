@@ -84,6 +84,7 @@ use winit::{
 use crate::render::{
     renderer::Renderer,
     pbr::material::*,
+    gui::GuiContext,
 };
 
 use crate::ecs::*;
@@ -113,7 +114,8 @@ pub struct Despero {
     world: World,
     systems: ScheduleBuilder,
     setup_systems: ScheduleBuilder,
-    event_writer: EventWriter,
+    #[cfg(feature = "egui")]
+    egui_ctx: EventHandler<GuiContext>,
     
     physics_handler: PhysicsHandler,
     
@@ -156,7 +158,7 @@ impl Despero {
             world: World::new(),
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
-            event_writer: EventWriter::new(),
+            egui_ctx: EventHandler::<GuiContext>::new(),
             physics_handler: PhysicsHandler::new(),
             renderer,
         }
@@ -180,10 +182,6 @@ impl Despero {
         self
     }
     
-    pub fn add_event_reader(&mut self) -> EventReader {
-        EventReader::new(&mut self.event_writer)
-    }
-    
     /// Run main event loop
     pub fn run(mut self) {
         let mut setup_systems = self.setup_systems.build();
@@ -198,7 +196,8 @@ impl Despero {
         setup_systems.execute((
             &mut self.world,
             &mut self.renderer,
-            &mut self.event_writer,
+            #[cfg(feature = "egui")]
+            &mut self.egui_ctx,
             &mut self.physics_handler,
         )).expect("Cannot execute setup schedule");
         
@@ -226,7 +225,8 @@ impl Despero {
                     systems.execute((
                         &mut self.world,
                         &mut self.renderer,
-                        &mut self.event_writer,
+                        #[cfg(feature = "egui")]
+                        &mut self.egui_ctx,
                         &mut self.physics_handler,
                     )).expect("Cannot execute loop schedule");
                     
@@ -235,6 +235,11 @@ impl Despero {
                 
                 _ => {}
             });
+        }
+        
+        #[cfg(feature = "gtk")]
+        {
+            todo!();
         }
     }
 }

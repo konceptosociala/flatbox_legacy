@@ -7,5 +7,8 @@ use egui_winit_ash_integration::Integration;
 
 pub type GuiHandler = ManuallyDrop<Integration<Arc<Mutex<Allocator>>>>;
 
-pub use egui::Context as GuiContext;
+pub type GuiEvent = egui::Event;
+pub type GuiContext = egui::Context;
+pub type Key = egui::Key;
 pub use egui as gui;
+

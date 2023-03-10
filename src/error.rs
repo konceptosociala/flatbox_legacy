@@ -1,13 +1,10 @@
 use thiserror::Error;
-use crate::ecs::*;
 use crate::physics::*;
 
 #[derive(Debug, Error)]
 pub enum Result {
     #[error("Allocation error")]
     AllocationError(#[from] gpu_allocator::AllocationError),
-    #[error("Event error")]
-    EventError(#[from] EventError),
     #[error("Error processing image")]
     ImageError(#[from] image::ImageError),
     #[error("I/O error")]

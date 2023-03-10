@@ -18,11 +18,12 @@ use crate::render::{
         buffer::Buffer,
         swapchain::Swapchain,
     },
+    gui::GuiContext,
 };
 
 pub(crate) fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,
-    mut event_writer: Write<EventWriter>,
+    mut egui_ctx: Write<EventHandler<GuiContext>>,
     mut renderer: Write<Renderer>,
     mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
@@ -40,7 +41,7 @@ pub(crate) fn rendering_system(
     unsafe { 
         renderer.update_commandbuffer(
             &mut model_world,
-            &mut event_writer,
+            &mut egui_ctx,
             &mut physics_handler,
             image_index as usize,
         )? 
