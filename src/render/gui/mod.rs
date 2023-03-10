@@ -10,5 +10,5 @@ pub type GuiHandler = ManuallyDrop<Integration<Arc<Mutex<Allocator>>>>;
 pub type GuiEvent = egui::Event;
 pub type GuiContext = egui::Context;
 pub type Key = egui::Key;
-pub use egui::*;
+pub use egui;
 
