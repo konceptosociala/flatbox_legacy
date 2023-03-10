@@ -21,3 +21,6 @@ impl<E: Clone + Send + Sync> EventHandler<E> {
         self.events = None;
     }
 }
+
+#[derive(Clone)]
+pub struct AppExit;

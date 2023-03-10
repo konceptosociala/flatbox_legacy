@@ -21,7 +21,7 @@ pub struct Window {
     #[cfg(feature = "winit")]
     pub(crate) event_loop: Arc<Mutex<EventLoop<()>>>,
     #[cfg(feature = "winit")]
-    pub(crate) window: Arc<WinitWindow>,
+    pub(crate) window: Arc<Mutex<WinitWindow>>,
     
     pub(crate) surface: ManuallyDrop<Surface>,
 }
@@ -39,8 +39,8 @@ impl Window {
         #[cfg(feature = "winit")]
         {
             let event_loop = Arc::new(Mutex::new(EventLoop::new()));
-            let window = Arc::new(window_builder.build(&*event_loop.lock().unwrap()).expect("Cannot create window"));
-            let surface = ManuallyDrop::new(Surface::init(&window, &instance)?);
+            let window = Arc::new(Mutex::new(window_builder.build(&*event_loop.lock().unwrap()).expect("Cannot create window")));
+            let surface = ManuallyDrop::new(Surface::init(&window.lock().unwrap(), &instance)?);
             
             return Ok(Window {
                 event_loop,
@@ -55,7 +55,7 @@ impl Window {
     
     #[cfg(feature = "winit")]
     pub fn request_redraw(&mut self) {
-        self.window.request_redraw();
+        self.window.lock().unwrap().request_redraw();
     }
     
     pub unsafe fn cleanup(&mut self) {

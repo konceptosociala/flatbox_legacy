@@ -1,6 +1,6 @@
 pub mod backend;
 pub mod pbr;
-pub mod gui;
+pub mod ui;
 pub mod renderer;
 pub mod debug;
 pub mod screenshot;
@@ -10,7 +10,7 @@ pub use renderer::*;
 pub use debug::*;
 
 #[cfg(feature = "egui")]
-pub use gui::*;
+pub use ui::*;
 
 pub use pbr::camera::*;
 pub use pbr::model::*;

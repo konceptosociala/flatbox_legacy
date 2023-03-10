@@ -18,7 +18,7 @@ use crate::render::{
         buffer::Buffer,
         swapchain::Swapchain,
     },
-    gui::GuiContext,
+    ui::GuiContext,
 };
 
 pub(crate) fn rendering_system(

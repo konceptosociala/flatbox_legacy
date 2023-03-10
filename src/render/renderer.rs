@@ -9,7 +9,7 @@ use gpu_allocator::MemoryLocation;
 use nalgebra as na;
 #[cfg(feature = "winit")]
 use winit::{
-    window::WindowBuilder,
+    window::{WindowBuilder, Window as WinitWindow},
 };
 #[cfg(feature = "egui")]
 use egui_winit_ash_integration::*;
@@ -32,10 +32,9 @@ use crate::render::{
         texture::*,
         material::*,
     },
-    gui::GuiContext,
 };
 #[cfg(feature = "egui")]
-use crate::render::gui::GuiHandler;
+use crate::render::ui::{GuiContext, GuiHandler};
 
 use crate::physics::{
     physics_handler::PhysicsHandler,
@@ -176,6 +175,11 @@ impl Renderer {
             #[cfg(feature = "egui")]
             egui,
         })
+    }
+    
+    #[cfg(feature = "winit")]
+    pub fn get_window(&self) -> Arc<Mutex<WinitWindow>> {
+        self.window.window.clone()
     }
     
     pub fn create_texture<P: AsRef<std::path::Path>>(
@@ -340,9 +344,9 @@ impl Renderer {
         #[cfg(feature = "egui")]
         {
             self.egui.context().set_visuals(egui::style::Visuals::dark());
-            self.egui.begin_frame(&self.window.window);
+            self.egui.begin_frame(&self.window.window.lock().unwrap());
             event_handler.send(self.egui.context());
-            let output = self.egui.end_frame(&mut self.window.window);
+            let output = self.egui.end_frame(&mut self.window.window.lock().unwrap());
             let clipped_meshes = self.egui.context().tessellate(output.shapes);
             self.egui.paint(
                 commandbuffer,

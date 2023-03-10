@@ -84,7 +84,7 @@ use winit::{
 use crate::render::{
     renderer::Renderer,
     pbr::material::*,
-    gui::GuiContext,
+    ui::GuiContext,
 };
 
 use crate::ecs::*;
@@ -114,8 +114,10 @@ pub struct Despero {
     world: World,
     systems: ScheduleBuilder,
     setup_systems: ScheduleBuilder,
+    
     #[cfg(feature = "egui")]
     egui_ctx: EventHandler<GuiContext>,
+    app_exit: EventHandler<AppExit>,
     
     physics_handler: PhysicsHandler,
     
@@ -158,7 +160,9 @@ impl Despero {
             world: World::new(),
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
+            #[cfg(feature = "egui")]
             egui_ctx: EventHandler::<GuiContext>::new(),
+            app_exit: EventHandler::<AppExit>::new(),
             physics_handler: PhysicsHandler::new(),
             renderer,
         }
@@ -198,6 +202,7 @@ impl Despero {
             &mut self.renderer,
             #[cfg(feature = "egui")]
             &mut self.egui_ctx,
+            &mut self.app_exit,
             &mut self.physics_handler,
         )).expect("Cannot execute setup schedule");
         
@@ -219,6 +224,9 @@ impl Despero {
                         
                 WinitEvent::MainEventsCleared => {
                     self.renderer.window.request_redraw();
+                    if let Some(_) = self.app_exit.read() {
+                        *controlflow = winit::event_loop::ControlFlow::Exit;
+                    }
                 }
                 
                 WinitEvent::RedrawRequested(_) => {
@@ -227,6 +235,8 @@ impl Despero {
                         &mut self.renderer,
                         #[cfg(feature = "egui")]
                         &mut self.egui_ctx,
+                        #[cfg(feature = "winit")]
+                        &mut self.app_exit,
                         &mut self.physics_handler,
                     )).expect("Cannot execute loop schedule");
                     
