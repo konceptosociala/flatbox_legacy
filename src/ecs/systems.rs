@@ -2,6 +2,7 @@ use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
 
+use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
 use crate::error::DesperoResult;
@@ -20,6 +21,12 @@ use crate::render::{
     },
     ui::GuiContext,
 };
+
+pub(crate) fn time_system(
+    mut time: Write<Time>,
+){
+    time.update();
+}
 
 pub(crate) fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,

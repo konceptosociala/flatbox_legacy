@@ -23,7 +23,14 @@ fn main() {
         .add_setup_system(create_camera)        
         .add_system(ecs_change)
         .add_system(egui_handling)
+        .add_system(print_time)
         .run();
+}
+
+fn print_time(
+    time: Read<Time>,
+){
+    info!("{}", time.delta_time().as_millis());
 }
 
 fn bind_mat(

@@ -89,6 +89,7 @@ use crate::render::{
 
 use crate::ecs::*;
 use crate::physics::*;
+use crate::time::*;
 
 /// Module of the main engine's error handler [`Result`]
 pub mod error;
@@ -98,6 +99,8 @@ pub mod assets;
 pub mod math;
 /// ECS components and re-exports
 pub mod ecs;
+/// Component connected with time
+pub mod time;
 /// Submodules and structures to work with graphics
 pub mod render;
 /// [Rapier3D](https://crates.io/crates/rapier3d) implementations
@@ -120,6 +123,8 @@ pub struct Despero {
     app_exit: EventHandler<AppExit>,
     
     physics_handler: PhysicsHandler,
+    
+    time_handler: Time,
     
     renderer: Renderer,
 }
@@ -164,6 +169,7 @@ impl Despero {
             egui_ctx: EventHandler::<GuiContext>::new(),
             app_exit: EventHandler::<AppExit>::new(),
             physics_handler: PhysicsHandler::new(),
+            time_handler: Time::new(),
             renderer,
         }
     }
@@ -193,6 +199,7 @@ impl Despero {
         let mut systems = self.systems
             .add_system(update_models_system)
             .add_system(rendering_system)
+            .add_system(time_system)
             .add_system(update_lights)
             .add_system(update_physics)
             .build();
@@ -203,6 +210,7 @@ impl Despero {
             #[cfg(feature = "egui")]
             &mut self.egui_ctx,
             &mut self.app_exit,
+            &mut self.time_handler,
             &mut self.physics_handler,
         )).expect("Cannot execute setup schedule");
         
@@ -241,6 +249,7 @@ impl Despero {
                         #[cfg(feature = "egui")]
                         &mut self.egui_ctx,
                         &mut self.app_exit,
+                        &mut self.time_handler,
                         &mut self.physics_handler,
                     )).expect("Cannot execute loop schedule");
                     
