@@ -24,6 +24,8 @@ pub use backend::pipeline::*;
 #[cfg(feature = "winit")]
 pub use winit::window::WindowBuilder;
 #[cfg(feature = "winit")]
+pub use winit::window::Fullscreen;
+#[cfg(feature = "winit")]
 pub use winit::event::VirtualKeyCode as KeyCode;
 #[cfg(feature = "winit")]
 pub use winit::event::*;
