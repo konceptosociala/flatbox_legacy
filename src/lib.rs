@@ -221,6 +221,11 @@ impl Despero {
                         _ => (),
                     }
                 }
+                
+                WinitEvent::NewEvents(StartCause::Init) => {
+                    unsafe { self.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
+                    log::debug!("Recreated swapchain");
+                }
                         
                 WinitEvent::MainEventsCleared => {
                     self.renderer.window.request_redraw();
@@ -235,7 +240,6 @@ impl Despero {
                         &mut self.renderer,
                         #[cfg(feature = "egui")]
                         &mut self.egui_ctx,
-                        #[cfg(feature = "winit")]
                         &mut self.app_exit,
                         &mut self.physics_handler,
                     )).expect("Cannot execute loop schedule");
