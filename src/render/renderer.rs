@@ -217,6 +217,7 @@ impl Renderer {
     pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
         &mut self,
         world: &mut SubWorld<W>,
+        #[cfg(feature = "egui")]
         event_handler: &mut EventHandler<GuiContext>,
         physics_handler: &mut PhysicsHandler,
         index: usize,

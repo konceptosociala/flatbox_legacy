@@ -19,8 +19,10 @@ use crate::render::{
         buffer::Buffer,
         swapchain::Swapchain,
     },
-    ui::GuiContext,
 };
+
+#[cfg(feature = "egui")]
+use crate::render::ui::GuiContext;
 
 pub(crate) fn time_system(
     mut time: Write<Time>,
@@ -30,6 +32,7 @@ pub(crate) fn time_system(
 
 pub(crate) fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,
+    #[cfg(feature = "egui")]
     mut egui_ctx: Write<EventHandler<GuiContext>>,
     mut renderer: Write<Renderer>,
     mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
@@ -48,6 +51,7 @@ pub(crate) fn rendering_system(
     unsafe { 
         renderer.update_commandbuffer(
             &mut model_world,
+            #[cfg(feature = "egui")]
             &mut egui_ctx,
             &mut physics_handler,
             image_index as usize,

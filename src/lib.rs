@@ -83,9 +83,12 @@ use winit::{
 
 use crate::render::{
     renderer::Renderer,
-    pbr::material::*,
-    ui::GuiContext,
+    pbr::material::*,    
 };
+#[cfg(feature = "egui")]
+use crate::render::ui::GuiContext;
+#[cfg(feature = "gtk")]
+use gtk::prelude::*;
 
 use crate::ecs::*;
 use crate::physics::*;
@@ -123,10 +126,11 @@ pub struct Despero {
     app_exit: EventHandler<AppExit>,
     
     physics_handler: PhysicsHandler,
-    
     time_handler: Time,
     
     renderer: Renderer,
+    #[cfg(feature = "gtk")]
+    gtk_application: gtk::Application,
 }
 
 impl Despero {
@@ -135,6 +139,8 @@ impl Despero {
         #[cfg(feature = "winit")]
         window_builder: WindowBuilder,
         
+        #[cfg(feature = "gtk")]
+        gtk_application: gtk::Application,
         #[cfg(feature = "gtk")]
         window_builder: gtk::GLArea,
     ) -> Despero {
@@ -171,6 +177,8 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             renderer,
+            #[cfg(feature = "gtk")]
+            gtk_application,
         }
     }
     
@@ -262,7 +270,19 @@ impl Despero {
         
         #[cfg(feature = "gtk")]
         {
-            todo!();
+            self.renderer.window.gl_area.connect_render(move |gl_area, _gl_context| {
+                systems.execute((
+                    &mut self.world,
+                    &mut self.renderer,
+                    &mut self.app_exit,
+                    &mut self.time_handler,
+                    &mut self.physics_handler,
+                )).expect("Cannot execute loop schedule");
+                
+                self.world.clear_trackers();
+            });
+            
+            self.gtk_application.run();
         }
     }
 }

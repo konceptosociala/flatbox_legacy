@@ -1,3 +1,5 @@
+#[cfg(feature = "gtk")]
+use gtk::prelude::*;
 use ash::vk;
 use crate::render::{
     backend::{
@@ -15,7 +17,7 @@ impl Surface {
         #[cfg(feature = "winit")]
         window: &winit::window::Window,
         #[cfg(feature = "gtk")]
-        window: &gtk::GLArea,
+        gl_area: &gtk::GLArea,
         instance: &Instance,
     ) -> Result<Surface, vk::Result> {
         #[cfg(feature = "winit")]
@@ -28,14 +30,28 @@ impl Surface {
             )? };
             
             let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
-            Ok(Surface {
+            return Ok(Surface {
                 surface,
                 surface_loader,
             })
         }
         
         #[cfg(feature = "gtk")]
-        todo!();
+        {                        
+            let surface = unsafe { ash_window::create_surface(
+                &instance.entry, 
+                &instance.instance, 
+                &gl_area, 
+                None,
+            )? };
+            
+            let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
+            
+            return Ok(Surface {
+                surface,
+                surface_loader,
+            })
+        }
     }
     
     pub(crate) fn get_capabilities(

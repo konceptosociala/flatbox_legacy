@@ -22,6 +22,8 @@ pub struct Window {
     pub(crate) event_loop: Arc<Mutex<EventLoop<()>>>,
     #[cfg(feature = "winit")]
     pub(crate) window: Arc<Mutex<WinitWindow>>,
+    #[cfg(feature = "gtk")]
+    pub(crate) gl_area: gtk::GLArea,
     
     pub(crate) surface: ManuallyDrop<Surface>,
 }
@@ -32,7 +34,6 @@ impl Window {
         
         #[cfg(feature = "gtk")]
         window_builder: gtk::GLArea,
-        
         #[cfg(feature = "winit")]
         window_builder: WindowBuilder,
     ) -> Result<Window, vk::Result> {
@@ -50,7 +51,14 @@ impl Window {
         }
         
         #[cfg(feature = "gtk")]
-        todo!();
+        {
+            let surface = ManuallyDrop::new(Surface::init(&window_builder, &instance)?);
+            
+            return Ok(Window {
+                gl_area: window_builder.clone(),
+                surface,
+            });
+        }
     }
     
     #[cfg(feature = "winit")]
