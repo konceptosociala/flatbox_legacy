@@ -112,9 +112,9 @@ impl Instance {
     
     /// Select physical device. Returns `None`, if physical device of given type doesn't exist
     fn select_device_of_type<'a>(
-        instance:    &'a ash::Instance,
-        physical_devices:     &'a Vec<vk::PhysicalDevice>,
-        d_type:        vk::PhysicalDeviceType,
+        instance: &'a ash::Instance,
+        physical_devices: &'a Vec<vk::PhysicalDevice>,
+        d_type: vk::PhysicalDeviceType,
     ) -> Option<(&'a vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures)> {
         for p in physical_devices {
             let properties = unsafe { instance.get_physical_device_properties(*p) };

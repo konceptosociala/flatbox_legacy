@@ -1,0 +1,14 @@
+[book]
+title = "Despero Manual"
+authors = ["Koncepto Sociala"]
+description = "An official manual book for Despero engine"
+multilingual = true
+language = "en"
+
+[rust]
+edition = "2021"
+
+[build]
+build-dir = "../docs"
+create-missing = false
+use-default-preprocessors = true

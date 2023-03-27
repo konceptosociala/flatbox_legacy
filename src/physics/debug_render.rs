@@ -34,13 +34,13 @@ impl DebugRenderer {
     ) -> DesperoResult<Self> {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/vertex_debug.glsl", 
+                "./src/shaders/vertex_debug.glsl", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/fragment_debug.glsl",
+                "./src/shaders/fragment_debug.glsl",
                 kind: frag,
             ));
             

@@ -212,18 +212,18 @@ pub(crate) fn update_models_system(
 }
 
 pub(crate) fn update_lights(
-    plight_world: SubWorld<&PointLight>,
-    dlight_world: SubWorld<&DirectionalLight>,
+    plight_world: SubWorld<(&PointLight, Changed<PointLight>)>,
+    dlight_world: SubWorld<(&DirectionalLight, Changed<DirectionalLight>)>,
     mut renderer: Write<Renderer>,
 ) -> DesperoResult<()> {
-    let directional_lights = dlight_world.query::<&DirectionalLight>()
+    let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
         .into_iter()
-        .map(|(_, l)| l.clone())
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
         .collect::<Vec<DirectionalLight>>();
-        
-    let point_lights = plight_world.query::<&PointLight>()
+    
+    let point_lights = plight_world.query::<(&PointLight, Changed<PointLight>)>()
         .into_iter()
-        .map(|(_, l)| l.clone())
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
         .collect::<Vec<PointLight>>();
     
     let mut data = vec![

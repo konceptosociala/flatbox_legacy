@@ -66,13 +66,13 @@ impl Material for DefaultMat {
     fn pipeline(renderer: &Renderer) -> Pipeline {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/vertex_combined.glsl", 
+                "./src/shaders/vertex_combined.glsl", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/fragment_combined.glsl",
+                "./src/shaders/fragment_combined.glsl",
                 kind: frag,
             ));
             

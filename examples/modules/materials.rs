@@ -17,13 +17,13 @@ impl Material for MyMaterial {
     fn pipeline(renderer: &Renderer) -> Pipeline {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/vertex_simple.glsl", 
+                "./src/shaders/vertex_simple.glsl", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/fragment_simple.glsl",
+                "./src/shaders/fragment_simple.glsl",
                 kind: frag,
             ));
             
@@ -51,13 +51,13 @@ impl Material for TexMaterial {
     fn pipeline(renderer: &Renderer) -> Pipeline {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/vertex_simple2.glsl", 
+                "./src/shaders/vertex_simple2.glsl", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./shaders/fragment_simple2.glsl",
+                "./src/shaders/fragment_simple2.glsl",
                 kind: frag,
             ));
             
