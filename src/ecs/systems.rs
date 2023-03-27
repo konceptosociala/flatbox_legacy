@@ -48,15 +48,13 @@ pub(crate) fn rendering_system(
         }
     }    
 
-    unsafe { 
-        renderer.update_commandbuffer(
-            &mut model_world,
-            #[cfg(feature = "egui")]
-            &mut egui_ctx,
-            &mut physics_handler,
-            image_index as usize,
-        )? 
-    };
+    renderer.update_commandbuffer(
+        &mut model_world,
+        #[cfg(feature = "egui")]
+        &mut egui_ctx,
+        &mut physics_handler,
+        image_index as usize,
+    )?;
     
     // Submit commandbuffers
     let semaphores_available = [renderer.swapchain.image_available[renderer.swapchain.current_image]];
@@ -225,6 +223,10 @@ pub(crate) fn update_lights(
         .into_iter()
         .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
         .collect::<Vec<PointLight>>();
+        
+    if directional_lights.is_empty() && point_lights.is_empty() {
+        return Ok(());
+    }
     
     let mut data = vec![
         directional_lights.len() as f32,

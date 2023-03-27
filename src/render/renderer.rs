@@ -53,6 +53,8 @@ compile_error!("cannot use \"egui\" without \"winit\"!");
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
 
+pub type PipelineCollection = HashMap<TypeId, Pipeline>;
+
 /// Main rendering collection, including Vulkan components
 pub struct Renderer {
     pub(crate) instance: Instance,
@@ -61,7 +63,7 @@ pub struct Renderer {
     pub(crate) device: Device,
     pub(crate) swapchain: Swapchain,
     pub(crate) renderpass: vk::RenderPass,
-    pub(crate) material_pipelines: HashMap<TypeId, Pipeline>,
+    pub(crate) material_pipelines: PipelineCollection,
     pub(crate) debug_renderer: DebugRenderer,
     pub(crate) commandbuffer_pools: CommandBufferPools,
     pub(crate) allocator: Arc<Mutex<Allocator>>,
@@ -214,125 +216,38 @@ impl Renderer {
         }
     }
     
-    pub(crate) unsafe fn update_commandbuffer<W: borrow::ComponentBorrow>(
+    pub(crate) fn update_commandbuffer<W: borrow::ComponentBorrow>(
         &mut self,
         world: &mut SubWorld<W>,
         #[cfg(feature = "egui")]
         event_handler: &mut EventHandler<GuiContext>,
         physics_handler: &mut PhysicsHandler,
         index: usize,
-    ) -> DesperoResult<()> {
-        let imageinfos = self.texture_storage.get_descriptor_image_info();
-        let descriptorwrite_image = vk::WriteDescriptorSet::builder()
-            .dst_set(self.descriptor_pool.texture_sets[self.swapchain.current_image])
-            .dst_binding(0)
-            .dst_array_element(0)
-            .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-            .image_info(&imageinfos)
-            .build();
-
-        self.device.update_descriptor_sets(&[descriptorwrite_image], &[]);
-        
+    ) -> DesperoResult<()> {        
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
-        let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
         
-        self.commandbuffer_pools.current_commandbuffer = Some(commandbuffer);
+        update_texture_sets(&self.texture_storage, &self.descriptor_pool, &self.swapchain, &self.device);
         
-        let clear_values = Self::set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
+        begin_commandbuffer(&commandbuffer, &mut self.commandbuffer_pools, &self.device)?;
+        begin_renderpass(&self.renderpass, &self.swapchain, &self.device, &commandbuffer, index);
         
-        let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
-            .render_pass(self.renderpass)
-            .framebuffer(self.swapchain.framebuffers[index])
-            .render_area(vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.swapchain.extent,
-            })
-            .clear_values(&clear_values);
+        bind_descriptor_sets(&self.device, &commandbuffer, &self.descriptor_pool, index);
         
-        self.device.begin_command_buffer(commandbuffer, &commandbuffer_begininfo)?;
-        
-        self.device.cmd_begin_render_pass(
-            commandbuffer,
-            &renderpass_begininfo,
-            vk::SubpassContents::INLINE,
-        );
-        
-        self.device.cmd_bind_descriptor_sets(
-            commandbuffer,
-            vk::PipelineBindPoint::GRAPHICS,
-            self.descriptor_pool.pipeline_layout,
-            0,
-            &[
-                self.descriptor_pool.camera_sets[index],
-                self.descriptor_pool.texture_sets[index],
-                self.descriptor_pool.light_sets[index],
-            ],
-            &[],
-        );
-        
-        for material_type in self.material_pipelines.keys() {
-            let pipeline = self.material_pipelines.get(&material_type).unwrap();
-                        
-            self.device.cmd_bind_pipeline(
-                commandbuffer,
-                vk::PipelineBindPoint::GRAPHICS,
-                pipeline.pipeline,
-            );
+        for mat_type in self.material_pipelines.keys() {
+            bind_graphics_pipeline(&self.material_pipelines, &self.device, &commandbuffer, mat_type);
             
             for (_, (mesh, handle, transform)) in &mut world.query::<(
                 &Mesh, &MaterialHandle, &Transform,
             )>(){
-                if let (
-                    Some(vertexbuffer), 
-                    Some(instancebuffer), 
-                    Some(indexbuffer),
-                ) = (
-                    &mesh.vertexbuffer, 
-                    &mesh.instancebuffer, 
-                    &mesh.indexbuffer
-                ){
+                if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
+                    (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
+                {
                     let material = &self.materials[handle.get()];
-                    if (**material).type_id() == *material_type {
-                        self.device.cmd_bind_index_buffer(
-                            commandbuffer,
-                            indexbuffer.buffer,
-                            0,
-                            vk::IndexType::UINT32,
-                        );
+                    if (**material).type_id() == *mat_type {
+                        bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
                         
-                        self.device.cmd_bind_vertex_buffers(
-                            commandbuffer,
-                            0,
-                            &[vertexbuffer.buffer],
-                            &[0],
-                        );
-                        
-                        self.device.cmd_bind_vertex_buffers(
-                            commandbuffer,
-                            1,
-                            &[instancebuffer.buffer],
-                            &[0],
-                        );
-                        
-                        let transform_matrices = transform.to_matrices();
-                        let transform_ptr = &transform_matrices as *const _ as *const u8;
-                        let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
-                        self.device.cmd_push_constants(
-                            commandbuffer,
-                            self.descriptor_pool.pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX,
-                            0,
-                            transform_slice,
-                        );
-                        
-                        self.device.cmd_draw_indexed(
-                            commandbuffer,
-                            mesh.indexdata.len() as u32,
-                            1,
-                            0,
-                            0,
-                            0,
-                        );                                    
+                        apply_transform(&self.device, &self.descriptor_pool, &commandbuffer, &transform);
+                        draw_mesh(&self.device, &commandbuffer, mesh.indexdata.len());
                     }
                 }
             }
@@ -340,25 +255,12 @@ impl Renderer {
         
         physics_handler.debug_render(self);
         
-        self.device.cmd_end_render_pass(commandbuffer);
+        end_renderpass(&self.device, &commandbuffer);
         
         #[cfg(feature = "egui")]
-        {
-            self.egui.context().set_visuals(egui::style::Visuals::dark());
-            self.egui.begin_frame(&self.window.window.lock().unwrap());
-            event_handler.send(self.egui.context());
-            let output = self.egui.end_frame(&mut self.window.window.lock().unwrap());
-            let clipped_meshes = self.egui.context().tessellate(output.shapes);
-            self.egui.paint(
-                commandbuffer,
-                index,
-                clipped_meshes,
-                output.textures_delta
-            );
-        }
+        render_egui(&mut self.egui, &mut self.window, event_handler, &commandbuffer, index);
         
-        self.device.end_command_buffer(commandbuffer)?;
-        
+        end_commandbuffer(&self.device, &commandbuffer);
         self.commandbuffer_pools.current_commandbuffer = None;
             
         Ok(())
@@ -420,9 +322,9 @@ impl Renderer {
             self.device.destroy_buffer(self.light_buffer.buffer, None);
 
             for (_, mut m) in &mut world.query::<&mut Mesh>(){    
-                Self::clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
-                Self::clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
-                Self::clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);
+                clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
+                clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
+                clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);
             }
             
             self.commandbuffer_pools.cleanup(&self.device);
@@ -436,36 +338,230 @@ impl Renderer {
             self.instance.cleanup();
         };
     }
+}
+
+fn set_clear_values(
+    color: na::Vector3<f32>
+) -> [vk::ClearValue; 2] {
+    [
+        vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: na::Vector4::from([color.x, color.y, color.z, 1.0]).into(),
+            },
+        },
+        vk::ClearValue {
+            depth_stencil: vk::ClearDepthStencilValue {
+                depth: 1.0,
+                stencil: 0,
+            },
+        },
+    ]
+}
+
+fn begin_commandbuffer(
+    commandbuffer: &vk::CommandBuffer, 
+    commandbuffer_pools: &mut CommandBufferPools, 
+    device: &ash::Device
+) -> DesperoResult<()> {
+    let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
+    commandbuffer_pools.current_commandbuffer = Some(*commandbuffer);
+    unsafe { device.begin_command_buffer(*commandbuffer, &commandbuffer_begininfo)? };
     
-    fn set_clear_values(
-        color: na::Vector3<f32>
-    ) -> [vk::ClearValue; 2] {
-        [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: na::Vector4::from([color.x, color.y, color.z, 1.0]).into(),
-                },
-            },
-            vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
-                    stencil: 0,
-                },
-            },
-        ]
+    Ok(())
+}
+
+fn update_texture_sets(
+    texture_storage: &TextureStorage, 
+    descriptor_pool: &DescriptorPool, 
+    swapchain: &Swapchain,
+    device: &ash::Device,
+){
+    let imageinfos = texture_storage.get_descriptor_image_info();
+    let descriptorwrite_image = vk::WriteDescriptorSet::builder()
+        .dst_set(descriptor_pool.texture_sets[swapchain.current_image])
+        .dst_binding(0)
+        .dst_array_element(0)
+        .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+        .image_info(&imageinfos)
+        .build();
+
+    unsafe { device.update_descriptor_sets(&[descriptorwrite_image], &[]); }
+}
+
+fn begin_renderpass(
+    renderpass: &vk::RenderPass, 
+    swapchain: &Swapchain,
+    device: &ash::Device,
+    commandbuffer: &vk::CommandBuffer,
+    index: usize,
+){
+    let clear_values = set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
+    
+    let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
+        .render_pass(*renderpass)
+        .framebuffer(swapchain.framebuffers[index])
+        .render_area(vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent: swapchain.extent,
+        })
+        .clear_values(&clear_values);
+    
+    unsafe { 
+        device.cmd_begin_render_pass(
+            *commandbuffer,
+            &renderpass_begininfo,
+            vk::SubpassContents::INLINE,
+        );
     }
+}
+
+fn bind_descriptor_sets(
+    device: &ash::Device,
+    commandbuffer: &vk::CommandBuffer,
+    descriptor_pool: &DescriptorPool,
+    index: usize,
+){
+    unsafe {
+        device.cmd_bind_descriptor_sets(
+            *commandbuffer,
+            vk::PipelineBindPoint::GRAPHICS,
+            descriptor_pool.pipeline_layout,
+            0,
+            &[
+                descriptor_pool.camera_sets[index],
+                descriptor_pool.texture_sets[index],
+                descriptor_pool.light_sets[index],
+            ],
+            &[],
+        );
+    }
+}
+
+fn bind_graphics_pipeline(
+    pipelines: &PipelineCollection, 
+    device: &ash::Device,
+    commandbuffer: &vk::CommandBuffer,
+    mat_type: &TypeId,
+){
+    let pipeline = pipelines.get(mat_type).unwrap();
+                
+    unsafe {
+        device.cmd_bind_pipeline(
+            *commandbuffer,
+            vk::PipelineBindPoint::GRAPHICS,
+            pipeline.pipeline,
+        );
+    }
+}
+
+fn bind_vertex_buffers(
+    device: &ash::Device,
+    commandbuffer: &vk::CommandBuffer,
+    indexbuffer: &Buffer,
+    vertexbuffer: &Buffer,
+    instancebuffer: &Buffer,
+){
+    unsafe {
+        device.cmd_bind_index_buffer(
+            *commandbuffer,
+            indexbuffer.buffer,
+            0,
+            vk::IndexType::UINT32,
+        );
+        
+        device.cmd_bind_vertex_buffers(
+            *commandbuffer,
+            0,
+            &[vertexbuffer.buffer],
+            &[0],
+        );
+        
+        device.cmd_bind_vertex_buffers(
+            *commandbuffer,
+            1,
+            &[instancebuffer.buffer],
+            &[0],
+        );
+    }
+}
+
+fn apply_transform(
+    device: &ash::Device,
+    descriptor_pool: &DescriptorPool,
+    commandbuffer: &vk::CommandBuffer,
+    transform: &Transform,
+){
+    let transform_matrices = transform.to_matrices();
+    let transform_ptr = &transform_matrices as *const _ as *const u8;
+    let transform_slice = unsafe { std::slice::from_raw_parts(transform_ptr, 128) };
     
-    fn clear_model_buffer(
-        buf: &mut Option<Buffer>,
-        logical_device: &ash::Device,
-        allocator: &Arc<Mutex<Allocator>>,
-    ){
-        if let Some(b) = buf {
-            let mut alloc: Option<Allocation> = None;
-            std::mem::swap(&mut alloc, &mut b.allocation);
-            (*allocator.lock().unwrap()).free(alloc.unwrap()).unwrap();
-            unsafe { logical_device.destroy_buffer(b.buffer, None) };
-        }
+    unsafe {
+        device.cmd_push_constants(
+            *commandbuffer,
+            descriptor_pool.pipeline_layout,
+            vk::ShaderStageFlags::VERTEX,
+            0,
+            transform_slice,
+        );
+    }
+}
+
+fn draw_mesh(
+    device: &ash::Device,
+    commandbuffer: &vk::CommandBuffer,
+    indices_count: usize,
+){
+    unsafe {
+        device.cmd_draw_indexed(
+            *commandbuffer,
+            indices_count as u32,
+            1,
+            0,
+            0,
+            0,
+        );
+    }
+}
+
+fn end_renderpass(device: &ash::Device, commandbuffer: &vk::CommandBuffer){
+    unsafe { device.cmd_end_render_pass(*commandbuffer); }
+}
+
+fn end_commandbuffer(device: &ash::Device, commandbuffer: &vk::CommandBuffer){
+    unsafe { device.end_command_buffer(*commandbuffer).expect("Failed end commandbuffer"); }
+}
+
+#[cfg(feature = "egui")]
+fn render_egui(
+    egui: &mut GuiHandler,
+    window: &mut Window,
+    event_handler: &mut EventHandler<GuiContext>,
+    commandbuffer: &vk::CommandBuffer,
+    index: usize,
+){
+    egui.context().set_visuals(egui::style::Visuals::dark());
+    egui.begin_frame(&window.window.lock().unwrap());
+    event_handler.send(egui.context());
+    let output = egui.end_frame(&mut window.window.lock().unwrap());
+    let clipped_meshes = egui.context().tessellate(output.shapes);
+    egui.paint(
+        *commandbuffer,
+        index,
+        clipped_meshes,
+        output.textures_delta
+    );
+}
+
+fn clear_model_buffer(
+    buf: &mut Option<Buffer>,
+    logical_device: &ash::Device,
+    allocator: &Arc<Mutex<Allocator>>,
+){
+    if let Some(b) = buf {
+        let mut alloc: Option<Allocation> = None;
+        std::mem::swap(&mut alloc, &mut b.allocation);
+        (*allocator.lock().unwrap()).free(alloc.unwrap()).unwrap();
+        unsafe { logical_device.destroy_buffer(b.buffer, None) };
     }
 }
 
