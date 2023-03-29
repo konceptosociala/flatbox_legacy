@@ -13,7 +13,7 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub(crate) fn init(
+    pub fn init(
         #[cfg(feature = "winit")]
         window: &winit::window::Window,
         #[cfg(feature = "gtk")]
@@ -54,7 +54,7 @@ impl Surface {
         }
     }
     
-    pub(crate) fn get_capabilities(
+    pub fn get_capabilities(
         &self,
         physical_device: vk::PhysicalDevice,
     ) -> Result<vk::SurfaceCapabilitiesKHR, vk::Result> {
@@ -64,7 +64,7 @@ impl Surface {
     }
     
     #[allow(dead_code)]
-    pub(crate) fn get_present_modes(
+    pub fn get_present_modes(
         &self,
         physical_device: vk::PhysicalDevice,
     ) -> Result<Vec<vk::PresentModeKHR>, vk::Result> {
@@ -74,7 +74,7 @@ impl Surface {
         }
     }
     
-    pub(crate) fn get_formats(
+    pub fn get_formats(
         &self,
         physical_device: vk::PhysicalDevice,
     ) -> Result<Vec<vk::SurfaceFormatKHR>, vk::Result> {
@@ -84,7 +84,7 @@ impl Surface {
         }
     }
     
-    pub(crate) fn get_physical_device_surface_support(
+    pub fn get_physical_device_surface_support(
         &self,
         physical_device: vk::PhysicalDevice,
         queuefamilyindex: usize,

@@ -78,10 +78,10 @@ use winit::{
     event::*,
     event::Event as WinitEvent,
     platform::run_return::EventLoopExtRunReturn,
-    window::WindowBuilder,
 };
 
 use crate::render::{
+    backend::window::WindowBuilder,
     renderer::Renderer,
     pbr::material::*,    
 };
@@ -200,17 +200,24 @@ impl Despero {
         self
     }
     
-    /// Run main event loop
-    pub fn run(mut self) {
-        let mut setup_systems = self.setup_systems.build();
+    pub fn default_systems(mut self) -> Self {
+        //self.setup_systems
+        //    .add_system(/* */);
         
-        let mut systems = self.systems
+        self.systems
             .add_system(update_models_system)
             .add_system(rendering_system)
             .add_system(time_system)
             .add_system(update_lights)
-            .add_system(update_physics)
-            .build();
+            .add_system(update_physics);
+            
+        return self;
+    }
+    
+    /// Run main event loop
+    pub fn run(mut self) {
+        let mut setup_systems = self.setup_systems.build();
+        let mut systems = self.systems.build();
         
         setup_systems.execute((
             &mut self.world,

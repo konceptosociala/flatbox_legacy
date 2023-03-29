@@ -9,7 +9,9 @@ use gpu_allocator::MemoryLocation;
 use nalgebra as na;
 #[cfg(feature = "winit")]
 use winit::{
-    window::{WindowBuilder, Window as WinitWindow},
+    window::{
+        Window as WinitWindow
+    },
 };
 #[cfg(feature = "egui")]
 use egui_winit_ash_integration::*;
@@ -19,7 +21,7 @@ use crate::ecs::*;
 use crate::render::{
     backend::{
         instance::Instance,
-        window::Window,
+        window::{Window, WindowBuilder},
         queues::QueueFamilies,
         swapchain::Swapchain,
         pipeline::Pipeline,
@@ -85,7 +87,7 @@ impl Renderer {
         window_builder: WindowBuilder,
     ) -> DesperoResult<Renderer> {
         let instance = Instance::init()?;
-        let window = Window::init(&instance, window_builder)?;
+        let window = Window::init(&instance, window_builder.into())?;
         let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
             
         let mut allocator = Allocator::new(&AllocatorCreateDesc {
@@ -216,7 +218,7 @@ impl Renderer {
         }
     }
     
-    pub(crate) fn update_commandbuffer<W: borrow::ComponentBorrow>(
+    pub fn update_commandbuffer<W: borrow::ComponentBorrow>(
         &mut self,
         world: &mut SubWorld<W>,
         #[cfg(feature = "egui")]
@@ -266,7 +268,7 @@ impl Renderer {
         Ok(())
     }
     
-    pub(crate) unsafe fn recreate_swapchain(&mut self) -> DesperoResult<()> {
+    pub unsafe fn recreate_swapchain(&mut self) -> DesperoResult<()> {
         self.device.device_wait_idle()?;
 
         self.swapchain.cleanup(&self.device, &mut *self.allocator.lock().unwrap());

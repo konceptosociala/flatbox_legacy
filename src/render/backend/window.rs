@@ -4,9 +4,13 @@ use ash::vk;
 #[cfg(feature = "winit")]
 use winit::{
     event_loop::EventLoop,
+    dpi::LogicalSize,
     window::{
+        Icon,
+        Fullscreen,
+        
         Window as WinitWindow,
-        WindowBuilder,
+        WindowBuilder as WinitWindowBuilder,
     },
 };
 use crate::render::{
@@ -35,7 +39,7 @@ impl Window {
         #[cfg(feature = "gtk")]
         window_builder: gtk::GLArea,
         #[cfg(feature = "winit")]
-        window_builder: WindowBuilder,
+        window_builder: WinitWindowBuilder,
     ) -> Result<Window, vk::Result> {
         #[cfg(feature = "winit")]
         {
@@ -68,5 +72,39 @@ impl Window {
     
     pub unsafe fn cleanup(&mut self) {
         ManuallyDrop::drop(&mut self.surface);
+    }
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct WindowBuilder {
+    pub title: Option<&'static str>,
+    pub icon: Option<Icon>,
+    
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+    pub fullscreen: Option<bool>,
+    pub resizable: Option<bool>,
+}
+
+impl From<WindowBuilder> for WinitWindowBuilder {
+    fn from(v: WindowBuilder) -> Self {
+        WinitWindowBuilder::new()
+            .with_title(v.title.unwrap_or("My Game").to_owned())
+            .with_window_icon(v.icon)
+            
+            .with_inner_size(
+                LogicalSize {
+                    width: v.width.unwrap_or(800.0),
+                    height: v.height.unwrap_or(600.0),
+                }
+            )
+            
+            .with_resizable(v.resizable.unwrap_or(true))
+            .with_fullscreen(
+                match v.fullscreen.unwrap_or(false) {
+                    true => Some(Fullscreen::Borderless(None)),
+                    false => None,
+                }
+            )
     }
 }

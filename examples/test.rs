@@ -1,29 +1,25 @@
-use serde::{Serialize, Deserialize};
 use despero::prelude::*;
-use despero::world_serializer;
 
 pub mod modules;
 use modules::materials::*;
-
-#[derive(Deserialize, Serialize)]
-struct WorldSaver;
-
-impl WorldSaver {
-    pub fn new() -> Self {
-        WorldSaver
-    }
-}
-
-world_serializer!(WorldSaver, Mesh, Transform, MaterialHandle);
+use modules::save::*;
 
 fn main() {    
-    Despero::init(WindowBuilder::new().with_title("The Game"))
+    Despero::init(WindowBuilder {
+        title: Some("My Game"),
+        ..Default::default()
+    })
+        
+        .default_systems()
+    
         .add_setup_system(bind_mat)
         .add_setup_system(create_models)
-        .add_setup_system(create_camera)        
+        .add_setup_system(create_camera)   
+             
         .add_system(ecs_change)
         .add_system(egui_handling)
         .add_system(print_time)
+        
         .run();
 }
 
@@ -43,6 +39,7 @@ fn bind_mat(
 
 fn egui_handling(
     gui_events: Write<EventHandler<GuiContext>>,
+    world: Read<World>,
 ){
     if let Some(ctx) = gui_events.read() {
         
@@ -53,11 +50,11 @@ fn egui_handling(
             
             ui.label("Click to say hello to the world");
             if ui.button("Hello World!").clicked() {
-                //~ let mut ws = WorldSaver::new();
-                //~ match ws.save("assets/world.ron", &world) {
-                    //~ Ok(()) => debug!("World saved!"),
-                    //~ Err(e) => error!("World not saved: {:?}", e),
-                //~ };
+                let mut ws = WorldSaver::new();
+                match ws.save("assets/world.ron", &world) {
+                    Ok(()) => debug!("World saved!"),
+                    Err(e) => error!("World not saved: {:?}", e),
+                };
                 debug!("Hello World");
             }
             
