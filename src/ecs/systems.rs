@@ -24,10 +24,22 @@ use crate::render::{
 #[cfg(feature = "egui")]
 use crate::render::ui::GuiContext;
 
+pub (crate) fn main_setup(){}
+
 pub(crate) fn time_system(
     mut time: Write<Time>,
 ){
     time.update();
+}
+
+pub(crate) fn process_camera(
+    camera_world: SubWorld<(&mut Camera, &Transform, Changed<Transform>)>,
+){
+    for (_, (mut camera, transform, _moved)) in &mut camera_world.query::<(
+        &mut Camera, &Transform, Changed<Transform>
+    )>(){
+        camera.set_viewmatrix(transform.to_matrices().0);
+    }
 }
 
 pub(crate) fn rendering_system(
@@ -43,7 +55,7 @@ pub(crate) fn rendering_system(
     check_fences(&renderer.device, &renderer.swapchain)?;
     
     for (_, camera) in &mut camera_world.query::<&mut Camera>(){
-        if camera.is_active {        
+        if camera.is_active() {        
             camera.update_buffer(&mut renderer)?;
         }
     }    
@@ -97,7 +109,7 @@ pub(crate) fn rendering_system(
             renderer.recreate_swapchain().expect("Cannot recreate swapchain");
             
             for (_, mut camera) in &mut camera_world.query::<&mut Camera>(){
-                if camera.is_active {
+                if camera.is_active() {
                     camera.set_aspect(
                         renderer.swapchain.extent.width as f32
                             / renderer.swapchain.extent.height as f32,

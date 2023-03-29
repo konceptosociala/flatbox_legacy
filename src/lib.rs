@@ -19,9 +19,13 @@
 //! use despero::prelude::*;
 //! 
 //! fn main(){
-//!     let mut despero = Despero::init(WindowBuilder::new().with_title("The Game"));
-//! 
-//!     despero
+//!     Despero::init(WindowBuilder {
+//!         title: Some("My Game"),
+//!         ..Default::default()
+//!     })
+//!        
+//!         .default_systems()
+//!
 //!         .add_setup_system(create_model)
 //!         .add_setup_system(create_camera)
 //!         .add_system(rotate_model)
@@ -201,10 +205,11 @@ impl Despero {
     }
     
     pub fn default_systems(mut self) -> Self {
-        //self.setup_systems
-        //    .add_system(/* */);
+        self.setup_systems
+            .add_system(main_setup);
         
         self.systems
+            .add_system(process_camera)
             .add_system(update_models_system)
             .add_system(rendering_system)
             .add_system(time_system)

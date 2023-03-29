@@ -7,8 +7,7 @@ use winit::{
     dpi::LogicalSize,
     window::{
         Icon,
-        Fullscreen,
-        
+        Fullscreen,   
         Window as WinitWindow,
         WindowBuilder as WinitWindowBuilder,
     },
@@ -75,6 +74,7 @@ impl Window {
     }
 }
 
+#[cfg(feature = "winit")]
 #[derive(Default, Debug, Clone)]
 pub struct WindowBuilder {
     pub title: Option<&'static str>,
@@ -86,6 +86,7 @@ pub struct WindowBuilder {
     pub resizable: Option<bool>,
 }
 
+#[cfg(feature = "winit")]
 impl From<WindowBuilder> for WinitWindowBuilder {
     fn from(v: WindowBuilder) -> Self {
         WinitWindowBuilder::new()

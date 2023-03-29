@@ -7,6 +7,7 @@ use modules::save::*;
 fn main() {    
     Despero::init(WindowBuilder {
         title: Some("My Game"),
+        fullscreen: Some(true),
         ..Default::default()
     })
         
@@ -18,15 +19,8 @@ fn main() {
              
         .add_system(ecs_change)
         .add_system(egui_handling)
-        .add_system(print_time)
         
         .run();
-}
-
-fn print_time(
-    time: Read<Time>,
-){
-    info!("{}", time.delta_time().as_millis());
 }
 
 fn bind_mat(
@@ -38,12 +32,15 @@ fn bind_mat(
 }
 
 fn egui_handling(
+    time: Read<Time>,
     gui_events: Write<EventHandler<GuiContext>>,
     world: Read<World>,
 ){
     if let Some(ctx) = gui_events.read() {
         
         gui::SidePanel::left("my_panel").show(&ctx, |ui| {
+            ui.label(format!("FPS: {}", 1000 / time.delta_time().as_millis()).as_str());
+            
             if ui.input().key_pressed(Key::A) {
                 error!("`A` is pressed!!!");
             }
@@ -65,8 +62,13 @@ fn egui_handling(
 
 fn ecs_change(
     world: SubWorld<&mut Transform>,
+    camera: SubWorld<(&Camera, &mut Transform)>,
 ){
     for (_, mut t) in &mut world.query::<&mut Transform>() {
+        t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
+    }
+    
+    for(_, (_, mut t)) in &mut camera.query::<(&Camera, &mut Transform)>(){
         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
     }
 }
