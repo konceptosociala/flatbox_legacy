@@ -64,4 +64,24 @@ impl Transform {
             scale: 1.0,
         }
     }
+    
+    pub fn local_x(&self) -> Unit<Vector3<f32>> {
+        let m = self.to_matrices().0;
+        
+        Unit::new_normalize(Vector3::new(
+            m[(0, 0)],
+            m[(0, 1)], 
+            m[(0, 2)]
+        ))
+    }
+    
+    pub fn local_y(&self) -> Unit<Vector3<f32>> {
+        let m = self.to_matrices().0;
+        
+        Unit::new_normalize(Vector3::new(
+            m[(1, 0)],
+            m[(1, 1)], 
+            m[(1, 2)]
+        ))
+    }
 }

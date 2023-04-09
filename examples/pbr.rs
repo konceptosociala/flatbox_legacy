@@ -91,8 +91,10 @@ fn process_scene(
                 let delta_y = current.y - latest.0.y;                
                 *latest = LatestPos(Point2::new(current.x, current.y));
 
+                let local_x = t.local_x();
+
                 t.rotation *= 
-                    UnitQuaternion::from_axis_angle(&Vector3::x_axis(), delta_y * 0.01) * 
+                    UnitQuaternion::from_axis_angle(&local_x, delta_y * 0.01) * 
                     UnitQuaternion::from_axis_angle(&Vector3::y_axis(), -delta_x * 0.01);
             }
         }
