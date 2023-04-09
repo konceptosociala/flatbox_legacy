@@ -22,6 +22,7 @@ exclude = [
 [dependencies]
 # Assets
 serde = { version = "1.0.152", features = ["derive"] }
+erased-serde = "0.3.25"
 ron = "0.8.0"
 lz4 = "1.24.0"
 tobj = "3.2.3"
@@ -32,6 +33,9 @@ log = "0.4.17"
 env_logger = "0.10.0"
 nalgebra = { version = "0.31.2", features = ["serde-serialize"] }
 thiserror = "1.0.38"
+
+# Audio
+kira = "0.7.3"
 
 # Rendering
 ash = "0.37.0"

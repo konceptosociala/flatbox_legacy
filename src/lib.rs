@@ -209,7 +209,6 @@ impl Despero {
             .add_system(main_setup);
         
         self.systems
-            .add_system(process_camera)
             .add_system(update_models_system)
             .add_system(rendering_system)
             .add_system(time_system)

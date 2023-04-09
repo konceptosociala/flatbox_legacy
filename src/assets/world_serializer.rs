@@ -7,6 +7,12 @@ pub trait WorldSerializer {
         path: P,
         world: &World,
     ) -> DesperoResult<()>;
+    
+    fn load<P: AsRef<std::path::Path>>(
+        &mut self,
+        path: P,
+        world: &mut World,
+    ) -> DesperoResult<()>;
 }
 
 #[macro_export]
@@ -49,20 +55,90 @@ macro_rules! world_serializer {
             }
         }
         
+        impl DeserializeContext for $ctx {
+            fn deserialize_component_ids<'de, A: serde::de::SeqAccess<'de>>(
+                &mut self,
+                mut seq: A,
+            ) -> Result<ColumnBatchType, A::Error> {
+                self.components.clear();
+                let mut batch = ColumnBatchType::new();
+                while let Some(id) = seq.next_element()? {
+                    match id.as_str() {                        
+                        $(                            
+                            stringify!($comp) => {
+                                batch.add::<$comp>();
+                            }
+                        )*
+                        
+                        _ => {},
+                    }
+                    self.components.push(id);
+                }
+                
+                Ok(batch)
+            }
+            
+            fn deserialize_components<'de, A: serde::de::SeqAccess<'de>>(
+                &mut self,
+                entity_count: u32,
+                mut seq: A,
+                batch: &mut ColumnBatchBuilder,
+            ) -> Result<(), A::Error> {
+                for component in &self.components {
+                    match component.as_str() {
+                        $(                            
+                            stringify!($comp) => {
+                                deserialize_column::<$comp, _>(entity_count, &mut seq, batch)?;
+                            }
+                        )*
+                        
+                        _ => {},
+                    }
+                }
+                
+                Ok(())
+            }
+
+        }
+        
         impl WorldSerializer for $ctx {
             fn save<P: AsRef<std::path::Path>>(
                 &mut self,
                 path: P,
                 world: &World,
             ) -> DesperoResult<()> {
-                let mut buf = std::fs::File::create(path)?;
-                let mut ser = ron::Serializer::new(buf, None)?;
+                let buf = std::fs::File::create(path)?;
+                
+                let mut encoder = lz4::EncoderBuilder::new()
+                    .level(4)
+                    .build(buf)?;
+                    
+                let mut ser = ron::Serializer::new(encoder.writer(), Some(ron::ser::PrettyConfig::new()))?;                
                 
                 serialize_world(
                     &world,
                     self,
                     &mut ser,
                 )?;
+                
+                encoder.finish().1?;
+                
+                Ok(())
+            }
+            
+            fn load<P: AsRef<std::path::Path>>(
+                &mut self,
+                path: P,
+                world: &mut World,
+            ) -> DesperoResult<()> {
+                let buf = std::fs::read_to_string(path)?;
+                let mut de = ron::Deserializer::from_str(&buf)
+                    .map_err(|e| ron::Error::from(e))?;
+                
+                *world = deserialize_world(                
+                    self,
+                    &mut de,
+                ).map_err(|e| ron::Error::from(e))?;
                 
                 Ok(())
             }

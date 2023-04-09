@@ -9,8 +9,15 @@ use crate::render::{
 use crate::ecs::*;
 use crate::math::transform::Transform;
 
+#[derive(Clone, Debug, Hash, PartialEq)]
+pub enum CameraType {
+    FirstPerson,
+    LookAt,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Camera {
-    viewmatrix: na::Matrix4<f32>,
+    camera_type: CameraType,
     projectionmatrix: na::Matrix4<f32>,
     fovy: f32,
     aspect: f32,
@@ -26,6 +33,7 @@ impl Camera {
     
     pub fn builder() -> CameraBuilder {
         CameraBuilder {
+            camera_type: CameraType::LookAt,
             fovy: std::f32::consts::FRAC_PI_3,
             aspect: 800.0 / 600.0,
             near: 0.1,
@@ -38,21 +46,51 @@ impl Camera {
         self.is_active.clone()
     }
     
+    
+    pub fn camera_type(&self) -> CameraType {
+        self.camera_type.clone()
+    }
+    
+    pub fn set_active(&mut self, is_active: bool){
+        self.is_active = is_active;
+    }
+    
     pub fn set_aspect(&mut self, aspect: f32) {
         self.aspect = aspect;
         self.update_projectionmatrix();
     }
     
-    pub(crate) fn set_viewmatrix(&mut self, mat: na::Matrix4<f32>){
-        self.viewmatrix = mat;
-    }
-    
     pub(crate) fn update_buffer(
         &self,
         renderer: &mut Renderer,
-    ) -> Result<(), vk::Result>{        
-        let data: [[[f32; 4]; 4]; 2] = [self.viewmatrix.into(), self.projectionmatrix.into()];
-        renderer.camera_buffer.fill(&renderer.device, &mut *renderer.allocator.lock().unwrap(), &data)?;
+        transform: &Transform,
+    ) -> Result<(), vk::Result>{     
+        let mut rotation_matrix = na::Matrix4::<f32>::identity();        
+        rotation_matrix *= na::Matrix4::from(transform.rotation);
+        
+        let mut translation = transform.translation;
+        translation.y *= -1.0;
+        let translation_matrix = na::Matrix4::identity().prepend_translation(&translation);
+        
+        let viewmatrix = {
+            if self.camera_type == CameraType::FirstPerson {
+                rotation_matrix * translation_matrix
+            } else {
+                translation_matrix * rotation_matrix
+            }
+        };
+        
+        let buffer_data: [[[f32; 4]; 4]; 2] = [
+            viewmatrix.into(), 
+            self.projectionmatrix.into()
+        ];
+        
+        renderer.camera_buffer.fill(
+            &renderer.device, 
+            &mut *renderer.allocator.lock().unwrap(), 
+            &buffer_data
+        )?;
+        
         Ok(())
     }
     
@@ -86,6 +124,7 @@ impl Default for Camera {
 }
 
 pub struct CameraBuilder {
+    camera_type: CameraType,
     fovy: f32,
     aspect: f32,
     near: f32,
@@ -100,16 +139,21 @@ impl CameraBuilder {
         }
         
         let mut cam = Camera {
+            camera_type: self.camera_type,
             fovy: self.fovy,
             aspect: self.aspect,
             near: self.near,
             far: self.far,
-            viewmatrix: na::Matrix4::identity(),
             projectionmatrix: na::Matrix4::identity(),
             is_active: self.is_active,
         };
         cam.update_projectionmatrix();
         cam
+    }
+    
+    pub fn camera_type(mut self, camera_type: CameraType) -> CameraBuilder {
+        self.camera_type = camera_type;
+        self
     }
     
     pub fn fovy(mut self, fovy: f32) -> CameraBuilder {
@@ -144,7 +188,7 @@ impl CameraBuilder {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, )]
 pub struct CameraBundle {
     pub camera: Camera,
     pub transform: Transform,

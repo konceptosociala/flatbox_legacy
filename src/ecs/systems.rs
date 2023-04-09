@@ -32,16 +32,6 @@ pub(crate) fn time_system(
     time.update();
 }
 
-pub(crate) fn process_camera(
-    camera_world: SubWorld<(&mut Camera, &Transform, Changed<Transform>)>,
-){
-    for (_, (mut camera, transform, _moved)) in &mut camera_world.query::<(
-        &mut Camera, &Transform, Changed<Transform>
-    )>(){
-        camera.set_viewmatrix(transform.to_matrices().0);
-    }
-}
-
 pub(crate) fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,
     #[cfg(feature = "egui")]
@@ -54,9 +44,9 @@ pub(crate) fn rendering_system(
     
     check_fences(&renderer.device, &renderer.swapchain)?;
     
-    for (_, camera) in &mut camera_world.query::<&mut Camera>(){
+    for (_, (camera, transform)) in &mut camera_world.query::<(&Camera, &Transform)>(){
         if camera.is_active() {        
-            camera.update_buffer(&mut renderer)?;
+            camera.update_buffer(&mut renderer, &transform)?;
         }
     }    
 
@@ -68,7 +58,6 @@ pub(crate) fn rendering_system(
         image_index as usize,
     )?;
     
-    // Submit commandbuffers
     let semaphores_available = [renderer.swapchain.image_available[renderer.swapchain.current_image]];
     let waiting_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
     let semaphores_finished = [renderer.swapchain.rendering_finished[renderer.swapchain.current_image]];
@@ -89,8 +78,7 @@ pub(crate) fn rendering_system(
                 renderer.queue_families.graphics_queue,
                 &submit_info,
                 renderer.swapchain.may_begin_drawing[renderer.swapchain.current_image],
-            )
-            .expect("queue submission");
+            )?
     };
     
     let swapchains = [renderer.swapchain.swapchain];
@@ -103,24 +91,23 @@ pub(crate) fn rendering_system(
         if renderer
             .swapchain
             .swapchain_loader
-            .queue_present(renderer.queue_families.graphics_queue, &present_info)
-            .expect("Queue presentation error")
+            .queue_present(renderer.queue_families.graphics_queue, &present_info)?
         {
-            renderer.recreate_swapchain().expect("Cannot recreate swapchain");
+            renderer.recreate_swapchain()?;
             
-            for (_, mut camera) in &mut camera_world.query::<&mut Camera>(){
+            for (_, (mut camera, transform)) in &mut camera_world.query::<(&mut Camera, &Transform)>(){
                 if camera.is_active() {
                     camera.set_aspect(
                         renderer.swapchain.extent.width as f32
                             / renderer.swapchain.extent.height as f32,
                     );
 
-                    camera.update_buffer(&mut renderer).expect("Cannot update camera buffer");
+                    camera.update_buffer(&mut renderer, &transform)?;
                 }
             }
         }
     };
-    // Set swapchain image
+
     renderer.swapchain.current_image =
         (renderer.swapchain.current_image + 1) % renderer.swapchain.amount_of_images as usize;
         
@@ -297,7 +284,7 @@ pub(crate) fn update_physics(
         if added {                        
             let rigidbody = physics_handler.rigidbody_mut(*handle)?;
             rigidbody.set_translation(transform.translation, false);
-            rigidbody.set_rotation(transform.rotation, false);          
+            rigidbody.set_rotation(transform.rotation, false);
         }
     }
     

@@ -296,6 +296,8 @@ impl Mesh {
             path,
             &tobj::LoadOptions {
                 single_index: true,
+                triangulate: true,
+                ignore_points: true,
                 ..Default::default()
             },
         ).expect("Cannot load OBJ file");

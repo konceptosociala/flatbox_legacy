@@ -12,6 +12,7 @@ pub use hecs::{
     BuiltEntity,
     Bundle,
     Changed,
+    Component,
     Entity,
     EntityBuilder,
     Query,
@@ -19,14 +20,18 @@ pub use hecs::{
     Without,
     World,
     
+    // Serialization
     serialize::column::{
         SerializeContext,
         DeserializeContext,
         try_serialize,
         try_serialize_id,
+        deserialize_column,
         deserialize as deserialize_world,
         serialize as serialize_world,
     },
+    ColumnBatchType,
+    ColumnBatchBuilder
 }; 
 
 pub use event::*;

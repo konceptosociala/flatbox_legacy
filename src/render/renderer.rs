@@ -255,7 +255,12 @@ impl Renderer {
             }
         }
         
-        physics_handler.debug_render(self);
+        match std::env::var("PHYSICS_DEBUG") {
+            Ok(v) => if v.as_str() == "true" { 
+                physics_handler.debug_render(self)
+            },
+            _ => {},
+        }
         
         end_renderpass(&self.device, &commandbuffer);
         

@@ -118,8 +118,8 @@ impl DefaultMatBuilder {
     pub fn new() -> Self {
         DefaultMatBuilder {
             texture_id: 0,
-            metallic: 0.0,
-            roughness: 1.0,
+            metallic: 0.25,
+            roughness: 0.5,
         }
     }
     

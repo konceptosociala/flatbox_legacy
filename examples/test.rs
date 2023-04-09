@@ -1,5 +1,7 @@
 use despero::prelude::*;
 
+use std::cmp::max;
+
 pub mod modules;
 use modules::materials::*;
 use modules::save::*;
@@ -33,30 +35,40 @@ fn bind_mat(
 
 fn egui_handling(
     time: Read<Time>,
-    gui_events: Write<EventHandler<GuiContext>>,
+    gui_events: Read<EventHandler<GuiContext>>,
     world: Read<World>,
+    mut cmd: Write<CommandBuffer>,
 ){
     if let Some(ctx) = gui_events.read() {
         
         gui::SidePanel::left("my_panel").show(&ctx, |ui| {
-            ui.label(format!("FPS: {}", 1000 / time.delta_time().as_millis()).as_str());
+            ui.label(format!("FPS: {}", 1000 / max(time.delta_time().as_millis(), 1)));
             
             if ui.input().key_pressed(Key::A) {
                 error!("`A` is pressed!!!");
             }
             
             ui.label("Click to say hello to the world");
-            if ui.button("Hello World!").clicked() {
-                let mut ws = WorldSaver::new();
+            
+            let mut ws = WorldSaver::new();
+            
+            if ui.button("Save world").clicked() {
                 match ws.save("assets/world.ron", &world) {
                     Ok(()) => debug!("World saved!"),
                     Err(e) => error!("World not saved: {:?}", e),
                 };
-                debug!("Hello World");
+            }
+            
+            if ui.button("Load world").clicked() {
+                cmd.write(move |world: &mut World| {
+                    match ws.load("assets/world.ron", world) {
+                        Ok(()) => debug!("World loaded!"),
+                        Err(e) => error!("World not loaded: {:?}", e),
+                    }
+                })
             }
             
         });
-        
     }
 }
 

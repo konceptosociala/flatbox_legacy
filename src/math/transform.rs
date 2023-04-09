@@ -1,5 +1,3 @@
-// TODO: implement local transform (M_local = M_parent_inverse * M)
-
 use serde::{Serialize, Deserialize};
 use nalgebra::*;
 
@@ -21,11 +19,23 @@ impl Default for Transform {
 }
 
 impl Transform {
+    pub fn new(
+        translation: Vector3<f32>,
+        rotation: UnitQuaternion<f32>,
+        scale: f32,
+    ) -> Self {
+        Transform {
+            translation,
+            rotation,
+            scale,
+        }
+    }
+    
     pub fn to_matrices(&self) -> (Matrix4<f32>, Matrix4<f32>) {
         let new_matrix = 
             Matrix4::new_translation(&Vector3::new(
                 self.translation.x,
-                -self.translation.y,
+                self.translation.y,
                 self.translation.z,
             ))
             * Matrix4::from(self.rotation)
@@ -43,6 +53,14 @@ impl Transform {
         Transform {
             translation,
             rotation: UnitQuaternion::identity(),
+            scale: 1.0,
+        }
+    }
+
+    pub fn from_rotation(rotation: UnitQuaternion<f32>) -> Self {
+        Transform {
+            translation: Vector3::new(0.0, 0.0, 0.0),
+            rotation,
             scale: 1.0,
         }
     }
