@@ -84,4 +84,14 @@ impl Transform {
             m[(1, 2)]
         ))
     }
+    
+    pub fn local_z(&self) -> Unit<Vector3<f32>> {
+        let m = self.to_matrices().0;
+        
+        Unit::new_normalize(Vector3::new(
+            m[(2, 0)],
+            m[(2, 1)], 
+            m[(2, 2)]
+        ))
+    }
 }

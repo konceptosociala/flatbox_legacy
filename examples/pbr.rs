@@ -3,7 +3,13 @@ use despero::prelude::*;
 pub mod modules;
 use modules::materials::*;
 
-struct LatestPos(Point2<f32>);
+#[derive(Clone, Default, Debug)]
+struct CameraConfiguration {
+    limit: (f32, f32),
+    target_x: f32,
+    target_y: f32,
+    latest_pos: Point2<f32>,
+}
 
 fn main() {
     Despero::init(WindowBuilder {
@@ -54,7 +60,10 @@ fn create_scene(
             .camera_type(CameraType::FirstPerson)
             .build(),
         Transform::from_translation(Vector3::new(0.0, 0.0, 3.0)),
-        LatestPos(Point2::origin()),
+        CameraConfiguration {
+            limit: (-85.0, 85.0),
+            ..Default::default()
+        },
     ));
     
     cmd.spawn((
@@ -80,22 +89,35 @@ fn create_scene(
 }
 
 fn process_scene(
-    camera_world: SubWorld<(&Camera, &mut LatestPos, &mut Transform)>,
+    camera_world: SubWorld<(&Camera, &mut CameraConfiguration, &mut Transform)>,
     gui_events: Read<EventHandler<GuiContext>>,
-    //~ time: Read<Time>,
+    time: Read<Time>,
 ){
     if let Some(ctx) = gui_events.read() {
         if let Some(current) = ctx.pointer_hover_pos() {
-            for (_, (_, mut latest, mut t)) in &mut camera_world.query::<(&Camera, &mut LatestPos, &mut Transform)>(){
-                let delta_x = current.x - latest.0.x;
-                let delta_y = current.y - latest.0.y;                
-                *latest = LatestPos(Point2::new(current.x, current.y));
-
+            for (_, (_, mut conf, mut t)) in &mut camera_world.query::<(&Camera, &mut CameraConfiguration, &mut Transform)>(){       
+                let (delta_x, delta_y) = {
+                    if conf.latest_pos == Point2::origin() {
+                        (0.0, 0.0)
+                    } else {
+                        (current.x - conf.latest_pos.x, current.y - conf.latest_pos.y)
+                    }
+                };
+                
+                conf.latest_pos = Point2::new(current.x, current.y);
+                
                 let local_x = t.local_x();
+                
+                let (tx, ty) = (conf.target_x.clone(), conf.target_y.clone());
+                
+                conf.target_x += delta_y * 0.0005 * time.delta_time().as_millis() as f32;
+                conf.target_y -= delta_x * 0.0005 * time.delta_time().as_millis() as f32;
+                
+                conf.target_x = conf.target_x.clamp(to_radian(conf.limit.0), to_radian(conf.limit.1));
 
                 t.rotation *= 
-                    UnitQuaternion::from_axis_angle(&local_x, delta_y * 0.01) * 
-                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), -delta_x * 0.01);
+                    UnitQuaternion::from_axis_angle(&local_x, conf.target_x - tx) * 
+                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), conf.target_y - ty);
             }
         }
     }

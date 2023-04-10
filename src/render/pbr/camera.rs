@@ -65,7 +65,7 @@ impl Camera {
         renderer: &mut Renderer,
         transform: &Transform,
     ) -> Result<(), vk::Result>{     
-        let mut rotation_matrix = na::Matrix4::<f32>::identity();        
+        let mut rotation_matrix = na::Matrix4::<f32>::identity();                
         rotation_matrix *= na::Matrix4::from(transform.rotation);
         
         let mut translation = transform.translation;

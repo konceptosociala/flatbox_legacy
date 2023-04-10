@@ -45,7 +45,7 @@ pub(crate) fn rendering_system(
     check_fences(&renderer.device, &renderer.swapchain)?;
     
     for (_, (camera, transform)) in &mut camera_world.query::<(&Camera, &Transform)>(){
-        if camera.is_active() {        
+        if camera.is_active() {      
             camera.update_buffer(&mut renderer, &transform)?;
         }
     }    
