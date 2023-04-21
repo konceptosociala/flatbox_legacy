@@ -16,7 +16,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_file<P: AsRef<std::path::Path>>(
+    pub fn new_from_file<P: AsRef<std::path::Path>>(
         path: P, 
         filter: Filter,
         logical_device: &ash::Device,
@@ -238,82 +238,16 @@ impl Texture {
             sampler,
         })
     }
-}
-
-// Texture Storage (temporary)
-pub struct TextureStorage {
-    pub textures: Vec<Texture>,
-}
-
-impl TextureStorage {
-    pub fn new() -> Self {
-        TextureStorage { textures: vec![] }
+    
+    pub fn from_raw(_data: Vec<u8>){
+        todo!();
     }
     
-    pub fn cleanup(
-        &mut self,
-        logical_device: &ash::Device,
-        allocator: &mut Allocator,
-    ){
-        for texture in &mut self.textures {
-            // Destroy allocation
-            let mut alloc: Option<Allocation> = None;
-            std::mem::swap(&mut alloc, &mut texture.image_allocation);
-            let alloc = alloc.unwrap();
-            allocator.free(alloc).unwrap();
-            unsafe { 
-                // Destroy Sampler
-                logical_device.destroy_sampler(texture.sampler, None);
-                // Destroy ImageView
-                logical_device.destroy_image_view(texture.imageview, None);
-                // Destroy Image
-                logical_device.destroy_image(texture.vk_image, None);
-            }
-        }
+    pub fn update_from_file(&mut self){
+        todo!();
     }
     
-    pub fn new_texture_from_file<P: AsRef<std::path::Path>>(
-        &mut self,
-        path: P,
-        filter: Filter,
-        logical_device: &ash::Device,
-        allocator: &mut Allocator,
-        commandpool_graphics: &vk::CommandPool,
-        graphics_queue: &vk::Queue,
-    ) -> Result<usize, Box<dyn std::error::Error>> {
-        let new_texture = Texture::from_file(
-            path,
-            filter,
-            logical_device,
-            allocator,
-            commandpool_graphics,
-            graphics_queue,
-        )?;
-        let new_id = self.textures.len();
-        self.textures.push(new_texture);
-        Ok(new_id)
-    }
-    
-    #[allow(dead_code)]
-    pub fn get(&self, index: usize) -> Option<&Texture> {
-        self.textures.get(index)
-    }
-    
-    #[allow(dead_code)]
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Texture> {
-        self.textures.get_mut(index)
-    }
-    
-    pub fn get_descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
-        self.textures
-            .iter()
-            .map(|t| vk::DescriptorImageInfo {
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                image_view: t.imageview,
-                sampler: t.sampler,
-                ..Default::default()
-            })
-            .collect()
+    pub fn update_from_raw(&mut self, _data: Vec<u8>){
+        todo!();
     }
 }
-

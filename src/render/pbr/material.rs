@@ -1,8 +1,7 @@
-use std::sync::Arc;
-use serde::{Serialize, Deserialize};
 use std::any::Any;
 use ash::vk;
 
+use crate::assets::asset_manager::AssetHandle;
 use crate::render::{
     renderer::*,
     backend::{
@@ -10,21 +9,6 @@ use crate::render::{
         shader::*,
     },
 };
-
-pub type MaterialStorage = Vec<Arc<(dyn Material + Send + Sync)>>;
-
-#[derive(Default, Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct MaterialHandle(usize);
-
-impl MaterialHandle {
-    pub fn new(index: usize) -> Self {
-        MaterialHandle(index)
-    }
-    
-    pub fn get(&self) -> usize {
-        self.0
-    }
-}
 
 /// Trait for materials to be used in [`Renderer`]
 pub trait Material: Any + std::fmt::Debug {
@@ -109,7 +93,7 @@ impl Material for DefaultMat {
 }
 
 pub struct DefaultMatBuilder {
-    texture_id: u32,
+    texture_id: AssetHandle,
     metallic: f32,
     roughness: f32,
 }
@@ -117,13 +101,13 @@ pub struct DefaultMatBuilder {
 impl DefaultMatBuilder {
     pub fn new() -> Self {
         DefaultMatBuilder {
-            texture_id: 0,
+            texture_id: AssetHandle::new(),
             metallic: 0.25,
             roughness: 0.5,
         }
     }
     
-    pub fn texture_id(mut self, id: u32) -> Self {
+    pub fn texture_id(mut self, id: AssetHandle) -> Self {
         self.texture_id = id;
         self
     }
@@ -140,7 +124,7 @@ impl DefaultMatBuilder {
     
     pub fn build(self) -> DefaultMat {
         DefaultMat {
-            texture_id: self.texture_id,
+            texture_id: self.texture_id.unwrap() as u32,
             metallic: self.metallic,
             roughness: self.roughness,
         }

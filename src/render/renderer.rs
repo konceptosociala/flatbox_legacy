@@ -16,8 +16,8 @@ use winit::{
 #[cfg(feature = "egui")]
 use egui_winit_ash_integration::*;
 
+use crate::assets::*;
 use crate::ecs::*;
-
 use crate::render::{
     backend::{
         instance::Instance,
@@ -55,6 +55,13 @@ compile_error!("cannot use \"egui\" without \"winit\"!");
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
 
+#[derive(Debug, Clone, Default, PartialEq, Hash)]
+pub enum RenderType {
+    #[default]
+    Forward,
+    Deferred,
+}
+
 pub type PipelineCollection = HashMap<TypeId, Pipeline>;
 
 /// Main rendering collection, including Vulkan components
@@ -72,8 +79,7 @@ pub struct Renderer {
     pub(crate) camera_buffer: Buffer,
     pub(crate) light_buffer: Buffer,
     pub(crate) descriptor_pool: DescriptorPool,
-    pub(crate) texture_storage: TextureStorage,
-    pub(crate) materials: MaterialStorage,
+    pub(crate) asset_manager: AssetManager,
     #[cfg(feature = "egui")]
     pub(crate) egui: GuiHandler,
 }
@@ -87,7 +93,7 @@ impl Renderer {
         window_builder: WindowBuilder,
     ) -> DesperoResult<Renderer> {
         let instance = Instance::init()?;
-        let window = Window::init(&instance, window_builder.into())?;
+        let window = Window::init(&instance, window_builder.clone().into())?;
         let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
             
         let mut allocator = Allocator::new(&AllocatorCreateDesc {
@@ -97,6 +103,11 @@ impl Renderer {
             debug_settings: Default::default(),
             buffer_device_address: true,
         }).expect("Cannot create allocator");
+        
+        let render_type = window_builder.renderer.unwrap_or(RenderType::Forward);
+        if render_type == RenderType::Deferred {
+            log::error!("Deferred rendering is not supported yet");
+        }
         
         let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator)?;
         
@@ -167,15 +178,14 @@ impl Renderer {
             device,
             swapchain,
             renderpass,
-            material_pipelines: HashMap::new(),
+            material_pipelines: PipelineCollection::new(),
             debug_renderer,
             commandbuffer_pools,
             allocator,
             camera_buffer,
             light_buffer,
             descriptor_pool,
-            texture_storage: TextureStorage::new(),
-            materials: vec![],
+            asset_manager: AssetManager::new(),
             #[cfg(feature = "egui")]
             egui,
         })
@@ -190,24 +200,22 @@ impl Renderer {
         &mut self,
         path: P,
         filter: Filter,
-    ) -> usize {
-        self.texture_storage.new_texture_from_file(
+    ) -> AssetHandle {
+        self.asset_manager.create_texture(
             path,
             filter,
             &self.device,
             &mut *self.allocator.lock().unwrap(),
             &self.commandbuffer_pools.commandpool_graphics,
             &self.queue_families.graphics_queue,
-        ).expect("Cannot create texture")
+        )
     }
     
     pub fn create_material<M: Material + Send + Sync>(
         &mut self,
         material: M,
-    ) -> MaterialHandle {
-        let index = self.materials.len();
-        self.materials.push(Arc::new(material));
-        return MaterialHandle::new(index);
+    ) -> AssetHandle {
+        self.asset_manager.create_material(material)
     }
     
     pub fn bind_material<M: Material + Sync + Send>(&mut self){
@@ -228,7 +236,7 @@ impl Renderer {
     ) -> DesperoResult<()> {        
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         
-        update_texture_sets(&self.texture_storage, &self.descriptor_pool, &self.swapchain, &self.device);
+        update_texture_sets(&self.asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
         
         begin_commandbuffer(&commandbuffer, &mut self.commandbuffer_pools, &self.device)?;
         begin_renderpass(&self.renderpass, &self.swapchain, &self.device, &commandbuffer, index);
@@ -239,12 +247,12 @@ impl Renderer {
             bind_graphics_pipeline(&self.material_pipelines, &self.device, &commandbuffer, mat_type);
             
             for (_, (mesh, handle, transform)) in &mut world.query::<(
-                &Mesh, &MaterialHandle, &Transform,
+                &Mesh, &AssetHandle, &Transform,
             )>(){
                 if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
                     (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
                 {
-                    let material = &self.materials[handle.get()];
+                    let material = &self.asset_manager.get_material(*handle).unwrap();
                     if (**material).type_id() == *mat_type {
                         bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
                         
@@ -322,7 +330,7 @@ impl Renderer {
             self.debug_renderer.cleanup(&self.device, &self.allocator); 
             #[cfg(feature = "egui")] 
             self.egui.destroy();
-            self.texture_storage.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
+            self.asset_manager.clear_textures(&self.device, &mut *self.allocator.lock().unwrap());
             self.descriptor_pool.cleanup(&self.device);
             self.device.destroy_buffer(self.camera_buffer.buffer, None);
             self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
@@ -378,12 +386,12 @@ fn begin_commandbuffer(
 }
 
 fn update_texture_sets(
-    texture_storage: &TextureStorage, 
+    asset_manager: &AssetManager, 
     descriptor_pool: &DescriptorPool, 
     swapchain: &Swapchain,
     device: &ash::Device,
 ){
-    let imageinfos = texture_storage.get_descriptor_image_info();
+    let imageinfos = asset_manager.descriptor_image_info();
     let descriptorwrite_image = vk::WriteDescriptorSet::builder()
         .dst_set(descriptor_pool.texture_sets[swapchain.current_image])
         .dst_binding(0)

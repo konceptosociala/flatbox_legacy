@@ -15,9 +15,9 @@ use crate::render::{
     backend::{
         buffer::Buffer,
     },
-    pbr::material::*,
 };
 
+use crate::assets::asset_manager::AssetHandle;
 use crate::ecs::*;
 use crate::math::transform::Transform;
 
@@ -563,7 +563,7 @@ impl<'de> Deserialize<'de> for Mesh {
 #[derive(Bundle, Debug, Clone)]
 pub struct ModelBundle {
     pub mesh: Mesh,
-    pub material: MaterialHandle,
+    pub material: AssetHandle,
     pub transform: Transform,
 }
 
@@ -581,7 +581,7 @@ impl Default for ModelBundle {
     fn default() -> Self {
         ModelBundle {
             mesh: Mesh::cube(),
-            material: MaterialHandle::default(),
+            material: AssetHandle::new(),
             transform: Transform::default(),
         }
     }
@@ -589,7 +589,7 @@ impl Default for ModelBundle {
 
 pub struct ModelBundleBuilder {
     mesh: Mesh,
-    material: MaterialHandle,
+    material: AssetHandle,
     transform: Transform,
 }
 
@@ -597,7 +597,7 @@ impl ModelBundleBuilder {
     pub fn new() -> Self {
         ModelBundleBuilder {
             mesh: Mesh::cube(),
-            material: MaterialHandle::default(),
+            material: AssetHandle::default(),
             transform: Transform::default(),
         }
     }
@@ -607,7 +607,7 @@ impl ModelBundleBuilder {
         self
     }
     
-    pub fn material(mut self, material: MaterialHandle) -> Self {
+    pub fn material(mut self, material: AssetHandle) -> Self {
         self.material = material;
         self
     }

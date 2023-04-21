@@ -47,7 +47,6 @@ vk-shader-macros = "0.2.8"
 winit = { version = "0.27.5", optional = true }
 
 # ECS
-bus = "2.3.0"
 hecs = { git = "https://github.com/konceptosociala/despero-hecs", features = ["column-serialize"] }
 hecs-schedule = { git = "https://github.com/konceptosociala/despero-hecs-schedule" }
 

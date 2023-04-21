@@ -13,6 +13,7 @@ use winit::{
     },
 };
 use crate::render::{
+    renderer::RenderType,
     backend::{
         instance::Instance,
         surface::Surface,
@@ -84,6 +85,8 @@ pub struct WindowBuilder {
     pub height: Option<f32>,
     pub fullscreen: Option<bool>,
     pub resizable: Option<bool>,
+    
+    pub renderer: Option<RenderType>,
 }
 
 #[cfg(feature = "winit")]

@@ -20,25 +20,19 @@ fn main() {
     
         .default_systems()
         
-        .add_setup_system(bind_mat)
         .add_setup_system(create_scene)
         .add_system(process_scene)
         
         .run();
 }
 
-fn bind_mat(
-    mut renderer: Write<Renderer>
-){
-    renderer.bind_material::<TexMaterial>();
-    info!("Material's been bound");
-}
-
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut renderer: Write<Renderer>,
 ){
-    let diffuse = renderer.create_texture("assets/pbr_test/diffuse.jpg", Filter::LINEAR) as u32;
+    renderer.bind_material::<TexMaterial>();
+    
+    let diffuse = renderer.create_texture("assets/pbr_test/diffuse.jpg", Filter::LINEAR);
     
     cmd.spawn(
         ModelBundle::builder()
@@ -73,14 +67,14 @@ fn create_scene(
         },
     ));
     
-    let sky_tex = renderer.create_texture("assets/StandardCubeMap.png", Filter::LINEAR) as u32;
+    let sky_tex = renderer.create_texture("assets/StandardCubeMap.png", Filter::LINEAR);
     
     cmd.spawn(
         ModelBundle::builder()
             .mesh(Mesh::load_obj("assets/skybox.obj").swap_remove(0))
             .material(
                 renderer.create_material(TexMaterial {
-                    texture_id: sky_tex,
+                    texture_id: sky_tex.unwrap() as u32,
                 })
             )
             .transform(Transform::from_translation(Vector3::new(0.0, 0.0, 0.0)))

@@ -2,6 +2,7 @@ use ash::vk;
 use std::mem::{size_of, size_of_val};
 use gpu_allocator::MemoryLocation;
 
+use crate::assets::*;
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -13,7 +14,6 @@ use crate::render::{
         camera::Camera,
         model::*,
         light::*,
-        material::*,
     },
     backend::{
         buffer::Buffer,
@@ -37,7 +37,7 @@ pub(crate) fn rendering_system(
     #[cfg(feature = "egui")]
     mut egui_ctx: Write<EventHandler<GuiContext>>,
     mut renderer: Write<Renderer>,
-    mut model_world: SubWorld<(&mut Mesh, &mut MaterialHandle, &mut Transform)>,
+    mut model_world: SubWorld<(&mut Mesh, &mut AssetHandle, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
 ) -> DesperoResult<()> {
     let image_index = get_image_index(&renderer.swapchain)?;
@@ -116,12 +116,12 @@ pub(crate) fn rendering_system(
 
 pub(crate) fn update_models_system(
     mut renderer: Write<Renderer>,
-    world: SubWorld<(&mut Mesh, &mut MaterialHandle, &Transform)>,
+    world: SubWorld<(&mut Mesh, &mut AssetHandle, &Transform)>,
 ) -> DesperoResult<()> {
     for (_, (mut mesh, handle, _)) in &mut world.query::<(
-        &mut Mesh, &MaterialHandle, &Transform,
+        &mut Mesh, &AssetHandle, &Transform,
     )>(){
-        let material = renderer.materials.get(handle.get()).unwrap().clone();
+        let material = renderer.asset_manager.get_material(*handle).unwrap().clone();
         let logical_device = renderer.device.clone();
         let allocator = &mut renderer.allocator;
         let vertexdata = mesh.vertexdata.clone();
