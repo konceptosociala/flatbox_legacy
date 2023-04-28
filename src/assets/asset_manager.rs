@@ -2,13 +2,20 @@ use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use ash::vk;
 use gpu_allocator::vulkan::{
-    Allocator,
     Allocation,
 };
 
 use crate::render::*;
 
-#[derive(Default, Copy, Clone, Debug, Serialize, Deserialize)]
+#[typetag::serde(tag = "asset")]
+pub trait Asset {}
+
+#[typetag::serde(name = "asset")]
+impl Asset for DefaultMat {}
+#[typetag::serde(name = "asset")]
+impl Asset for Texture {}
+
+#[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetHandle(usize);
 
 impl AssetHandle {
@@ -32,7 +39,7 @@ impl AssetHandle {
 #[derive(Default)]
 pub struct AssetManager {
     pub textures: Vec<Texture>,
-    pub materials: Vec<Arc<(dyn Material + Send + Sync)>>,
+    pub materials: Vec<Arc<(dyn Material + Send + Sync)>>, //TODO: Replace with HashMap<AssetHandle, Arc<dyn Asset>>
 }
 
 impl AssetManager {
@@ -40,22 +47,19 @@ impl AssetManager {
         AssetManager::default()
     }
     
-    pub fn create_texture<P: AsRef<std::path::Path>>(
+    pub fn create_texture(
         &mut self,
-        path: P,
+        path: &'static str,
         filter: Filter,
-        logical_device: &ash::Device,
-        allocator: &mut Allocator,
-        commandpool_graphics: &vk::CommandPool,
-        graphics_queue: &vk::Queue,
+        renderer: &mut Renderer,
     ) -> AssetHandle {
         let new_texture = Texture::new_from_file(
             path,
             filter,
-            logical_device,
-            allocator,
-            commandpool_graphics,
-            graphics_queue,
+            &renderer.device,
+            &mut *renderer.allocator.lock().unwrap(),
+            &renderer.commandbuffer_pools.commandpool_graphics,
+            &renderer.queue_families.graphics_queue,
         ).expect("Cannot create texture");
         
         let new_id = self.textures.len();
@@ -96,21 +100,20 @@ impl AssetManager {
             .collect()
     }
     
-    pub fn clear_textures(
+    pub fn cleanup(
         &mut self,
-        logical_device: &ash::Device,
-        allocator: &mut Allocator,
+        renderer: &mut Renderer,
     ){
         for texture in &mut self.textures {
             let mut alloc: Option<Allocation> = None;
             std::mem::swap(&mut alloc, &mut texture.image_allocation);
             let alloc = alloc.unwrap();
-            allocator.free(alloc).unwrap();
+            (*renderer.allocator.lock().unwrap()).free(alloc).unwrap();
             unsafe { 
-                logical_device.destroy_sampler(texture.sampler, None);
-                logical_device.destroy_image_view(texture.imageview, None);
-                logical_device.destroy_image(texture.vk_image, None);
+                renderer.device.destroy_sampler(texture.sampler, None);
+                renderer.device.destroy_image_view(texture.imageview, None);
+                renderer.device.destroy_image(texture.vk_image, None);
             }
         }
-    }
+    }    
 }

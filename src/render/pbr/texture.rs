@@ -1,13 +1,23 @@
+use serde::{Serialize, Deserialize, Serializer, Deserializer, ser::SerializeStruct};
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
 use crate::render::backend::buffer::Buffer;
 
-pub type Filter = vk::Filter; 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub enum Filter {
+    #[default]
+    Linear,
+    Nearest,
+    Cubic,
+} 
 
+#[allow(dead_code)]
 pub struct Texture {
-    #[allow(dead_code)]
+    pub path: &'static str,
+    pub filter: Filter,
+    
     pub(crate) image: image::RgbaImage,
     pub(crate) vk_image: vk::Image,
     pub(crate) image_allocation: Option<Allocation>,
@@ -15,15 +25,39 @@ pub struct Texture {
     pub(crate) sampler: vk::Sampler,
 }
 
+impl Serialize for Texture {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("Texture", 2)?;
+        state.serialize_field("path", &self.path)?;
+        state.serialize_field("filter", &self.filter)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Texture {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        todo!();
+    }
+}
+
 impl Texture {
-    pub fn new_from_file<P: AsRef<std::path::Path>>(
-        path: P, 
+    pub fn new_from_file(
+        path: &'static str, 
         filter: Filter,
         logical_device: &ash::Device,
         allocator: &mut Allocator,
         commandpool_graphics: &vk::CommandPool,
         graphics_queue: &vk::Queue,
     ) -> Result<Self, vk::Result> {
+        // Choose filter
+        let raw_filter = match filter {
+            Filter::Nearest => vk::Filter::NEAREST,
+            Filter::Cubic => vk::Filter::CUBIC_EXT,
+            _ => vk::Filter::LINEAR,
+        };
         // Create image
         let image = image::open(path)
             .map(|img| img.to_rgba8())
@@ -78,8 +112,8 @@ impl Texture {
         
         // Create Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()
-            .mag_filter(filter)
-            .min_filter(filter);
+            .mag_filter(raw_filter)
+            .min_filter(raw_filter);
         let sampler = unsafe { logical_device.create_sampler(&sampler_info, None)? };
         
         // Prepare buffer for the texture
@@ -231,6 +265,8 @@ impl Texture {
         };
         
         Ok(Texture {
+            path,
+            filter,
             image,
             vk_image,
             image_allocation: Some(allocation),

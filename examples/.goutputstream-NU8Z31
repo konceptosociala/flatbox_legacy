@@ -29,12 +29,11 @@ fn main() {
 
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
-    mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
 ){
     renderer.bind_material::<TexMaterial>();
     
-    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::LINEAR, &mut renderer);
+    let diffuse = renderer.create_texture("assets/pbr_test/diffuse.jpg", Filter::LINEAR);
     
     cmd.spawn(
         ModelBundle::builder()
@@ -69,7 +68,7 @@ fn create_scene(
         },
     ));
     
-    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::LINEAR, &mut renderer);
+    let sky_tex = renderer.create_texture("assets/StandardCubeMap.png", Filter::LINEAR);
     
     cmd.spawn(
         ModelBundle::builder()

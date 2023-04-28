@@ -7,7 +7,6 @@ use ash::Device;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
-#[cfg(feature = "winit")]
 use winit::{
     window::{
         Window as WinitWindow
@@ -31,7 +30,6 @@ use crate::render::{
     },
     pbr::{
         model::*,
-        texture::*,
         material::*,
     },
 };
@@ -46,14 +44,8 @@ use crate::math::transform::Transform;
 use crate::ecs::event::EventHandler;
 use crate::error::DesperoResult;
 
-#[cfg(all(feature = "gtk", feature = "winit"))]
-compile_error!("cannot use \"gtk\" and \"winit\" at the same time!");
-
-#[cfg(all(feature = "egui", not(feature = "winit")))]
-compile_error!("cannot use \"egui\" without \"winit\"!");
-
 /// Maximum number of textures, which can be pushed to descriptor sets
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 2;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024;
 
 #[derive(Debug, Clone, Default, PartialEq, Hash)]
 pub enum RenderType {
@@ -79,19 +71,12 @@ pub struct Renderer {
     pub(crate) camera_buffer: Buffer,
     pub(crate) light_buffer: Buffer,
     pub(crate) descriptor_pool: DescriptorPool,
-    pub(crate) asset_manager: AssetManager,
     #[cfg(feature = "egui")]
     pub(crate) egui: GuiHandler,
 }
 
 impl Renderer {    
-    pub(crate) fn init(
-        #[cfg(feature = "gtk")]
-        window_builder: gtk::GLArea,
-        
-        #[cfg(feature = "winit")]
-        window_builder: WindowBuilder,
-    ) -> DesperoResult<Renderer> {
+    pub(crate) fn init(window_builder: WindowBuilder) -> DesperoResult<Renderer> {
         let instance = Instance::init()?;
         let window = Window::init(&instance, window_builder.clone().into())?;
         let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
@@ -185,37 +170,13 @@ impl Renderer {
             camera_buffer,
             light_buffer,
             descriptor_pool,
-            asset_manager: AssetManager::new(),
             #[cfg(feature = "egui")]
             egui,
         })
     }
     
-    #[cfg(feature = "winit")]
     pub fn get_window(&self) -> Arc<Mutex<WinitWindow>> {
         self.window.window.clone()
-    }
-    
-    pub fn create_texture<P: AsRef<std::path::Path>>(
-        &mut self,
-        path: P,
-        filter: Filter,
-    ) -> AssetHandle {
-        self.asset_manager.create_texture(
-            path,
-            filter,
-            &self.device,
-            &mut *self.allocator.lock().unwrap(),
-            &self.commandbuffer_pools.commandpool_graphics,
-            &self.queue_families.graphics_queue,
-        )
-    }
-    
-    pub fn create_material<M: Material + Send + Sync>(
-        &mut self,
-        material: M,
-    ) -> AssetHandle {
-        self.asset_manager.create_material(material)
     }
     
     pub fn bind_material<M: Material + Sync + Send>(&mut self){
@@ -232,11 +193,12 @@ impl Renderer {
         #[cfg(feature = "egui")]
         event_handler: &mut EventHandler<GuiContext>,
         physics_handler: &mut PhysicsHandler,
+        asset_manager: &AssetManager,
         index: usize,
     ) -> DesperoResult<()> {        
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         
-        update_texture_sets(&self.asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
+        update_texture_sets(&asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
         
         begin_commandbuffer(&commandbuffer, &mut self.commandbuffer_pools, &self.device)?;
         begin_renderpass(&self.renderpass, &self.swapchain, &self.device, &commandbuffer, index);
@@ -252,7 +214,7 @@ impl Renderer {
                 if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
                     (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
                 {
-                    let material = &self.asset_manager.get_material(*handle).unwrap();
+                    let material = asset_manager.get_material(*handle).unwrap();
                     if (**material).type_id() == *mat_type {
                         bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
                         
@@ -330,7 +292,6 @@ impl Renderer {
             self.debug_renderer.cleanup(&self.device, &self.allocator); 
             #[cfg(feature = "egui")] 
             self.egui.destroy();
-            self.asset_manager.clear_textures(&self.device, &mut *self.allocator.lock().unwrap());
             self.descriptor_pool.cleanup(&self.device);
             self.device.destroy_buffer(self.camera_buffer.buffer, None);
             self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);

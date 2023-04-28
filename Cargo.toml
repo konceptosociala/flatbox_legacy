@@ -22,7 +22,7 @@ exclude = [
 [dependencies]
 # Assets
 serde = { version = "1.0.152", features = ["derive"] }
-erased-serde = "0.3.25"
+typetag = "0.2.8"
 ron = "0.8.0"
 lz4 = "1.24.0"
 tobj = "3.2.3"
@@ -44,7 +44,7 @@ gpu-allocator = "0.21.0"
 image = "0.24.5"
 raw-window-handle = "0.4.2"
 vk-shader-macros = "0.2.8"
-winit = { version = "0.27.5", optional = true }
+winit = { version = "0.27.5" }
 
 # ECS
 hecs = { git = "https://github.com/konceptosociala/despero-hecs", features = ["column-serialize"] }
@@ -54,7 +54,6 @@ hecs-schedule = { git = "https://github.com/konceptosociala/despero-hecs-schedul
 rapier3d = { version = "0.16.1", features = ["debug-render", "serde-serialize"] }
 
 # UI
-gtk = { version = "0.17.0", optional = true }
 egui = { version = "0.20.1", optional = true }
 egui-winit = { version = "0.20.1", optional = true }
 egui-winit-ash-integration = { version = "0.3.0", optional = true }
@@ -63,10 +62,8 @@ egui-winit-ash-integration = { version = "0.3.0", optional = true }
 mlua = { version = "0.8.6", features = ["lua51", "vendored"] }
 
 [features]
-default = ["egui", "winit"]
+default = ["egui"]
 egui = ["dep:egui", "dep:egui-winit", "dep:egui-winit-ash-integration"]
-gtk = ["dep:gtk"]
-winit = ["dep:winit"]
 
 [profile.dev]
 opt-level = 1

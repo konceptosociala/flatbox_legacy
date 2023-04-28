@@ -39,7 +39,7 @@ fn create_scene(
     cmd.spawn(
         ModelBundle::builder()
             .mesh(Mesh::plane())
-            .material(renderer.create_material(
+            .material(asset_manager.create_material(
                 DefaultMat::builder()
                     .texture_id(diffuse)
                     .metallic(0.0)

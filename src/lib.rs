@@ -77,7 +77,6 @@
 //! ```
 //! 
 
-#[cfg(feature = "winit")]
 use winit::{
     event::*,
     event::Event as WinitEvent,
@@ -91,9 +90,8 @@ use crate::render::{
 };
 #[cfg(feature = "egui")]
 use crate::render::ui::GuiContext;
-#[cfg(feature = "gtk")]
-use gtk::prelude::*;
 
+use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
 use crate::time::*;
@@ -133,21 +131,12 @@ pub struct Despero {
     time_handler: Time,
     
     renderer: Renderer,
-    #[cfg(feature = "gtk")]
-    gtk_application: gtk::Application,
+    asset_manager: AssetManager,
 }
 
 impl Despero {
     /// Initialize Despero application
-    pub fn init(
-        #[cfg(feature = "winit")]
-        window_builder: WindowBuilder,
-        
-        #[cfg(feature = "gtk")]
-        gtk_application: gtk::Application,
-        #[cfg(feature = "gtk")]
-        window_builder: gtk::GLArea,
-    ) -> Despero {
+    pub fn init(window_builder: WindowBuilder) -> Despero {
         #[cfg(debug_assertions)]
         env_logger::builder()
             .filter_level(
@@ -181,8 +170,7 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             renderer,
-            #[cfg(feature = "gtk")]
-            gtk_application,
+            asset_manager: AssetManager::new(),
         }
     }
     
@@ -231,75 +219,57 @@ impl Despero {
             &mut self.app_exit,
             &mut self.time_handler,
             &mut self.physics_handler,
+            &mut self.asset_manager,
         )).expect("Cannot execute setup schedule");
-        
-        #[cfg(feature = "winit")]
-        {
-            let event_loop = (&self.renderer.window.event_loop).clone();
-            (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
-                WinitEvent::WindowEvent { event, window_id: _ } => {
-                    #[cfg(feature = "egui")]
-                    let _response = self.renderer.egui.handle_event(&event);
-                    
-                    match event {
-                        WindowEvent::CloseRequested => {
-                            *controlflow = winit::event_loop::ControlFlow::Exit;
-                        }
-                        _ => (),
-                    }
-                }
+    
+        let event_loop = (&self.renderer.window.event_loop).clone();
+        (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
+            WinitEvent::WindowEvent { event, window_id: _ } => {
+                #[cfg(feature = "egui")]
+                let _response = self.renderer.egui.handle_event(&event);
                 
-                WinitEvent::NewEvents(StartCause::Init) => {
-                    unsafe { self.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
-                    log::debug!("Recreated swapchain");
-                }
-                        
-                WinitEvent::MainEventsCleared => {
-                    self.renderer.window.request_redraw();
-                    if let Some(_) = self.app_exit.read() {
+                match event {
+                    WindowEvent::CloseRequested => {
                         *controlflow = winit::event_loop::ControlFlow::Exit;
                     }
+                    _ => (),
                 }
-                
-                WinitEvent::RedrawRequested(_) => {
-                    systems.execute((
-                        &mut self.world,
-                        &mut self.renderer,
-                        #[cfg(feature = "egui")]
-                        &mut self.egui_ctx,
-                        &mut self.app_exit,
-                        &mut self.time_handler,
-                        &mut self.physics_handler,
-                    )).expect("Cannot execute loop schedule");
+            }
+            
+            WinitEvent::NewEvents(StartCause::Init) => {
+                unsafe { self.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
+                log::debug!("Recreated swapchain");
+            }
                     
-                    self.world.clear_trackers();
+            WinitEvent::MainEventsCleared => {
+                self.renderer.window.request_redraw();
+                if let Some(_) = self.app_exit.read() {
+                    *controlflow = winit::event_loop::ControlFlow::Exit;
                 }
-                
-                _ => {}
-            });
-        }
-        
-        #[cfg(feature = "gtk")]
-        {
-            self.renderer.window.gl_area.connect_render(move |gl_area, _gl_context| {
+            }
+            
+            WinitEvent::RedrawRequested(_) => {
                 systems.execute((
                     &mut self.world,
                     &mut self.renderer,
+                    #[cfg(feature = "egui")]
+                    &mut self.egui_ctx,
                     &mut self.app_exit,
                     &mut self.time_handler,
                     &mut self.physics_handler,
                 )).expect("Cannot execute loop schedule");
                 
                 self.world.clear_trackers();
-            });
+            }
             
-            self.gtk_application.run();
-        }
+            _ => {}
+        });
     }
 }
 
 impl Drop for Despero {
     fn drop(&mut self) {
+        self.asset_manager.cleanup(&mut self.renderer);
         self.renderer.cleanup(&mut self.world);
     }
 }

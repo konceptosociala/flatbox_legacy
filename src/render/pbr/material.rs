@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use std::any::Any;
 use ash::vk;
 
@@ -19,7 +20,7 @@ pub trait Material: Any + std::fmt::Debug {
 
 /// Default material, which uses standard shader and graphics pipeline
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct DefaultMat {
     pub texture_id: u32,
     pub metallic: f32,

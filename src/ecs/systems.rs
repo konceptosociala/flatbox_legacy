@@ -37,6 +37,7 @@ pub(crate) fn rendering_system(
     #[cfg(feature = "egui")]
     mut egui_ctx: Write<EventHandler<GuiContext>>,
     mut renderer: Write<Renderer>,
+    asset_manager: Read<AssetManager>,
     mut model_world: SubWorld<(&mut Mesh, &mut AssetHandle, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
 ) -> DesperoResult<()> {
@@ -55,6 +56,7 @@ pub(crate) fn rendering_system(
         #[cfg(feature = "egui")]
         &mut egui_ctx,
         &mut physics_handler,
+        &asset_manager,
         image_index as usize,
     )?;
     
@@ -116,12 +118,13 @@ pub(crate) fn rendering_system(
 
 pub(crate) fn update_models_system(
     mut renderer: Write<Renderer>,
+    asset_manager: Read<AssetManager>,
     world: SubWorld<(&mut Mesh, &mut AssetHandle, &Transform)>,
 ) -> DesperoResult<()> {
     for (_, (mut mesh, handle, _)) in &mut world.query::<(
         &mut Mesh, &AssetHandle, &Transform,
     )>(){
-        let material = renderer.asset_manager.get_material(*handle).unwrap().clone();
+        let material = asset_manager.get_material(*handle).unwrap().clone();
         let logical_device = renderer.device.clone();
         let allocator = &mut renderer.allocator;
         let vertexdata = mesh.vertexdata.clone();

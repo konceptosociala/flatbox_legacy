@@ -4,16 +4,17 @@ use std::sync::Arc;
 use std::collections::HashMap;
 
 use serde::{
+    Serializer, 
     Serialize, 
     Deserialize
 };
 
 use crate::ecs::*;
 use crate::error::*;
-use crate::assets::asset_manager::*;
+use crate::assets::asset_manager::Asset;
 
-#[typetag::serde(tag = "component")]
-pub trait SerializableComponent: Component {}
+pub trait SerializableComponent {}
+impl<'de, T: Component + Serialize + Deserialize<'de>> SerializableComponent for T {}
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename = "Entity")]
@@ -22,12 +23,12 @@ pub struct SerializableEntity {
 }
 
 #[derive(Default, Serialize, Deserialize)]
-pub struct Scene {
-    pub assets: HashMap<AssetHandle, Arc<dyn Asset>>,
+pub struct Scene<'a> {
+    pub assets: HashMap<AssetHandle, Arc<dyn Asset<'a>>>,
     pub entities: Vec<SerializableEntity>,
 }
 
-impl Scene {
+impl Scene<'de> {
     //~ pub const STRUCT: &str = "Scene";
     //~ pub const ASSETS_FIELD: &str = "assets";
     //~ pub const ENTITIES_FIELD: &str = "entities";
@@ -40,7 +41,7 @@ impl Scene {
         let scene = read_to_string(path)?;
         
         Ok(Scene {
-            assets: HashMap::new(),
+            assets: vec![],
             entities: vec![],
         })
     }
@@ -80,7 +81,7 @@ impl SpawnSceneExt for CommandBuffer {
             let mut entity_builder = EntityBuilder::new();
             
             for component in entity.components {
-                entity_builder.add(component);
+                entity_builder.add(**component);
             }
             
             self.spawn(entity_builder.build());

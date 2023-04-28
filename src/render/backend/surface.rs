@@ -14,44 +14,21 @@ pub struct Surface {
 
 impl Surface {
     pub fn init(
-        #[cfg(feature = "winit")]
         window: &winit::window::Window,
-        #[cfg(feature = "gtk")]
-        gl_area: &gtk::GLArea,
         instance: &Instance,
     ) -> Result<Surface, vk::Result> {
-        #[cfg(feature = "winit")]
-        {
-            let surface = unsafe { ash_window::create_surface(
-                &instance.entry, 
-                &instance.instance, 
-                &window, 
-                None,
-            )? };
-            
-            let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
-            return Ok(Surface {
-                surface,
-                surface_loader,
-            })
-        }
+        let surface = unsafe { ash_window::create_surface(
+            &instance.entry, 
+            &instance.instance, 
+            &window, 
+            None,
+        )? };
         
-        #[cfg(feature = "gtk")]
-        {                        
-            let surface = unsafe { ash_window::create_surface(
-                &instance.entry, 
-                &instance.instance, 
-                &gl_area, 
-                None,
-            )? };
-            
-            let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
-            
-            return Ok(Surface {
-                surface,
-                surface_loader,
-            })
-        }
+        let surface_loader = ash::extensions::khr::Surface::new(&instance.entry, &instance.instance);
+        return Ok(Surface {
+            surface,
+            surface_loader,
+        })
     }
     
     pub fn get_capabilities(
@@ -63,7 +40,6 @@ impl Surface {
         }
     }
     
-    #[allow(dead_code)]
     pub fn get_present_modes(
         &self,
         physical_device: vk::PhysicalDevice,
