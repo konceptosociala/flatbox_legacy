@@ -10,9 +10,9 @@ use crate::render::*;
 #[typetag::serde(tag = "asset")]
 pub trait Asset {}
 
-#[typetag::serde(name = "asset")]
+#[typetag::serde]
 impl Asset for DefaultMat {}
-#[typetag::serde(name = "asset")]
+#[typetag::serde]
 impl Asset for Texture {}
 
 #[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]

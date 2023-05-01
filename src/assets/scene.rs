@@ -27,17 +27,13 @@ pub struct Scene {
     pub entities: Vec<SerializableEntity>,
 }
 
-impl Scene {
-    //~ pub const STRUCT: &str = "Scene";
-    //~ pub const ASSETS_FIELD: &str = "assets";
-    //~ pub const ENTITIES_FIELD: &str = "entities";
-    
+impl Scene {    
     pub fn new() -> Self {
         Scene::default()
     }
     
     pub fn load<P: AsRef<Path>>(path: P) -> DesperoResult<Self> {
-        let scene = read_to_string(path)?;
+        let _scene = read_to_string(path)?;
         
         Ok(Scene {
             assets: HashMap::new(),
@@ -45,30 +41,6 @@ impl Scene {
         })
     }
 }
-
-//~ impl Serialize for Scene {
-    //~ fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        //~ let mut state = serializer.serialize_struct(Scene::STRUCT, 2)?;
-        //~ state.serialize_field(
-            //~ Scene::ASSETS_FIELD,
-            //~ &AssetsSerializer {
-                //~ assets: &self.assets,
-            //~ }
-        //~ )?;
-        //~ state.serialize_field(Scene::ENTITIES_FIELD, &self.entities)?;
-        //~ state.end()
-    //~ }
-//~ }
-
-//~ pub struct AssetsSerializer<'a> {
-    //~ pub assets: &'a [Arc<dyn Asset>],
-//~ }
-
-//~ impl<'a> Serialize for AssetsSerializer<'a> {
-    //~ fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        //~ let mut state = serializer.serialize_map(Some(self.assets.len()))?;
-    //~ }
-//~ }
 
 pub trait SpawnSceneExt {
     fn spawn_scene(&mut self, scene: Scene);

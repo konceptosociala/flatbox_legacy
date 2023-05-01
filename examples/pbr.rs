@@ -34,12 +34,12 @@ fn create_scene(
 ){
     renderer.bind_material::<TexMaterial>();
     
-    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::LINEAR, &mut renderer);
+    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::Linear, &mut renderer);
     
     cmd.spawn(
         ModelBundle::builder()
             .mesh(Mesh::plane())
-            .material(renderer.create_material(
+            .material(asset_manager.create_material(
                 DefaultMat::builder()
                     .texture_id(diffuse)
                     .metallic(0.0)
@@ -69,13 +69,13 @@ fn create_scene(
         },
     ));
     
-    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::LINEAR, &mut renderer);
+    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::Linear, &mut renderer);
     
     cmd.spawn(
         ModelBundle::builder()
             .mesh(Mesh::load_obj("assets/skybox.obj").swap_remove(0))
             .material(
-                renderer.create_material(TexMaterial {
+                asset_manager.create_material(TexMaterial {
                     texture_id: sky_tex.unwrap() as u32,
                 })
             )

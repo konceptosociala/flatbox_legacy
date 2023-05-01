@@ -257,6 +257,7 @@ impl Despero {
                     &mut self.app_exit,
                     &mut self.time_handler,
                     &mut self.physics_handler,
+                    &mut self.asset_manager,
                 )).expect("Cannot execute loop schedule");
                 
                 self.world.clear_trackers();
