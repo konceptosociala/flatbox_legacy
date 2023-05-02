@@ -5,6 +5,8 @@ use crate::physics::*;
 pub enum Result {
     #[error("Allocation error")]
     AllocationError(#[from] gpu_allocator::AllocationError),
+    #[error("Deserialization error")]
+    DeserializationError(#[from] ron::error::SpannedError),
     #[error("Error processing image")]
     ImageError(#[from] image::ImageError),
     #[error("I/O error")]

@@ -1,5 +1,6 @@
 use ash::vk;
 use nalgebra as na;
+use serde::{Serialize, Deserialize};
 
 use crate::render::{
     renderer::Renderer,
@@ -9,13 +10,14 @@ use crate::render::{
 use crate::ecs::*;
 use crate::math::transform::Transform;
 
-#[derive(Clone, Debug, Hash, PartialEq)]
+#[derive(Clone, Default, Debug, Hash, PartialEq, Serialize, Deserialize)]
 pub enum CameraType {
+    #[default]
     FirstPerson,
     LookAt,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Camera {
     camera_type: CameraType,
     projectionmatrix: na::Matrix4<f32>,

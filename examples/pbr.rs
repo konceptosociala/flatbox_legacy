@@ -1,8 +1,5 @@
 use despero::prelude::*;
 
-pub mod modules;
-use modules::materials::*;
-
 #[derive(Clone, Default, Debug)]
 struct CameraConfiguration {
     limit: (f32, f32),
@@ -31,9 +28,7 @@ fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
-){
-    renderer.bind_material::<TexMaterial>();
-    
+){    
     let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::Linear, &mut renderer);
     
     cmd.spawn(
@@ -75,11 +70,13 @@ fn create_scene(
         ModelBundle::builder()
             .mesh(Mesh::load_obj("assets/skybox.obj").swap_remove(0))
             .material(
-                asset_manager.create_material(TexMaterial {
-                    texture_id: sky_tex.unwrap() as u32,
-                })
+                asset_manager.create_material(
+                    DefaultMat::builder()
+                        .texture_id(sky_tex)
+                        .build()
+                )
             )
-            .transform(Transform::from_translation(Vector3::new(0.0, 0.0, 0.0)))
+            .transform(Transform::default())
             .build()
     );
 }

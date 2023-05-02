@@ -62,7 +62,7 @@ macro_rules! world_serializer {
             ) -> Result<ColumnBatchType, A::Error> {
                 self.components.clear();
                 let mut batch = ColumnBatchType::new();
-                while let Some(id) = seq.next_element()? {
+                while let Some(id) = seq.next_element::<String>()? {
                     match id.as_str() {                        
                         $(                            
                             stringify!($comp) => {
@@ -107,22 +107,15 @@ macro_rules! world_serializer {
                 path: P,
                 world: &World,
             ) -> DesperoResult<()> {
-                let buf = std::fs::File::create(path)?;
-                
-                let mut encoder = lz4::EncoderBuilder::new()
-                    .level(4)
-                    .build(buf)?;
-                    
-                let mut ser = ron::Serializer::new(encoder.writer(), Some(ron::ser::PrettyConfig::new()))?;                
+                let buf = std::fs::File::create(path)?;                    
+                let mut ser = ron::Serializer::new(buf, Some(ron::ser::PrettyConfig::new()))?;                
                 
                 serialize_world(
                     &world,
                     self,
                     &mut ser,
                 )?;
-                
-                encoder.finish().1?;
-                
+                                
                 Ok(())
             }
             

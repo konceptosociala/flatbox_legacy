@@ -24,13 +24,9 @@ The crate is in a very early stage of development. Use it at your own risk
 ## To implement:
 
 - [x] `Prelude`
-- [x] Reorganize `InstanceData` (Material) and `VertexData` (Mesh)
-- [x] Resource processing (as hecs ECS)
-    - [x] `Texture`
-    - [x] `Material`
-        - [x] `DefaultMat`
-        - [x] Universal `Material`
-    - [x] `Mesh`
+- [ ] Asset Manager
+    - [x] Separate ( Textures, Materials collection )
+    - [ ] Combined ( `HashMap<AssetHandle, Arc<dyn Asset>>` )
 - [x] ECS
     - [x] `Light`
     - [x] `ModelBundle`
@@ -40,10 +36,10 @@ The crate is in a very early stage of development. Use it at your own risk
     - [ ] Animations
     - [ ] COLLADA
     - [ ] LOD
-- [ ] Resource compressing (lz4)
-    - [ ] Scene (scn)
-    - [ ] Model (mdl)
-    - [ ] Texture (tex)
+- [ ] Resource compressing
+    - [ ] Scene
+    - [ ] Model
+    - [ ] Texture
 - [ ] `RenderTexture`
 - [ ] SkyBoxes
 - [ ] DESL Shaders
@@ -53,15 +49,18 @@ The crate is in a very early stage of development. Use it at your own risk
     - [ ] Soft
 - [x] UI (egui)
 - [ ] Physics (rapier3d)
+    - [x] Colliders
+        - [x] Simple
+        - [ ] Mesh colliders
+    - [x] RigidBodies
+    - [ ] Joints
 - [ ] Scripting (mlua)
     - [ ] Simple scripts
     - [ ] Script as resource
 - [ ] Scenes
     - [x] Save World (Serialize RON)
+    - [x] Load World (Deserialize RON)
     - [ ] Save Materials and Textures
-    - [ ] Load World (Deserialize RON)
-    - [ ] RON-scenes (scn)
+    - [ ] RON-scenes
 - [ ] Particle Systems (sonja)
 - [ ] Game Settings
-- [ ] Conditional systems
-    - [ ] Pause
