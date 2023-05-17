@@ -21,7 +21,6 @@ world_serializer!(
         Camera
 );
 
-
 fn main() {    
     Despero::init(WindowBuilder::default())
         .default_systems()

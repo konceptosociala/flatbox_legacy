@@ -39,7 +39,7 @@ impl AssetHandle {
 #[derive(Default)]
 pub struct AssetManager {
     pub textures: Vec<Texture>,
-    pub materials: Vec<Arc<(dyn Material + Send + Sync)>>, //TODO: Replace with HashMap<AssetHandle, Arc<dyn Asset>>
+    pub materials: Vec<Arc<(dyn Material + Send + Sync)>>,
 }
 
 impl AssetManager {
@@ -56,10 +56,7 @@ impl AssetManager {
         let new_texture = Texture::new_from_file(
             path,
             filter,
-            &renderer.device,
-            &mut *renderer.allocator.lock().unwrap(),
-            &renderer.commandbuffer_pools.commandpool_graphics,
-            &renderer.queue_families.graphics_queue,
+            renderer,
         ).expect("Cannot create texture");
         
         let new_id = self.textures.len();
@@ -93,8 +90,8 @@ impl AssetManager {
             .iter()
             .map(|t| vk::DescriptorImageInfo {
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                image_view: t.imageview,
-                sampler: t.sampler,
+                image_view: t.imageview.unwrap(),
+                sampler: t.sampler.unwrap(),
                 ..Default::default()
             })
             .collect()
@@ -110,10 +107,13 @@ impl AssetManager {
             let alloc = alloc.unwrap();
             (*renderer.allocator.lock().unwrap()).free(alloc).unwrap();
             unsafe { 
-                renderer.device.destroy_sampler(texture.sampler, None);
-                renderer.device.destroy_image_view(texture.imageview, None);
-                renderer.device.destroy_image(texture.vk_image, None);
+                renderer.device.destroy_sampler(texture.sampler.unwrap(), None);
+                renderer.device.destroy_image_view(texture.imageview.unwrap(), None);
+                renderer.device.destroy_image(texture.vk_image.unwrap(), None);
             }
         }
+        
+        self.textures.clear();
+        self.materials.clear();
     }    
 }

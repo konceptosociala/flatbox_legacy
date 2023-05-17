@@ -13,7 +13,9 @@ use crate::error::*;
 use crate::assets::asset_manager::*;
 
 #[typetag::serde(tag = "component")]
-pub trait SerializableComponent: Component {}
+pub trait SerializableComponent: Component {
+    fn add_into(&self, entity_builder: &mut EntityBuilder);
+}
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename = "Entity")]
@@ -32,13 +34,10 @@ impl Scene {
         Scene::default()
     }
     
-    pub fn load<P: AsRef<Path>>(path: P) -> DesperoResult<Self> {
-        let _scene = read_to_string(path)?;
-        
-        Ok(Scene {
-            assets: HashMap::new(),
-            entities: vec![],
-        })
+    pub fn load<P: AsRef<Path>>(path: P) -> DesperoResult<Self> {     
+        Ok(ron::from_str::<Scene>(
+            &read_to_string(path)?
+        )?)
     }
 }
 
@@ -52,7 +51,21 @@ impl SpawnSceneExt for CommandBuffer {
             let mut entity_builder = EntityBuilder::new();
             
             for component in entity.components {
-                entity_builder.add(component);
+                component.add_into(&mut entity_builder);
+            }
+            
+            self.spawn(entity_builder.build());
+        }
+    }
+}
+
+impl SpawnSceneExt for World {
+    fn spawn_scene(&mut self, scene: Scene) {
+        for entity in scene.entities {
+            let mut entity_builder = EntityBuilder::new();
+            
+            for component in entity.components {
+                component.add_into(&mut entity_builder);
             }
             
             self.spawn(entity_builder.build());

@@ -24,7 +24,20 @@ use crate::render::{
 #[cfg(feature = "egui")]
 use crate::render::ui::GuiContext;
 
-pub (crate) fn main_setup(){}
+pub(crate) fn main_setup(){}
+
+pub(crate) fn generate_textures(
+    mut asset_manager: Write<AssetManager>,
+    mut renderer: Write<Renderer>,
+) -> DesperoResult<()> {
+    for texture in &mut asset_manager.textures {
+        if texture.sampler == None {
+            texture.generate(&mut renderer)?;
+        }
+    }
+    
+    Ok(())
+}
 
 pub(crate) fn time_system(
     mut time: Write<Time>,

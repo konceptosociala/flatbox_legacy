@@ -201,7 +201,8 @@ impl Despero {
             .add_system(rendering_system)
             .add_system(time_system)
             .add_system(update_lights)
-            .add_system(update_physics);
+            .add_system(update_physics)
+            .add_system(generate_textures);
             
         return self;
     }

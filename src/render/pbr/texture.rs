@@ -1,9 +1,14 @@
-use serde::{Serialize, Deserialize, Serializer, Deserializer, ser::SerializeStruct};
+use serde::{Serialize, Deserialize};
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
-use crate::render::backend::buffer::Buffer;
+use crate::render::{
+    backend::buffer::Buffer,
+    renderer::Renderer,
+};
+
+use crate::error::*;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum Filter {
@@ -14,54 +19,74 @@ pub enum Filter {
 } 
 
 #[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
 pub struct Texture {
-    pub path: &'static str,
+    pub path: String,
     pub filter: Filter,
     
-    pub(crate) image: image::RgbaImage,
-    pub(crate) vk_image: vk::Image,
+    // Raw image data
+    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) image: Option<image::RgbaImage>,
+    
+    // Vulkan image data
+    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) vk_image: Option<vk::Image>,
+    
+    // Data allocation
+    #[serde(skip_serializing, skip_deserializing)]
     pub(crate) image_allocation: Option<Allocation>,
-    pub(crate) imageview: vk::ImageView,
-    pub(crate) sampler: vk::Sampler,
-}
-
-impl Serialize for Texture {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("Texture", 2)?;
-        state.serialize_field("path", &self.path)?;
-        state.serialize_field("filter", &self.filter)?;
-        state.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for Texture {
-    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>
-    {
-        todo!();
-    }
+    
+    // Vulkan image view
+    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) imageview: Option<vk::ImageView>,
+    
+    // Vulkan sampler
+    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) sampler: Option<vk::Sampler>,
 }
 
 impl Texture {
+    /// Create empty texture with given `filter` and `path`. Requires [`generate`] method applied to it to load the texture to memory
+    pub fn new_blank(
+        path: &'static str, 
+        filter: Filter,
+    ) -> Self {
+        Texture {
+            path: path.into(),
+            filter,
+            image: None,
+            vk_image: None,
+            image_allocation: None,
+            imageview: None,
+            sampler: None,
+        }
+    }
+    
+    /// Create texture from file and load it to memory
     pub fn new_from_file(
         path: &'static str, 
         filter: Filter,
-        logical_device: &ash::Device,
-        allocator: &mut Allocator,
-        commandpool_graphics: &vk::CommandPool,
-        graphics_queue: &vk::Queue,
-    ) -> Result<Self, vk::Result> {
+        renderer: &mut Renderer
+    ) -> DesperoResult<Self> {
+        let mut texture = Texture::new_blank(path, filter);
+        texture.generate(renderer)?;
+        
+        Ok(texture)
+    }
+    
+    /// Generate texture rendering data for blank texture
+    pub fn generate(&mut self, renderer: &mut Renderer) -> DesperoResult<()> {
+        // Create image
+        let image = image::open(self.path.as_str())
+            .map(|img| img.to_rgba8())
+            .expect("unable to open image");
+            
         // Choose filter
-        let raw_filter = match filter {
+        let raw_filter = match self.filter {
             Filter::Nearest => vk::Filter::NEAREST,
             Filter::Cubic => vk::Filter::CUBIC_EXT,
             _ => vk::Filter::LINEAR,
         };
-        // Create image
-        let image = image::open(path)
-            .map(|img| img.to_rgba8())
-            .expect("unable to open image");
             
         let (width, height) = image.dimensions();
         
@@ -80,18 +105,18 @@ impl Texture {
                 vk::ImageUsageFlags::TRANSFER_DST |
                 vk::ImageUsageFlags::SAMPLED
             );
-        let vk_image = unsafe { logical_device.create_image(&img_create_info, None)? };
+        let vk_image = unsafe { renderer.device.create_image(&img_create_info, None)? };
         // Allocation info
         let allocation_info = &AllocationCreateDesc {
             name: "Texture allocation",
-            requirements: unsafe { logical_device.get_image_memory_requirements(vk_image) },
+            requirements: unsafe { renderer.device.get_image_memory_requirements(vk_image) },
             location: MemoryLocation::GpuOnly,
             linear: true,
         };
         // Create memory allocation
-        let allocation = allocator.allocate(allocation_info).unwrap();
+        let allocation = renderer.allocator.lock().unwrap().allocate(allocation_info).unwrap();
         // Bind memory allocation to the vk_image
-        unsafe { logical_device.bind_image_memory(
+        unsafe { renderer.device.bind_image_memory(
             vk_image, 
             allocation.memory(), 
             allocation.offset()).unwrap()
@@ -108,32 +133,32 @@ impl Texture {
                 layer_count: 1,
                 ..Default::default()
             });
-        let imageview = unsafe { logical_device.create_image_view(&view_create_info, None)? };
+        let imageview = unsafe { renderer.device.create_image_view(&view_create_info, None)? };
         
         // Create Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(raw_filter)
             .min_filter(raw_filter);
-        let sampler = unsafe { logical_device.create_sampler(&sampler_info, None)? };
+        let sampler = unsafe { renderer.device.create_sampler(&sampler_info, None)? };
         
         // Prepare buffer for the texture
         let data = image.clone().into_raw();
         let mut buffer = Buffer::new(
-            &logical_device,
-            allocator,
+            &renderer.device,
+            &mut *renderer.allocator.lock().unwrap(),
             data.len() as u64,
             vk::BufferUsageFlags::TRANSFER_SRC,
             MemoryLocation::CpuToGpu,
             "Texture allocation"
         )?;
-        buffer.fill(&logical_device, allocator, &data)?;
+        buffer.fill(&renderer.device, &mut *renderer.allocator.lock().unwrap(), &data)?;
         
         // Create CommandBuffer
         let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(*commandpool_graphics)
+            .command_pool(renderer.commandbuffer_pools.commandpool_graphics)
             .command_buffer_count(1);
         let copycmdbuffer = unsafe {
-            logical_device.allocate_command_buffers(&commandbuf_allocate_info)
+            renderer.device.allocate_command_buffers(&commandbuf_allocate_info)
         }
         .unwrap()[0];
 
@@ -142,7 +167,7 @@ impl Texture {
             
         // Begin CommandBuffer
         unsafe {
-            logical_device.begin_command_buffer(copycmdbuffer, &cmdbegininfo)
+            renderer.device.begin_command_buffer(copycmdbuffer, &cmdbegininfo)
         }?;
         
         // Change image layout for transfering
@@ -162,7 +187,7 @@ impl Texture {
             .build();
             
         unsafe {
-            logical_device.cmd_pipeline_barrier(
+            renderer.device.cmd_pipeline_barrier(
                 copycmdbuffer,
                 vk::PipelineStageFlags::TOP_OF_PIPE,
                 vk::PipelineStageFlags::TRANSFER,
@@ -196,7 +221,7 @@ impl Texture {
         };
         
         unsafe {
-            logical_device.cmd_copy_buffer_to_image(
+            renderer.device.cmd_copy_buffer_to_image(
                 copycmdbuffer,
                 buffer.buffer,
                 vk_image,
@@ -223,7 +248,7 @@ impl Texture {
             .build();
             
         unsafe {
-            logical_device.cmd_pipeline_barrier(
+            renderer.device.cmd_pipeline_barrier(
                 copycmdbuffer,
                 vk::PipelineStageFlags::TRANSFER,
                 vk::PipelineStageFlags::FRAGMENT_SHADER,
@@ -235,55 +260,41 @@ impl Texture {
         };
         
         // End CommandBuffer
-        unsafe { logical_device.end_command_buffer(copycmdbuffer) }?;
+        unsafe { renderer.device.end_command_buffer(copycmdbuffer) }?;
         let submit_infos = [vk::SubmitInfo::builder()
             .command_buffers(&[copycmdbuffer])
             .build()];
         let fence = unsafe {
-            logical_device.create_fence(&vk::FenceCreateInfo::default(), None)
+            renderer.device.create_fence(&vk::FenceCreateInfo::default(), None)
         }?;
         
         unsafe {
-            logical_device.queue_submit(*graphics_queue, &submit_infos, fence)
+            renderer.device.queue_submit(renderer.queue_families.graphics_queue, &submit_infos, fence)
         }?;
         
         // Destroy buffer
-        unsafe { logical_device.wait_for_fences(&[fence], true, std::u64::MAX) }?;
-        unsafe { logical_device.destroy_fence(fence, None) };
+        unsafe { renderer.device.wait_for_fences(&[fence], true, std::u64::MAX) }?;
+        unsafe { renderer.device.destroy_fence(fence, None) };
                 
         let mut alloc: Option<Allocation> = None;
         std::mem::swap(&mut alloc, &mut buffer.allocation);
         let alloc = alloc.unwrap();
-        allocator.free(alloc).unwrap();
-        unsafe { logical_device.destroy_buffer(buffer.buffer, None) };
+        renderer.allocator.lock().unwrap().free(alloc).unwrap();
+        unsafe { renderer.device.destroy_buffer(buffer.buffer, None) };
         
         unsafe {
-            logical_device.free_command_buffers(
-                *commandpool_graphics,
+            renderer.device.free_command_buffers(
+                renderer.commandbuffer_pools.commandpool_graphics,
                 &[copycmdbuffer]
             )
         };
         
-        Ok(Texture {
-            path,
-            filter,
-            image,
-            vk_image,
-            image_allocation: Some(allocation),
-            imageview,
-            sampler,
-        })
-    }
-    
-    pub fn from_raw(_data: Vec<u8>){
-        todo!();
-    }
-    
-    pub fn update_from_file(&mut self){
-        todo!();
-    }
-    
-    pub fn update_from_raw(&mut self, _data: Vec<u8>){
-        todo!();
+        self.image = Some(image);
+        self.vk_image = Some(vk_image);
+        self.image_allocation = Some(allocation);
+        self.imageview = Some(imageview);
+        self.sampler = Some(sampler);
+        
+        Ok(())
     }
 }
