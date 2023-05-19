@@ -214,8 +214,8 @@ impl Renderer {
                 if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
                     (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
                 {
-                    let material = asset_manager.get_material_object(*handle).unwrap();
-                    if (**material).type_id() == *mat_type {
+                    let material = asset_manager.get_material(*handle).unwrap();
+                    if (**material).lock().unwrap().type_id() == *mat_type {
                         bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
                         
                         apply_transform(&self.device, &self.descriptor_pool, &commandbuffer, &transform);

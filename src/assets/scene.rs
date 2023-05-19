@@ -9,12 +9,10 @@ use serde::{
 
 use crate::ecs::*;
 use crate::error::*;
-use crate::assets::asset_manager::*;
-
-#[typetag::serde(tag = "component")]
-pub trait SerializableComponent: Component {
-    fn add_into(&self, entity_builder: &mut EntityBuilder);
-}
+use crate::assets::{
+    asset_manager::*,
+    ser_component::*,
+};
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename = "Entity")]
@@ -51,6 +49,10 @@ impl SpawnSceneExt for CommandBuffer {
             
             for component in entity.components {
                 component.add_into(&mut entity_builder);
+            }
+            
+            if let Some(ref mut handle) = &mut entity_builder.get_mut::<&mut AssetHandle>() {
+                handle.append(asset_manager.materials.len())
             }
             
             self.spawn(entity_builder.build());

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use ash::vk;
 
@@ -23,12 +23,16 @@ impl AssetHandle {
     pub fn unwrap(&self) -> usize {
         self.0
     }
+    
+    pub fn append(&mut self, count: usize) {
+        self.0 += count;
+    }
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
     pub textures: Vec<Texture>,
-    pub materials: Vec<Arc<dyn Material>>,
+    pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
 }
 
 impl AssetManager {
@@ -56,7 +60,7 @@ impl AssetManager {
         material: M,
     ) -> AssetHandle {
         let index = self.materials.len();
-        self.materials.push(Arc::new(material));
+        self.materials.push(Arc::new(Mutex::new(Box::new(material))));
         AssetHandle(index)
     }
     
@@ -68,16 +72,12 @@ impl AssetManager {
         self.textures.get_mut(handle.0)
     }
     
-    pub fn get_material<M: Material>(&self, handle: AssetHandle) -> Option<&M> {
-        if let Some(m) = self.materials.get(handle.0) {
-            m.as_ref().as_any().downcast_ref::<M>()
-        } else {
-            return None;
-        }
+    pub fn get_material(&self, handle: AssetHandle) -> Option<&Arc<Mutex<Box<dyn Material>>>> {
+        self.materials.get(handle.0)
     }
     
-    pub fn get_material_object(&self, handle: AssetHandle) -> Option<&Arc<dyn Material>> {
-        self.materials.get(handle.0)
+    pub fn get_material_mut(&mut self, handle: AssetHandle) -> Option<&mut Arc<Mutex<Box<dyn Material>>>> {
+        self.materials.get_mut(handle.0)
     }
     
     pub fn append(&mut self, other: Self) {
