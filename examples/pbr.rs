@@ -27,9 +27,8 @@ fn main() {
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
-    mut renderer: Write<Renderer>,
 ){    
-    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::Linear, &mut renderer);
+    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::Linear);
     
     cmd.spawn(
         ModelBundle::builder()
@@ -64,7 +63,7 @@ fn create_scene(
         },
     ));
     
-    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::Linear, &mut renderer);
+    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::Linear);
     
     cmd.spawn(
         ModelBundle::builder()

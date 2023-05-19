@@ -1,19 +1,8 @@
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use ash::vk;
-use gpu_allocator::vulkan::{
-    Allocation,
-};
 
 use crate::render::*;
-
-#[typetag::serde(tag = "asset")]
-pub trait Asset {}
-
-#[typetag::serde]
-impl Asset for DefaultMat {}
-#[typetag::serde]
-impl Asset for Texture {}
 
 #[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetHandle(usize);
@@ -36,10 +25,10 @@ impl AssetHandle {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
     pub textures: Vec<Texture>,
-    pub materials: Vec<Arc<(dyn Material + Send + Sync)>>,
+    pub materials: Vec<Arc<dyn Material>>,
 }
 
 impl AssetManager {
@@ -51,13 +40,11 @@ impl AssetManager {
         &mut self,
         path: &'static str,
         filter: Filter,
-        renderer: &mut Renderer,
     ) -> AssetHandle {
-        let new_texture = Texture::new_from_file(
+        let new_texture = Texture::new_blank(
             path,
             filter,
-            renderer,
-        ).expect("Cannot create texture");
+        );
         
         let new_id = self.textures.len();
         self.textures.push(new_texture);
@@ -81,18 +68,39 @@ impl AssetManager {
         self.textures.get_mut(handle.0)
     }
     
-    pub fn get_material(&self, handle: AssetHandle) -> Option<&Arc<dyn Material + Send + Sync>> {
+    pub fn get_material<M: Material>(&self, handle: AssetHandle) -> Option<&M> {
+        if let Some(m) = self.materials.get(handle.0) {
+            m.as_ref().as_any().downcast_ref::<M>()
+        } else {
+            return None;
+        }
+    }
+    
+    pub fn get_material_object(&self, handle: AssetHandle) -> Option<&Arc<dyn Material>> {
         self.materials.get(handle.0)
+    }
+    
+    pub fn append(&mut self, other: Self) {
+        self.textures.extend(other.textures);
+        self.materials.extend(other.materials);
     }
     
     pub fn descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
         self.textures
             .iter()
-            .map(|t| vk::DescriptorImageInfo {
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                image_view: t.imageview.unwrap(),
-                sampler: t.sampler.unwrap(),
-                ..Default::default()
+            .filter_map(|t| {
+                if let (Some(image_view), Some(sampler)) = (t.imageview, t.sampler) {
+                    Some(
+                        vk::DescriptorImageInfo {
+                            image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+                            image_view,
+                            sampler,
+                            ..Default::default()
+                        }
+                    )
+                } else {
+                    None
+                }
             })
             .collect()
     }
@@ -102,15 +110,7 @@ impl AssetManager {
         renderer: &mut Renderer,
     ){
         for texture in &mut self.textures {
-            let mut alloc: Option<Allocation> = None;
-            std::mem::swap(&mut alloc, &mut texture.image_allocation);
-            let alloc = alloc.unwrap();
-            (*renderer.allocator.lock().unwrap()).free(alloc).unwrap();
-            unsafe { 
-                renderer.device.destroy_sampler(texture.sampler.unwrap(), None);
-                renderer.device.destroy_image_view(texture.imageview.unwrap(), None);
-                renderer.device.destroy_image(texture.vk_image.unwrap(), None);
-            }
+            texture.cleanup(renderer);
         }
         
         self.textures.clear();

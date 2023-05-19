@@ -19,7 +19,7 @@ pub enum Filter {
 } 
 
 #[allow(dead_code)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Texture {
     pub path: String,
     pub filter: Filter,
@@ -43,6 +43,15 @@ pub struct Texture {
     // Vulkan sampler
     #[serde(skip_serializing, skip_deserializing)]
     pub(crate) sampler: Option<vk::Sampler>,
+}
+
+impl std::fmt::Debug for Texture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Texture")
+            .field("path", &self.path)
+            .field("filter", &self.filter)
+            .finish()
+    }
 }
 
 impl Texture {
@@ -296,5 +305,29 @@ impl Texture {
         self.sampler = Some(sampler);
         
         Ok(())
+    }
+    
+    pub fn cleanup(&mut self, renderer: &mut Renderer) {
+        if let Some(_) = self.image_allocation {
+            let mut new_alloc: Option<Allocation> = None;
+            std::mem::swap(&mut new_alloc, &mut self.image_allocation);
+            let new_alloc = new_alloc.unwrap();
+            (*renderer.allocator.lock().unwrap()).free(new_alloc).unwrap();
+        }
+        
+        if let Some(sampler) = self.sampler {
+            unsafe { renderer.device.destroy_sampler(sampler, None); }
+            self.sampler = None;
+        }
+        
+        if let Some(imageview) = self.imageview {
+            unsafe { renderer.device.destroy_image_view(imageview, None); }
+            self.imageview = None;
+        }
+        
+        if let Some(vk_image) = self.vk_image {
+            unsafe { renderer.device.destroy_image(vk_image, None); }
+            self.vk_image = None;
+        }        
     }
 }

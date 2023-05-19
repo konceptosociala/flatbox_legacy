@@ -137,7 +137,7 @@ pub(crate) fn update_models_system(
     for (_, (mut mesh, handle, _)) in &mut world.query::<(
         &mut Mesh, &AssetHandle, &Transform,
     )>(){
-        let material = asset_manager.get_material(*handle).unwrap().clone();
+        let material = asset_manager.get_material_object(*handle).unwrap().clone();
         let logical_device = renderer.device.clone();
         let allocator = &mut renderer.allocator;
         let vertexdata = mesh.vertexdata.clone();

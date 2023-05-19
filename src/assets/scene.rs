@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::fs::read_to_string;
 use std::sync::Arc;
-use std::collections::HashMap;
 
 use serde::{
     Serialize, 
@@ -25,7 +24,7 @@ pub struct SerializableEntity {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Scene {
-    pub assets: HashMap<AssetHandle, Arc<dyn Asset>>,
+    pub assets: AssetManager,
     pub entities: Vec<SerializableEntity>,
 }
 
@@ -42,11 +41,11 @@ impl Scene {
 }
 
 pub trait SpawnSceneExt {
-    fn spawn_scene(&mut self, scene: Scene);
+    fn spawn_scene(&mut self, scene: Scene, asset_manager: &mut AssetManager);
 }
 
 impl SpawnSceneExt for CommandBuffer {
-    fn spawn_scene(&mut self, scene: Scene) {
+    fn spawn_scene(&mut self, scene: Scene, asset_manager: &mut AssetManager) {
         for entity in scene.entities {
             let mut entity_builder = EntityBuilder::new();
             
@@ -56,11 +55,13 @@ impl SpawnSceneExt for CommandBuffer {
             
             self.spawn(entity_builder.build());
         }
+        
+        asset_manager.append(scene.assets);
     }
 }
 
 impl SpawnSceneExt for World {
-    fn spawn_scene(&mut self, scene: Scene) {
+    fn spawn_scene(&mut self, scene: Scene, asset_manager: &mut AssetManager) {
         for entity in scene.entities {
             let mut entity_builder = EntityBuilder::new();
             
@@ -70,5 +71,7 @@ impl SpawnSceneExt for World {
             
             self.spawn(entity_builder.build());
         }
+        
+        asset_manager.append(scene.assets);
     }
 }

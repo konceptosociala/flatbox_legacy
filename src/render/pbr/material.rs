@@ -12,10 +12,13 @@ use crate::render::{
 };
 
 /// Trait for materials to be used in [`Renderer`]
-pub trait Material: Any + std::fmt::Debug {
+#[typetag::serde(tag = "material")]
+pub trait Material: Any + std::fmt::Debug + Send + Sync {
     fn pipeline(renderer: &Renderer) -> Pipeline
     where
         Self: Sized;
+        
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// Default material, which uses standard shader and graphics pipeline
@@ -47,6 +50,7 @@ impl Default for DefaultMat {
     }
 }
 
+#[typetag::serde]
 impl Material for DefaultMat {
     fn pipeline(renderer: &Renderer) -> Pipeline {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
@@ -90,6 +94,11 @@ impl Material for DefaultMat {
             12,
             vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
+    }
+    
+    fn as_any(&self) -> &dyn Any
+    {
+        self
     }
 }
 
