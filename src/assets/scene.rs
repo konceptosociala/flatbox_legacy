@@ -1,6 +1,8 @@
 use std::path::Path;
 use std::fs::read_to_string;
 use std::sync::Arc;
+use std::fs::File;
+use ron::ser::{Serializer, PrettyConfig};
 
 use serde::{
     Serialize, 
@@ -36,6 +38,18 @@ impl Scene {
             &read_to_string(path)?
         )?)
     }
+    
+    pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> DesperoResult<()> {     
+        let buf = File::create(path)?;                    
+        let mut ser = Serializer::new(buf, Some(
+            PrettyConfig::new()
+                .struct_names(true)
+        ))?;   
+        
+        self.serialize(&mut ser)?;
+                        
+        Ok(())
+    }
 }
 
 pub trait SpawnSceneExt {
@@ -69,6 +83,10 @@ impl SpawnSceneExt for World {
             
             for component in entity.components {
                 component.add_into(&mut entity_builder);
+            }
+            
+            if let Some(ref mut handle) = &mut entity_builder.get_mut::<&mut AssetHandle>() {
+                handle.append(asset_manager.materials.len())
             }
             
             self.spawn(entity_builder.build());

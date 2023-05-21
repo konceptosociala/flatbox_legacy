@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use despero::prelude::*;
 use despero::world_serializer;
@@ -30,11 +31,10 @@ fn main() {
 }
 
 fn setup(
-    mut renderer: Write<Renderer>,
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
 ){
-    let texture_id = asset_manager.create_texture("assets/uv.jpg", Filter::Nearest, &mut renderer);    
+    let texture_id = asset_manager.create_texture("assets/uv.jpg", Filter::Nearest);    
     let mesh = Mesh::load_obj("assets/model.obj").swap_remove(0);
     
     cmd.spawn(ModelBundle {
@@ -62,7 +62,9 @@ fn gui_system(
     gui_events: Read<EventHandler<GuiContext>>,
     world: Read<World>,
     mut cmd: Write<CommandBuffer>,
+    mut asset_manager: Write<AssetManager>,
     model_world: SubWorld<Without<&mut Transform, &Camera>>,
+    scene_world: SubWorld<(&u32, &Transform)>,
 ){
     for (_, mut t) in &mut model_world.query::<Without<&mut Transform, &Camera>>(){
         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(1.0, 1.0, 1.0)), to_radian(1.0));
@@ -89,6 +91,38 @@ fn gui_system(
                         Err(e) => error!("World not loaded: {:?}", e),
                     }
                 })
+            }
+            
+            ui.separator();
+            
+            ui.label("Serializable scene structure:");
+            
+            if ui.button("Save scene to file").clicked() {
+                let scene = Scene {
+                    assets: AssetManager::default(),
+                    entities: vec![
+                        SerializableEntity {
+                            components: vec![
+                                Arc::new(16u32),
+                                Arc::new(Transform::default())
+                            ],
+                        },
+                    ],
+                };
+                
+                scene.save("assets/my_scene.ron").expect("Cannot save the scene");
+            }
+            
+            if ui.button("Load scene from file").clicked() {
+                let scene = Scene::load("assets/my_scene.ron").expect("Cannot load the scene");
+                
+                cmd.spawn_scene(scene, &mut asset_manager);
+            }
+            
+            ui.separator();
+            
+            for (_, (_, _)) in &mut scene_world.query::<(&u32, &Transform)>(){
+                ui.label("Scene successfully loaded!");
             }
             
         });

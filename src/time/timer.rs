@@ -1,5 +1,7 @@
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
 
+#[derive(Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Timer {
     duration: Duration,
     repeating: bool,
@@ -23,6 +25,10 @@ impl Timer {
     
     pub fn iteration(&self) -> u32 {
         self.iteration.clone()
+    }
+    
+    pub fn elapsed(&self) -> Duration {
+        self.elapsed_time.clone()
     }
     
     pub fn finished(&self) -> bool {
