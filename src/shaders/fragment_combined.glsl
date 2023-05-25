@@ -3,13 +3,19 @@
 
 layout (location=0) out vec4 theColour;
 
-layout (location=0) in vec2 uv;
-layout (location=1) flat in uint texture_id;
-layout (location=2) in vec3 normal;
-layout (location=3) in vec3 worldpos;
-layout (location=4) in vec3 camera_coordinates;
-layout (location=5) in float metallic;
-layout (location=6) in float roughness;
+layout (location=0) out vec2 uv;
+layout (location=1) out vec3 normal;
+layout (location=2) out vec3 worldpos;
+layout (location=3) out vec3 camera_coordinates;
+
+layout (location=4) out vec3 color;
+layout (location=5) out uint albedo_map;
+layout (location=6) out float metallic;
+layout (location=7) out uint metallic_map;
+layout (location=8) out float roughness;
+layout (location=9) out uint roughness_map;
+layout (location=19) out float normal_t;
+layout (location=11) out uint normal_t_map;
 
 layout (set=1, binding=0) uniform sampler2D texturesamplers[];
 
@@ -50,6 +56,6 @@ void main(){
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
     vec3 specular = specularStrength * spec * lightColor;  
         
-    vec3 result = (ambient + diffuse + specular) * vec3(texture(texturesamplers[texture_id], uv));
+    vec3 result = (ambient + diffuse + specular) * vec3(texture(texturesamplers[albedo_map], uv));
     theColour = vec4(result, 1.0);
 }

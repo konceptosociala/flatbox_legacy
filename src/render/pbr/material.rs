@@ -25,9 +25,14 @@ pub trait Material: Any + std::fmt::Debug + Send + Sync {
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct DefaultMat {
-    pub texture_id: u32,
+    pub color: [f32; 3],
+    pub albedo: u32,
     pub metallic: f32,
+    pub metallic_map: u32,
     pub roughness: f32,
+    pub roughness_map: u32,
+    pub normak: f32,
+    pub normal_map: u32,
 }
 
 impl DefaultMat {
@@ -52,7 +57,58 @@ impl Default for DefaultMat {
 
 #[typetag::serde]
 impl Material for DefaultMat {
-    fn pipeline(renderer: &Renderer) -> Pipeline {
+    fn pipeline(renderer: &Renderer) -> Pipeline {            
+        let instance_attributes = vec![
+            ShaderInputAttribute{
+                binding: 1,
+                location: 3,
+                offset: 0,
+                format: vk::Format::R32G32B32_SFLOAT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 4,
+                offset: 12,
+                format: vk::Format::R8G8B8A8_UINT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 5,
+                offset: 16,
+                format: vk::Format::R32_SFLOAT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 6,
+                offset: 20,
+                format: vk::Format::R8G8B8A8_UINT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 7,
+                offset: 24,
+                format: vk::Format::R32_SFLOAT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 8,
+                offset: 28,
+                format: vk::Format::R8G8B8A8_UINT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 9,
+                offset: 32,
+                format: vk::Format::R32_SFLOAT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 10,
+                offset: 36,
+                format: vk::Format::R8G8B8A8_UINT,
+            },
+        ];
+        
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
                 "./src/shaders/vertex_combined.glsl", 
@@ -64,34 +120,13 @@ impl Material for DefaultMat {
                 "./src/shaders/fragment_combined.glsl",
                 kind: frag,
             ));
-            
-        let instance_attributes = vec![
-            ShaderInputAttribute{
-                binding: 1,
-                location: 3,
-                offset: 0,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 4,
-                offset: 4,
-                format: vk::Format::R32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 5,
-                offset: 8,
-                format: vk::Format::R32_SFLOAT,
-            }
-        ];
         
         Pipeline::init(
             &renderer,
             &vertex_shader,
             &fragment_shader,
             instance_attributes,
-            12,
+            40,
             vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
     }
