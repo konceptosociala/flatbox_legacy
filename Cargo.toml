@@ -44,8 +44,8 @@ vk-shader-macros = "0.2.8"
 winit = { version = "0.27.5" }
 
 # ECS
-hecs = { git = "https://github.com/konceptosociala/despero-hecs", features = ["column-serialize"] }
-hecs-schedule = { git = "https://github.com/konceptosociala/despero-hecs-schedule" }
+hecs = { package = "despero-hecs", version = "0.9.1-f", features = ["column-serialize"] }
+hecs-schedule = { package = "despero-hecs-schedule", version = "0.6.2" }
 
 # Physics
 rapier3d = { version = "0.16.1", features = ["debug-render", "serde-serialize"] }

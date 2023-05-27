@@ -702,13 +702,13 @@ dependencies = [
  "ash",
  "ash-window",
  "collada",
+ "despero-hecs",
+ "despero-hecs-schedule",
  "egui",
  "egui-winit",
  "egui-winit-ash-integration",
  "env_logger",
  "gpu-allocator",
- "hecs",
- "hecs-schedule",
  "image",
  "kira",
  "log",
@@ -726,6 +726,33 @@ dependencies = [
  "typetag",
  "vk-shader-macros",
  "winit",
+]
+
+[[package]]
+name = "despero-hecs"
+version = "0.9.1-f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a0dec2b66d26988cd88abc9cc7f2d14d079da33284fa09e51c4f01e77b2faa4"
+dependencies = [
+ "hashbrown 0.13.2",
+ "hecs-macros",
+ "lazy_static",
+ "serde",
+ "spin 0.9.8",
+]
+
+[[package]]
+name = "despero-hecs-schedule"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcc806ee532e3a441853c00796f571f8ea126fbd584422ff81883cff44667cfc"
+dependencies = [
+ "anyhow",
+ "atomic_refcell",
+ "despero-hecs",
+ "rayon",
+ "smallvec",
+ "thiserror",
 ]
 
 [[package]]
@@ -1166,38 +1193,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "hecs"
-version = "0.9.1"
-source = "git+https://github.com/konceptosociala/despero-hecs#15faa480d45589396c0fc80fbabec7e41cb917d8"
-dependencies = [
- "hashbrown 0.13.2",
- "hecs-macros",
- "lazy_static",
- "serde",
- "spin 0.9.8",
-]
-
-[[package]]
 name = "hecs-macros"
 version = "0.8.2"
-source = "git+https://github.com/konceptosociala/despero-hecs#15faa480d45589396c0fc80fbabec7e41cb917d8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14883fb70dcf2363b5dd2321b9473117d91ebadf211959df748cec6927fd3765"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "hecs-schedule"
-version = "0.6.2"
-source = "git+https://github.com/konceptosociala/despero-hecs-schedule#93d70ea7e2328cdb743b6aa79fcd42e7c2d4c7b3"
-dependencies = [
- "anyhow",
- "atomic_refcell",
- "hecs",
- "rayon",
- "smallvec",
- "thiserror",
 ]
 
 [[package]]
