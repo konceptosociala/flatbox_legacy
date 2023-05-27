@@ -1,6 +1,6 @@
 [package]
 name = "despero"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Koncepto Sociala"]
 edition = "2021"
 
@@ -13,11 +13,6 @@ readme = "README.md"
 
 keywords = ["gamedev", "graphics", "engine"]
 categories = ["game-development", "game-engines", "rendering"]
-
-exclude = [
-    "test.sh",
-    "doc.sh",
-]
 
 [dependencies]
 # Assets

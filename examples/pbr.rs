@@ -30,8 +30,7 @@ fn get_material(
     asset_manager: Read<AssetManager>,
 ){
     if let Some(mut material) = asset_manager.get_material_downcast::<DefaultMat>(AssetHandle::from_index(0)) {
-        material.color[0] += 0.001;
-        debug!("\n{:#?}", material);
+        material.color[0] += 0.01;
     }
 }
 fn create_scene(

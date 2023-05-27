@@ -16,51 +16,22 @@
 ## WARNING
 The crate is in a very early stage of development. Use it at your own risk
 
-## To fix:
-- Texture coordinates
-- Event reading (multiple event types are slow)
-- Synchronize light descriptor sets with commandbuffer
 
-## To implement:
+## Features
 
-- [x] `Prelude`
-- [ ] Asset Manager
-    - [x] Separate ( Textures, Materials collection )
-    - [ ] Combined ( `HashMap<AssetHandle, Arc<dyn Asset>>` )
-- [x] ECS
-    - [x] `Light`
-    - [x] `ModelBundle`
-    - [x] `Camera`
-- [ ] Loading models
-    - [x] Wavefront
-    - [ ] Animations
-    - [ ] COLLADA
-    - [ ] LOD
-- [ ] Resource compressing
-    - [ ] Scene
-    - [ ] Model
-    - [ ] Texture
-- [ ] `RenderTexture`
-- [ ] SkyBoxes
-- [ ] DESL Shaders
-- [ ] Realistic lights
-- [ ] Shadows
-    - [ ] Simple
-    - [ ] Soft
-- [x] UI (egui)
-- [ ] Physics (rapier3d)
-    - [x] Colliders
-        - [x] Simple
-        - [ ] Mesh colliders
-    - [x] RigidBodies
-    - [ ] Joints
-- [ ] Scripting (mlua)
-    - [ ] Simple scripts
-    - [ ] Script as resource
-- [ ] Scenes
-    - [x] Save World (Serialize RON)
-    - [x] Load World (Deserialize RON)
-    - [ ] Save Materials and Textures
-    - [ ] RON-scenes
-- [ ] Particle Systems (sonja)
-- [ ] Game Settings
+- [x] Dynamic scene serialization/deserialization
+- [x] Save-Load system
+  - [x] ECS World
+  - [ ] Resources `(WIP)`
+- [ ] Physics 
+  - [x] Rigid bodies, colliders
+  - [ ] Joints
+  - [ ] Debug
+- [x] Egui
+- [x] Screenshots
+- [x] Custom materials
+- [ ] PBR Material `(WIP)`
+- [x] Wide error handling
+- [ ] Plugin modularity `(WIP)`
+  - [ ] Custom runner
+  - [ ] Custom components
