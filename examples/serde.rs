@@ -41,7 +41,7 @@ fn setup(
         mesh,
         material: asset_manager.create_material(
             DefaultMat::builder()
-                .texture_id(texture_id)
+                .albedo(texture_id)
                 .metallic(0.0)
                 .roughness(1.0)
                 .build(),

@@ -19,6 +19,8 @@ pub trait Material: Any + std::fmt::Debug + Send + Sync {
         Self: Sized;
         
     fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 /// Default material, which uses standard shader and graphics pipeline
@@ -31,7 +33,7 @@ pub struct DefaultMat {
     pub metallic_map: u32,
     pub roughness: f32,
     pub roughness_map: u32,
-    pub normak: f32,
+    pub normal: f32,
     pub normal_map: u32,
 }
 
@@ -48,9 +50,14 @@ impl DefaultMat {
 impl Default for DefaultMat {
     fn default() -> Self {
         DefaultMat {
-            texture_id: 0,
-            metallic: 0.0,
-            roughness: 1.0,
+            color: [1.0, 1.0, 1.0],
+            albedo: 0,
+            metallic: 0.5,
+            metallic_map: 0,
+            roughness: 0.5,
+            roughness_map: 0,
+            normal: 1.0,
+            normal_map: 0,
         }
     }
 }
@@ -131,34 +138,57 @@ impl Material for DefaultMat {
         ).expect("Cannot create pipeline")
     }
     
-    fn as_any(&self) -> &dyn Any
-    {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }
 
 pub struct DefaultMatBuilder {
-    texture_id: AssetHandle,
-    metallic: f32,
-    roughness: f32,
+    pub color: [f32; 3],
+    pub albedo: AssetHandle,
+    pub metallic: f32,
+    pub metallic_map: AssetHandle,
+    pub roughness: f32,
+    pub roughness_map: AssetHandle,
+    pub normal: f32,
+    pub normal_map: AssetHandle,
 }
 
 impl DefaultMatBuilder {
     pub fn new() -> Self {
         DefaultMatBuilder {
-            texture_id: AssetHandle::new(),
-            metallic: 0.25,
+            color: [1.0, 1.0, 1.0],
+            albedo: AssetHandle::new(),
+            metallic: 0.5,
+            metallic_map: AssetHandle::new(),
             roughness: 0.5,
+            roughness_map: AssetHandle::new(),
+            normal: 1.0,
+            normal_map: AssetHandle::new(),
         }
     }
     
-    pub fn texture_id(mut self, id: AssetHandle) -> Self {
-        self.texture_id = id;
+    pub fn color(mut self, value: impl Into<[f32; 3]>) -> Self {
+        self.color = value.into();
         self
     }
     
+    pub fn albedo(mut self, handle: AssetHandle) -> Self {
+        self.albedo = handle;
+        self
+    }
+
     pub fn metallic(mut self, value: f32) -> Self {
         self.metallic = value;
+        self
+    }
+
+    pub fn metallic_map(mut self, handle: AssetHandle) -> Self {
+        self.metallic_map = handle;
         self
     }
     
@@ -167,11 +197,31 @@ impl DefaultMatBuilder {
         self
     }
     
+    pub fn roughness_map(mut self, handle: AssetHandle) -> Self {
+        self.roughness_map = handle;
+        self
+    }
+
+    pub fn normal(mut self, value: f32) -> Self {
+        self.normal = value;
+        self
+    }
+
+    pub fn normal_map(mut self, handle: AssetHandle) -> Self {
+        self.normal_map = handle;
+        self
+    }
+    
     pub fn build(self) -> DefaultMat {
         DefaultMat {
-            texture_id: self.texture_id.unwrap() as u32,
+            color: self.color,
+            albedo: self.albedo.into(),
             metallic: self.metallic,
+            metallic_map: self.metallic_map.into(),
             roughness: self.roughness,
+            roughness_map: self.roughness_map.into(),
+            normal: self.normal,
+            normal_map: self.normal_map.into(),
         }
     }
 }

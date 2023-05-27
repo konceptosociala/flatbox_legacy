@@ -35,20 +35,27 @@ layout (location=6) out float out_metallic;
 layout (location=7) out uint out_metallic_map;
 layout (location=8) out float out_roughness;
 layout (location=9) out uint out_roughness_map;
-layout (location=19) out float out_normal_t;
+layout (location=10) out float out_normal_t;
 layout (location=11) out uint out_normal_t_map;
 
 void main() {
     vec4 worldpos = pc.model_matrix * vec4(position, 1.0);
     gl_Position = ubo.projection_matrix * ubo.view_matrix * worldpos;
+
     uv = texcoord;
-    out_albedo_map = albedo_map;
     out_normal = transpose(mat3(pc.inverse_model_matrix)) * normal;
     out_worldpos = vec3(worldpos);
     out_camera_coordinates =
 		- ubo.view_matrix[3][0] * vec3 (ubo.view_matrix[0][0],ubo.view_matrix[1][0],ubo.view_matrix[2][0])
 		- ubo.view_matrix[3][1] * vec3 (ubo.view_matrix[0][1],ubo.view_matrix[1][1],ubo.view_matrix[2][1])
 		- ubo.view_matrix[3][2] * vec3 (ubo.view_matrix[0][2],ubo.view_matrix[1][2],ubo.view_matrix[2][2]);
-	out_metallic = metallic_in;
-	out_roughness = roughness_in;
+
+	out_color = color;
+	out_albedo_map = albedo_map;
+	out_metallic = metallic;
+	out_metallic_map = metallic_map;
+	out_roughness = roughness;
+	out_roughness_map = roughness_map;
+	out_normal_t = normal_t;
+	out_normal_t_map = normal_t_map;
 }

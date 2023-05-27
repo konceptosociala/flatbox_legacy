@@ -20,10 +20,20 @@ fn main() {
         
         .add_setup_system(create_scene)
         .add_system(process_scene)
+
+        .add_system(get_material)
         
         .run();
 }
 
+fn get_material(
+    asset_manager: Read<AssetManager>,
+){
+    if let Some(mut material) = asset_manager.get_material_downcast::<DefaultMat>(AssetHandle::from_index(0)) {
+        material.color[0] += 0.001;
+        debug!("\n{:#?}", material);
+    }
+}
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
@@ -35,7 +45,7 @@ fn create_scene(
             .mesh(Mesh::plane())
             .material(asset_manager.create_material(
                 DefaultMat::builder()
-                    .texture_id(diffuse)
+                    .albedo(diffuse)
                     .metallic(0.0)
                     .roughness(0.5)
                     .build()
@@ -71,7 +81,7 @@ fn create_scene(
             .material(
                 asset_manager.create_material(
                     DefaultMat::builder()
-                        .texture_id(sky_tex)
+                        .albedo(sky_tex)
                         .build()
                 )
             )

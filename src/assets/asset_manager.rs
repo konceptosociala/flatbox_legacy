@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use serde::{Serialize, Deserialize};
 use ash::vk;
 
@@ -26,6 +27,12 @@ impl AssetHandle {
     
     pub fn append(&mut self, count: usize) {
         self.0 += count;
+    }
+}
+
+impl From<AssetHandle> for u32 {
+    fn from(value: AssetHandle) -> Self {
+        value.unwrap() as u32
     }
 }
 
@@ -71,13 +78,24 @@ impl AssetManager {
     pub fn get_texture_mut(&mut self, handle: AssetHandle) -> Option<&mut Texture> {
         self.textures.get_mut(handle.0)
     }
-    
-    pub fn get_material(&self, handle: AssetHandle) -> Option<&Arc<Mutex<Box<dyn Material>>>> {
-        self.materials.get(handle.0)
+
+    pub fn get_material(&self, handle: AssetHandle) -> Option<MutexGuard<Box<dyn Material>>> {
+        if let Some(material) = self.materials.get(handle.0) {
+            return Some(material.lock());  
+        }
+
+        None
     }
     
-    pub fn get_material_mut(&mut self, handle: AssetHandle) -> Option<&mut Arc<Mutex<Box<dyn Material>>>> {
-        self.materials.get_mut(handle.0)
+    pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle) -> Option<MappedMutexGuard<M>> {
+        if let Some(material) = self.materials.get(handle.0) {
+            let data = material.lock();
+            return MutexGuard::try_map(data, |data| {
+                data.as_any_mut().downcast_mut::<M>()
+            }).ok()            
+        }
+
+        None
     }
     
     pub fn append(&mut self, other: Self) {

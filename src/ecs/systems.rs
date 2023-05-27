@@ -137,7 +137,7 @@ pub(crate) fn update_models_system(
     for (_, (mut mesh, handle, _)) in &mut world.query::<(
         &mut Mesh, &AssetHandle, &Transform,
     )>(){
-        let material = asset_manager.get_material(*handle).unwrap().clone();
+        let material = asset_manager.get_material(*handle).unwrap();
         let logical_device = renderer.device.clone();
         let allocator = &mut renderer.allocator;
         let vertexdata = mesh.vertexdata.clone();
@@ -168,7 +168,7 @@ pub(crate) fn update_models_system(
             mesh.vertexbuffer = Some(buffer);
         }
     
-        let mat_ptr = &**(material.lock().unwrap()) as *const _ as *const u8;
+        let mat_ptr = &**(material) as *const _ as *const u8;
         let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&*material))};
         if let Some(buffer) = &mut mesh.instancebuffer {
             buffer.fill(

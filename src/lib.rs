@@ -137,25 +137,7 @@ pub struct Despero {
 impl Despero {
     /// Initialize Despero application
     pub fn init(window_builder: WindowBuilder) -> Despero {
-        #[cfg(debug_assertions)]
-        env_logger::builder()
-            .filter_level(
-                env_logger::filter::Builder::new()
-                    .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
-                    .build()
-                    .filter()
-            )
-            .init();
-            
-        #[cfg(not(debug_assertions))]
-        env_logger::builder()
-            .filter_level(
-                env_logger::filter::Builder::new()
-                    .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
-                    .build()
-                    .filter()
-            )
-            .init();
+        init_logger();
         
         let mut renderer = Renderer::init(window_builder).expect("Cannot create renderer");
         renderer.bind_material::<DefaultMat>();
@@ -274,4 +256,26 @@ impl Drop for Despero {
         self.asset_manager.cleanup(&mut self.renderer);
         self.renderer.cleanup(&mut self.world);
     }
+}
+
+fn init_logger() {
+    #[cfg(debug_assertions)]
+    pretty_env_logger::formatted_builder()
+        .filter_level(
+            env_logger::filter::Builder::new()
+                .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
+                .build()
+                .filter()
+        )
+        .init();
+        
+    #[cfg(not(debug_assertions))]
+    pretty_env_logger::formatted_builder()
+        .filter_level(
+            env_logger::filter::Builder::new()
+                .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=info")))
+                .build()
+                .filter()
+        )
+        .init();
 }
