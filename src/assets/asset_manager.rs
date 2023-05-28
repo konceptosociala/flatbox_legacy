@@ -1,8 +1,12 @@
+#[cfg(feature = "render")]
 use std::sync::Arc;
+#[cfg(feature = "render")]
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use serde::{Serialize, Deserialize};
+#[cfg(feature = "render")]
 use ash::vk;
 
+#[cfg(feature = "render")]
 use crate::render::*;
 
 #[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,7 +42,9 @@ impl From<AssetHandle> for u32 {
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
+    #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
+    #[cfg(feature = "render")]
     pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
 }
 
@@ -47,6 +53,7 @@ impl AssetManager {
         AssetManager::default()
     }
     
+    #[cfg(feature = "render")]
     pub fn create_texture(
         &mut self,
         path: &'static str,
@@ -62,6 +69,7 @@ impl AssetManager {
         AssetHandle(new_id)
     }
     
+    #[cfg(feature = "render")]
     pub fn create_material<M: Material + Send + Sync>(
         &mut self,
         material: M,
@@ -71,14 +79,17 @@ impl AssetManager {
         AssetHandle(index)
     }
     
+    #[cfg(feature = "render")]
     pub fn get_texture(&self, handle: AssetHandle) -> Option<&Texture> {
         self.textures.get(handle.0)
     }
     
+    #[cfg(feature = "render")]
     pub fn get_texture_mut(&mut self, handle: AssetHandle) -> Option<&mut Texture> {
         self.textures.get_mut(handle.0)
     }
 
+    #[cfg(feature = "render")]
     pub fn get_material(&self, handle: AssetHandle) -> Option<MutexGuard<Box<dyn Material>>> {
         if let Some(material) = self.materials.get(handle.0) {
             return Some(material.lock());  
@@ -87,6 +98,7 @@ impl AssetManager {
         None
     }
     
+    #[cfg(feature = "render")]
     pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle) -> Option<MappedMutexGuard<M>> {
         if let Some(material) = self.materials.get(handle.0) {
             let data = material.lock();
@@ -99,10 +111,13 @@ impl AssetManager {
     }
     
     pub fn append(&mut self, other: Self) {
+        #[cfg(feature = "render")]
         self.textures.extend(other.textures);
+        #[cfg(feature = "render")]
         self.materials.extend(other.materials);
     }
     
+    #[cfg(feature = "render")]
     pub fn descriptor_image_info(&self) -> Vec<vk::DescriptorImageInfo> {
         self.textures
             .iter()
@@ -123,6 +138,7 @@ impl AssetManager {
             .collect()
     }
     
+    #[cfg(feature = "render")]
     pub fn cleanup(
         &mut self,
         renderer: &mut Renderer,

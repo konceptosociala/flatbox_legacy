@@ -65,6 +65,7 @@ impl SpawnSceneExt for CommandBuffer {
                 component.add_into(&mut entity_builder);
             }
             
+            #[cfg(feature = "render")]
             if let Some(ref mut handle) = &mut entity_builder.get_mut::<&mut AssetHandle>() {
                 handle.append(asset_manager.materials.len())
             }
@@ -85,6 +86,7 @@ impl SpawnSceneExt for World {
                 component.add_into(&mut entity_builder);
             }
             
+            #[cfg(feature = "render")]
             if let Some(ref mut handle) = &mut entity_builder.get_mut::<&mut AssetHandle>() {
                 handle.append(asset_manager.materials.len())
             }

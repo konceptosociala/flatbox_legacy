@@ -1,13 +1,19 @@
+#[cfg(feature = "render")]
 use ash::vk;
+#[cfg(feature = "render")]
 use std::mem::{size_of, size_of_val};
+#[cfg(feature = "render")]
 use gpu_allocator::MemoryLocation;
 
+#[cfg(feature = "render")]
 use crate::assets::*;
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
 use crate::error::DesperoResult;
 use crate::math::transform::Transform;
+
+#[cfg(feature = "render")]
 use crate::render::{
     renderer::Renderer,
     pbr::{
@@ -26,6 +32,7 @@ use crate::render::ui::GuiContext;
 
 pub(crate) fn main_setup(){}
 
+#[cfg(feature = "render")]
 pub(crate) fn generate_textures(
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
@@ -45,10 +52,11 @@ pub(crate) fn time_system(
     time.update();
 }
 
+#[cfg(feature = "render")]
 pub(crate) fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,
     #[cfg(feature = "egui")]
-    mut egui_ctx: Write<EventHandler<GuiContext>>,
+    events: Read<Events>,
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
     mut model_world: SubWorld<(&mut Mesh, &mut AssetHandle, &mut Transform)>,
@@ -63,6 +71,9 @@ pub(crate) fn rendering_system(
             camera.update_buffer(&mut renderer, &transform)?;
         }
     }    
+
+    #[cfg(feature = "egui")]
+    let mut egui_ctx = events.get_handler::<EventHandler<GuiContext>>().unwrap();
 
     renderer.update_commandbuffer(
         &mut model_world,
@@ -129,6 +140,7 @@ pub(crate) fn rendering_system(
     Ok(())
 }
 
+#[cfg(feature = "render")]
 pub(crate) fn update_models_system(
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
@@ -224,6 +236,7 @@ pub(crate) fn update_models_system(
     Ok(())
 }
 
+#[cfg(feature = "render")]
 pub(crate) fn update_lights(
     plight_world: SubWorld<(&PointLight, Changed<PointLight>)>,
     dlight_world: SubWorld<(&DirectionalLight, Changed<DirectionalLight>)>,
@@ -317,6 +330,7 @@ pub(crate) fn update_physics(
     Ok(())
 }
 
+#[cfg(feature = "render")]
 fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
     let (image_index, _) = unsafe {
         swapchain
@@ -331,6 +345,7 @@ fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
     Ok(image_index)
 }
 
+#[cfg(feature = "render")]
 fn check_fences(
     logical_device: &ash::Device,
     swapchain: &Swapchain

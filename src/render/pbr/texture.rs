@@ -55,7 +55,7 @@ impl std::fmt::Debug for Texture {
 }
 
 impl Texture {
-    /// Create empty texture with given `filter` and `path`. Requires [`generate`] method applied to it to load the texture to memory
+    /// Create empty texture with given `filter` and `path`. Requires [`generate`](#method.generate) method applied to it to load the texture to memory
     pub fn new_blank(
         path: &'static str, 
         filter: Filter,

@@ -91,9 +91,11 @@ fn create_scene(
 
 fn process_scene(
     camera_world: SubWorld<(&Camera, &mut CameraConfiguration, &mut Transform)>,
-    gui_events: Read<EventHandler<GuiContext>>,
+    events: Read<Events>,
     time: Read<Time>,
 ){
+    let gui_events = events.get_handler::<EventHandler<GuiContext>>().unwrap();
+
     if let Some(ctx) = gui_events.read() {
         if let Some(current) = ctx.pointer_hover_pos() {
             for (_, (_, mut conf, mut t)) in &mut camera_world.query::<(&Camera, &mut CameraConfiguration, &mut Transform)>(){       

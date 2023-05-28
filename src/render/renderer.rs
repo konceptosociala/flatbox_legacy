@@ -20,7 +20,7 @@ use crate::ecs::*;
 use crate::render::{
     backend::{
         instance::Instance,
-        window::{Window, WindowBuilder},
+        window::Window,
         queues::QueueFamilies,
         swapchain::Swapchain,
         pipeline::Pipeline,
@@ -43,6 +43,7 @@ use crate::physics::{
 use crate::math::transform::Transform;
 use crate::ecs::event::EventHandler;
 use crate::error::DesperoResult;
+use crate::WindowBuilder;
 
 /// Maximum number of textures, which can be pushed to descriptor sets
 pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024;

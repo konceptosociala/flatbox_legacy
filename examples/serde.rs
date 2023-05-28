@@ -59,7 +59,7 @@ fn setup(
 }
 
 fn gui_system(
-    gui_events: Read<EventHandler<GuiContext>>,
+    events: Read<Events>,
     world: Read<World>,
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
@@ -70,6 +70,7 @@ fn gui_system(
         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(1.0, 1.0, 1.0)), to_radian(1.0));
     }
     
+    let gui_events = events.get_handler::<EventHandler<GuiContext>>().unwrap();
     if let Some(ctx) = gui_events.read() {
         
         gui::SidePanel::left("my_panel").show(&ctx, |ui| {

@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use nalgebra::Vector3;
 use rapier3d::prelude::*;
 
+#[cfg(feature = "render")]
 use crate::render::renderer::Renderer;
 use crate::error::DesperoResult;
 use super::{
@@ -18,8 +19,10 @@ pub struct PhysicsHandler {
     rigidbody_set: RigidBodySet,
     collider_set: ColliderSet,
     
+    #[cfg(feature = "render")]
     #[serde(skip_serializing, skip_deserializing)]
     pub render_pipeline: DebugRenderPipeline,
+
     #[serde(skip_serializing, skip_deserializing)]
     pub physics_pipeline: PhysicsPipeline,
     
@@ -110,10 +113,12 @@ impl PhysicsHandler {
     }
     
     /// Set physics debug rendering style and mode
+    #[cfg(feature = "render")]
     pub fn set_debug_renderer(&mut self, style: DebugRenderStyle, mode: DebugRenderMode){
         self.render_pipeline = DebugRenderPipeline::new(style, mode);
     }
     
+    #[cfg(feature = "render")]
     pub(crate) fn debug_render(&mut self, renderer: &mut Renderer){
         self.render_pipeline.render(
             renderer,
@@ -150,6 +155,7 @@ impl Default for PhysicsHandler {
             rigidbody_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
             
+            #[cfg(feature = "render")]
             render_pipeline: DebugRenderPipeline::new(
                 DebugRenderStyle::default(),
                 DebugRenderMode::COLLIDER_SHAPES,

@@ -4,19 +4,18 @@ use winit::{
     event_loop::EventLoop,
     dpi::LogicalSize,
     window::{
-        Icon,
         Fullscreen,   
         Window as WinitWindow,
         WindowBuilder as WinitWindowBuilder,
     },
 };
 use crate::render::{
-    renderer::RenderType,
     backend::{
         instance::Instance,
         surface::Surface,
     },
 };
+use crate::WindowBuilder;
 
 use crate::error::*;
 
@@ -50,19 +49,6 @@ impl Window {
     pub unsafe fn cleanup(&mut self) {
         ManuallyDrop::drop(&mut self.surface);
     }
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct WindowBuilder {
-    pub title: Option<&'static str>,
-    pub icon: Option<Icon>,
-    
-    pub width: Option<f32>,
-    pub height: Option<f32>,
-    pub fullscreen: Option<bool>,
-    pub resizable: Option<bool>,
-    
-    pub renderer: Option<RenderType>,
 }
 
 impl From<WindowBuilder> for WinitWindowBuilder {

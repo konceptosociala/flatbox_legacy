@@ -35,3 +35,4 @@ The crate is in a very early stage of development. Use it at your own risk
 - [ ] Plugin modularity `(WIP)`
   - [ ] Custom runner
   - [ ] Custom components
+- [ ] Audio playback (2D/3D)
