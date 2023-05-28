@@ -20,7 +20,7 @@ pub trait Material: Any + std::fmt::Debug + Send + Sync {
         
     fn as_any(&self) -> &dyn Any;
 
-    fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any; // TODO: Use `as_any` crate for materials
 }
 
 /// Default material, which uses standard shader and graphics pipeline

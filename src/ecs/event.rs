@@ -65,12 +65,13 @@ impl Events {
 		Events::default()
 	}
 
-	pub fn get_handler<H: GenericEventHandler>(&self) -> Option<MappedMutexGuard<H>> {
+	pub fn get_handler<H: GenericEventHandler>(&self) -> Option<MappedMutexGuard<H>> { // TODO: Event type instead of EventHandler type
 		if let Some(handler) = self.storage.get(&TypeId::of::<H>()){
 			let data = handler.lock();
             return MutexGuard::try_map(data, |data| {
                 data.as_any_mut().downcast_mut::<H>()
             }).ok() 
+			// TODO: Use `as_any` crate for event handlers
 		}
 
 		None

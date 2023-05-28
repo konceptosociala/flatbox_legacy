@@ -15,6 +15,7 @@ pub trait WorldSerializer {
     ) -> DesperoResult<()>;
 }
 
+// TODO: WorldSerializer description
 #[macro_export]
 macro_rules! world_serializer {
     ($ctx:ident, $($comp:ty),*) => {
@@ -131,7 +132,7 @@ macro_rules! world_serializer {
                 *world = deserialize_world(                
                     self,
                     &mut de,
-                ).map_err(|e| ron::Error::from(e))?;
+                ).map_err(|e| ron::Error::from(e))?; // TODO: Serde AssetManager
                 
                 Ok(())
             }

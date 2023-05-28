@@ -22,7 +22,6 @@ pub use backend::shader::*;
 pub use backend::pipeline::*;
 pub use backend::window::*;
 
-#[cfg(feature = "winit")]
 pub use winit::event::VirtualKeyCode as KeyCode;
-#[cfg(feature = "winit")]
 pub use winit::event::*;
+pub use winit::window::Icon;

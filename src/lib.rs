@@ -34,20 +34,21 @@
 //! 
 //! fn create_model(
 //!     mut cmd: Write<CommandBuffer>,
-//!     mut renderer: Write<Renderer>,
+//!     mut asset_manager: Write<AssetManager>,
 //! ){
-//!     let texture = renderer.create_texture("assets/texture.jpg", Filter::LINEAR) as u32;
+//!     let texture = asset_manager.create_texture("assets/texture.jpg", Filter::Linear);
 //!        
 //!     cmd.spawn(ModelBundle {
 //!         mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-//!         material: renderer.create_material(
+//!         material: asset_manager.create_material(
 //!             DefaultMat::builder()
-//!                 .texture_id(texture)
+//!                 .color(Vector3::new(0.5, 0.5, 0.7).into())
+//!                 .albedo(texture)
 //!                 .metallic(0.0)
 //!                 .roughness(1.0)
 //!                 .build(),
 //!         ),
-//!         transform: Transform::from_translation(Vector3::new(0.0, 0.0, 0.0)),
+//!         transform: Transform::default(),
 //!     });
 //!
 //!     info!("I run only once!");
@@ -70,6 +71,7 @@
 //!         camera: 
 //!             Camera::builder()
 //!                 .is_active(true)
+//!                 .camera_type(CameraType::LookAt)
 //!                 .build(),
 //!         transform: Transform::default(),
 //!     });
@@ -77,28 +79,22 @@
 //! ```
 //! 
 
-#[cfg(feature = "render")]
-use winit::{
-    event::*,
-    event::Event as WinitEvent,
-    platform::run_return::EventLoopExtRunReturn,
-    window::Icon,
-};
-
-#[cfg(feature = "render")]
-use crate::render::{
-    renderer::{Renderer, RenderType},
-    pbr::material::*,    
-};
-
-#[cfg(feature = "egui")]
-use crate::render::ui::GuiContext;
+#[cfg(all(feature = "egui", not(feature = "render")))]
+compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
 use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
 use crate::time::*;
+#[cfg(feature = "render")]
+use crate::render::{
+    Icon,
+    renderer::{Renderer, RenderType},
+};
 
+/// Submodules and structures to work with graphics
+#[cfg(feature = "render")]
+pub mod render;
 /// Module of the main engine's error handler [`Result`]
 pub mod error;
 /// Assets and scenes handling
@@ -109,9 +105,6 @@ pub mod math;
 pub mod ecs;
 /// Component connected with time
 pub mod time;
-/// Submodules and structures to work with graphics
-#[cfg(feature = "render")]
-pub mod render;
 /// [Rapier3D](https://crates.io/crates/rapier3d) implementations
 pub mod physics;
 /// [Mlua](https://crates.io/crates/mlua) scripting implementations
@@ -119,26 +112,33 @@ pub mod scripting;
 /// Bundle of all essential components of the engine
 pub mod prelude;
 
+/// Error handler from `error` module
 pub use crate::error::Result;
 
-#[cfg(all(feature = "egui", not(feature = "render")))]
-compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
-
-/// Main engine struct
+/// Main struct representing a game engine instance with various fields and functionality
 pub struct Despero {
+    /// Game world containing entities and components. Can be serialized and deserialized
     pub world: World,
+    /// Builder for configuring and building the game system schedule
     pub systems: ScheduleBuilder,
+    /// Builder for configuring and building the setup system schedule. Setup systems are executed only once at the beginning of the game
     pub setup_systems: ScheduleBuilder,
+    /// Function that defines the game loop and handles game execution. It takes an instance of Despero as an argument
     pub runner: Box<dyn Fn(Despero)>,
-    pub window_builder: WindowBuilder,
-    
+    /// Collection of event handlers for managing user input and system events
     pub events: Events,
+    /// Handler for managing the physics simulation within the game
     pub physics_handler: PhysicsHandler,
+    /// A handler for managing game time and timing-related operations
     pub time_handler: Time,
-    
+    /// Asset manager for loading, managing, and accessing game assets such as textures, sounds, and materials
+    pub asset_manager: AssetManager,
+    /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
-    pub asset_manager: AssetManager,
+    /// Builder for configuring the game window properties: size, title, window mode etc
+    #[cfg(not(feature = "render"))]
+    pub window_builder: WindowBuilder,
 }
 
 impl Despero {
@@ -146,23 +146,19 @@ impl Despero {
     pub fn init(window_builder: WindowBuilder) -> Despero {
         init_logger();
         
-        #[cfg(feature = "render")]
-        let mut renderer = Renderer::init(window_builder.clone()).expect("Cannot create renderer");
-        #[cfg(feature = "render")]
-        renderer.bind_material::<DefaultMat>();
-        
         Despero {
             world: World::new(),
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
             runner: Box::new(default_runner),
-            window_builder,
             events: Events::new(),
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
-            #[cfg(feature = "render")]
-            renderer,
             asset_manager: AssetManager::new(),
+            #[cfg(feature = "render")]
+            renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
+            #[cfg(not(feature = "render"))]
+            window_builder,
         }
     }
     
@@ -184,6 +180,7 @@ impl Despero {
         self
     }
     
+    /// Use default engine systems, including processing of physics, time, lights and rendering. To process rendering `render` feature must be enabled
     pub fn default_systems(mut self) -> Self {
         self.setup_systems
             .add_system(main_setup);
@@ -201,6 +198,11 @@ impl Despero {
             
         self
     }
+
+    /// Set custom game runner. Default is [`default_runner`]
+    pub fn set_runner(&mut self, runner: Box<dyn Fn(Despero)>) {
+        self.runner = runner;
+    }
     
     /// Run main event loop
     pub fn run(mut self) {
@@ -216,99 +218,6 @@ impl Drop for Despero {
         #[cfg(feature = "render")]
         self.renderer.cleanup(&mut self.world);
     }
-}
-
-fn empty_runner(_: Despero){}
-
-#[cfg(not(feature = "render"))]
-fn default_runner(mut despero: Despero) {
-    let mut setup_systems = despero.setup_systems.build();
-    let mut systems = despero.systems.build();
-
-    setup_systems.execute((
-        &mut despero.world,
-        &mut despero.app_exit,
-        &mut despero.time_handler,
-        &mut despero.physics_handler,
-    )).expect("Cannot execute setup schedule");
-
-    loop {
-        systems.execute((
-            &mut despero.world,
-            &mut despero.app_exit,
-            &mut despero.time_handler,
-            &mut despero.physics_handler,
-        )).expect("Cannot execute loop schedule");
-
-        if let Some(_) = despero.app_exit.read() {
-            return ();
-        }
-        
-        despero.world.clear_trackers();
-    }
-}
-
-#[cfg(feature = "render")]
-fn default_runner(mut despero: Despero) {
-    let mut setup_systems = despero.setup_systems.build();
-    let mut systems = despero.systems.build();
-    
-    #[cfg(feature = "egui")]
-    despero.events.push_handler(EventHandler::<GuiContext>::new());
-    despero.events.push_handler(EventHandler::<AppExit>::new());
-    
-    setup_systems.execute((
-        &mut despero.world,
-        &mut despero.renderer,
-        &mut despero.events,
-        &mut despero.time_handler,
-        &mut despero.physics_handler,
-        &mut despero.asset_manager,
-    )).expect("Cannot execute setup schedule");
-
-    let event_loop = (&despero.renderer.window.event_loop).clone();
-    (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
-        WinitEvent::WindowEvent { event, window_id: _ } => {
-            #[cfg(feature = "egui")]
-            let _response = despero.renderer.egui.handle_event(&event);
-            
-            match event {
-                WindowEvent::CloseRequested => {
-                    *controlflow = winit::event_loop::ControlFlow::Exit;
-                }
-                _ => (),
-            }
-        }
-        
-        WinitEvent::NewEvents(StartCause::Init) => {
-            unsafe { despero.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
-            log::debug!("Recreated swapchain");
-        }
-                
-        WinitEvent::MainEventsCleared => {
-            despero.renderer.window.request_redraw();
-            if let Some(handler) = despero.events.get_handler::<EventHandler<AppExit>>() {
-                if let Some(_) = handler.read() {
-                    *controlflow = winit::event_loop::ControlFlow::Exit;
-                }
-            }
-        }
-        
-        WinitEvent::RedrawRequested(_) => {
-            systems.execute((
-                &mut despero.world,
-                &mut despero.renderer,
-                &mut despero.events,
-                &mut despero.time_handler,
-                &mut despero.physics_handler,
-                &mut despero.asset_manager,
-            )).expect("Cannot execute loop schedule");
-            
-            despero.world.clear_trackers();
-        }
-        
-        _ => {}
-    });
 }
 
 fn init_logger() {

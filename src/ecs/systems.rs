@@ -32,6 +32,40 @@ use crate::render::ui::GuiContext;
 
 pub(crate) fn main_setup(){}
 
+pub(crate) fn time_system(
+    mut time: Write<Time>,
+){
+    time.update();
+}
+
+pub(crate) fn update_physics(
+    mut physics_handler: Write<PhysicsHandler>,
+    physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
+    added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
+) -> DesperoResult<()> {    
+    for (_, (transform, handle, added)) in &mut added_world.query::<(
+        &Transform, &BodyHandle, Added<BodyHandle>
+    )>(){
+        if added {                        
+            let rigidbody = physics_handler.rigidbody_mut(*handle)?;
+            rigidbody.set_translation(transform.translation, false);
+            rigidbody.set_rotation(transform.rotation, false);
+        }
+    }
+    
+    physics_handler.step();
+    
+    for (_, (mut transform, handle)) in &mut physics_world.query::<(
+        &mut Transform, &BodyHandle,
+    )>(){
+        let rigidbody = physics_handler.rigidbody(*handle)?;
+        transform.translation = *rigidbody.translation();
+        transform.rotation = *rigidbody.rotation();        
+    }
+    
+    Ok(())
+}
+
 #[cfg(feature = "render")]
 pub(crate) fn generate_textures(
     mut asset_manager: Write<AssetManager>,
@@ -44,12 +78,6 @@ pub(crate) fn generate_textures(
     }
     
     Ok(())
-}
-
-pub(crate) fn time_system(
-    mut time: Write<Time>,
-){
-    time.update();
 }
 
 #[cfg(feature = "render")]
@@ -299,34 +327,6 @@ pub(crate) fn update_lights(
             .build()];
         unsafe { renderer.device.update_descriptor_sets(&desc_sets_write, &[]) };
     }
-    Ok(())
-}
-
-pub(crate) fn update_physics(
-    mut physics_handler: Write<PhysicsHandler>,
-    physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
-    added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
-) -> DesperoResult<()> {    
-    for (_, (transform, handle, added)) in &mut added_world.query::<(
-        &Transform, &BodyHandle, Added<BodyHandle>
-    )>(){
-        if added {                        
-            let rigidbody = physics_handler.rigidbody_mut(*handle)?;
-            rigidbody.set_translation(transform.translation, false);
-            rigidbody.set_rotation(transform.rotation, false);
-        }
-    }
-    
-    physics_handler.step();
-    
-    for (_, (mut transform, handle)) in &mut physics_world.query::<(
-        &mut Transform, &BodyHandle,
-    )>(){
-        let rigidbody = physics_handler.rigidbody(*handle)?;
-        transform.translation = *rigidbody.translation();
-        transform.rotation = *rigidbody.rotation();        
-    }
-    
     Ok(())
 }
 

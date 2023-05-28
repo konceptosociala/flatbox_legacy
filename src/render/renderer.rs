@@ -46,7 +46,7 @@ use crate::error::DesperoResult;
 use crate::WindowBuilder;
 
 /// Maximum number of textures, which can be pushed to descriptor sets
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024;
+pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024; // TODO: Dynamically select number of textures
 
 #[derive(Debug, Clone, Default, PartialEq, Hash)]
 pub enum RenderType {
@@ -157,7 +157,7 @@ impl Renderer {
             *window.surface.get_formats(instance.physical_device)?.first().unwrap(),
         ));
          
-        Ok(Renderer {
+        let mut renderer = Renderer {
             instance,
             window,
             queue_families,
@@ -173,7 +173,10 @@ impl Renderer {
             descriptor_pool,
             #[cfg(feature = "egui")]
             egui,
-        })
+        };
+        renderer.bind_material::<DefaultMat>();
+
+        Ok(renderer)
     }
     
     pub fn get_window(&self) -> Arc<Mutex<WinitWindow>> {

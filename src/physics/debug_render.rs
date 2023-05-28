@@ -24,7 +24,7 @@ pub struct DebugRenderer {
     pub instancebuffer: Buffer,
 }
 
-impl DebugRenderer {
+impl DebugRenderer { // TODO: Fix physics debug renderer
     pub fn new(
         logical_device: &ash::Device,
         swapchain: &Swapchain,

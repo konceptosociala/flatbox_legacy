@@ -5,6 +5,24 @@ pub trait SerializableComponent: Component {
     fn add_into(&self, entity_builder: &mut EntityBuilder);
 }
 
+/// Macro for implementing [`SerializableComponent`] trait for multiple types, that implement [`Clone`] trait; for using in [`Scene`]'s. Use to avoid boilerplate
+/// 
+/// # Example
+/// 
+/// ```rust
+/// #[derive(Clone)]
+/// struct ComponentA;
+/// 
+/// #[derive(Clone)]
+/// struct ComponentB;
+/// 
+/// #[derive(Clone)]
+/// struct ComponentC;
+/// 
+/// impl_ser_component!(ComponentA, ComponentB, ComponentC);
+/// 
+/// ```
+/// 
 #[macro_export]
 macro_rules! impl_ser_component {
     ($($comp:ident),*) => {

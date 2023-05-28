@@ -32,7 +32,8 @@ The crate is in a very early stage of development. Use it at your own risk
 - [x] Custom materials
 - [ ] PBR Material `(WIP)`
 - [x] Wide error handling
-- [ ] Plugin modularity `(WIP)`
-  - [ ] Custom runner
+- [ ] Extension system `(WIP)`
+  - [x] Custom runner
+  - [x] Custom event handlers
   - [ ] Custom components
 - [ ] Audio playback (2D/3D)

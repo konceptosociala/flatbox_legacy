@@ -37,7 +37,7 @@ struct PointLight{
 
 const float PI = 3.1415926535897932;
 
-void main(){
+void main(){ // TODO: Physically based rendering
 
     int number_directional = int(sbo.num_directional);
 	int number_point = int(sbo.num_point);

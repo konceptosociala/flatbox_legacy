@@ -89,6 +89,7 @@ impl SpawnSceneExt for World {
             #[cfg(feature = "render")]
             if let Some(ref mut handle) = &mut entity_builder.get_mut::<&mut AssetHandle>() {
                 handle.append(asset_manager.materials.len())
+                // TODO: Append textures
             }
             
             self.spawn(entity_builder.build());
