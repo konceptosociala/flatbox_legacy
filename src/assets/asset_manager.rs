@@ -1,8 +1,9 @@
+use serde::{Serialize, Deserialize};
+
 #[cfg(feature = "render")]
 use std::sync::Arc;
 #[cfg(feature = "render")]
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
-use serde::{Serialize, Deserialize};
 #[cfg(feature = "render")]
 use ash::vk;
 
@@ -42,7 +43,6 @@ impl From<AssetHandle> for u32 {
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
-    pub sounds: Vec<()>, // TODO: Sound support
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
     #[cfg(feature = "render")]

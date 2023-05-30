@@ -1,6 +1,7 @@
 use thiserror::Error;
 use crate::physics::*;
 
+/// Main universal error handler. Use [`Result::CustomError`] variant, if it doesn't fit your needs
 #[derive(Debug, Error)]
 pub enum Result {
     /// Error during invalid creating or accessing memory allocation
@@ -39,4 +40,5 @@ pub enum Result {
     CustomError(String),
 }
 
+/// Alias for easy error handling
 pub type DesperoResult<T> = std::result::Result<T, Result>;

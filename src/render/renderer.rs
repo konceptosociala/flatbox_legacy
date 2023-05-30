@@ -45,9 +45,6 @@ use crate::ecs::event::EventHandler;
 use crate::error::DesperoResult;
 use crate::WindowBuilder;
 
-/// Maximum number of textures, which can be pushed to descriptor sets
-pub const MAX_NUMBER_OF_TEXTURES: u32 = 1024; // TODO: Dynamically select number of textures
-
 #[derive(Debug, Clone, Default, PartialEq, Hash)]
 pub enum RenderType {
     #[default]
@@ -127,7 +124,11 @@ impl Renderer {
         )?;
         light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
         
-        let descriptor_pool = unsafe { DescriptorPool::init(&device, &swapchain)? };
+        let descriptor_pool = unsafe { DescriptorPool::init(
+            &device, 
+            &swapchain,
+            window_builder.textures_count.unwrap_or(4096),
+        )? };
         unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
         
         let debug_renderer = DebugRenderer::new(

@@ -70,16 +70,7 @@ impl QueueFamilies {
         instance: &Instance,
         graphics_index: &Option<u32>,
         transfer_index: &Option<u32>,
-    ) -> Result<(ash::Device, vk::Queue, vk::Queue), vk::Result> {
-        let layer_names_c: Vec<std::ffi::CString> = vec!["VK_LAYER_KHRONOS_validation"]
-            .iter()
-            .map(|&ln| std::ffi::CString::new(ln).unwrap())
-            .collect();
-        let layer_name_pointers: Vec<*const i8> = layer_names_c
-            .iter()
-            .map(|layer_name| layer_name.as_ptr())
-            .collect();
-    
+    ) -> Result<(ash::Device, vk::Queue, vk::Queue), vk::Result> {    
         let queues_info = Self::get_queues_info(graphics_index, transfer_index);
         let physical_device_features = vk::PhysicalDeviceFeatures::builder().fill_mode_non_solid(true);
         let mut indexing_features = Self::get_indexing_features();    
@@ -88,7 +79,6 @@ impl QueueFamilies {
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queues_info)
             .enabled_extension_names(&device_extensions)
-            .enabled_layer_names(&layer_name_pointers)
             .enabled_features(&physical_device_features)
             .push_next(&mut indexing_features);
             

@@ -1,8 +1,9 @@
-use std::{collections::HashMap, any::Any};
+use std::collections::HashMap;
 use std::any::TypeId;
 use std::sync::Arc;
 
 use parking_lot::{Mutex, MutexGuard, MappedMutexGuard};
+use as_any::AsAny;
 
 /// App exit event. When it's sent, application makes close request
 #[derive(Clone)]
@@ -45,15 +46,8 @@ impl<E: Event> Default for EventHandler<E> {
 	}
 }
 
-pub trait GenericEventHandler: Send + Sync + 'static {
-	fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-impl<E: Event> GenericEventHandler for EventHandler<E> {
-	fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
+pub trait GenericEventHandler: AsAny + Send + Sync + 'static {}
+impl<E: Event> GenericEventHandler for EventHandler<E> {}
 
 #[derive(Default)]
 pub struct Events {
@@ -71,7 +65,6 @@ impl Events {
             return MutexGuard::try_map(data, |data| {
                 data.as_any_mut().downcast_mut::<H>()
             }).ok() 
-			// TODO: Use `as_any` crate for event handlers
 		}
 
 		None

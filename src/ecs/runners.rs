@@ -8,10 +8,10 @@ use winit::{
 use crate::Despero;
 use super::event::{AppExit, EventHandler};
 
-pub(crate) fn empty_runner(_: Despero){}
+pub fn empty_runner(_: Despero){}
 
 #[cfg(feature = "render")]
-pub(crate) fn default_runner(mut despero: Despero) {
+pub fn default_runner(mut despero: Despero) {
     use crate::render::ui::GuiContext;
 
     let mut setup_systems = despero.setup_systems.build();
@@ -28,6 +28,7 @@ pub(crate) fn default_runner(mut despero: Despero) {
         &mut despero.time_handler,
         &mut despero.physics_handler,
         &mut despero.asset_manager,
+        // &mut despero.audio_manager,
     )).expect("Cannot execute setup schedule");
 
     let event_loop = (&despero.renderer.window.event_loop).clone();
@@ -66,6 +67,7 @@ pub(crate) fn default_runner(mut despero: Despero) {
                 &mut despero.time_handler,
                 &mut despero.physics_handler,
                 &mut despero.asset_manager,
+                // &mut despero.audio_manager,
             )).expect("Cannot execute loop schedule");
             
             despero.world.clear_trackers();
@@ -76,7 +78,7 @@ pub(crate) fn default_runner(mut despero: Despero) {
 }
 
 #[cfg(not(feature = "render"))]
-pub(crate) fn default_runner(mut despero: Despero) {
+pub fn default_runner(mut despero: Despero) {
     let mut setup_systems = despero.setup_systems.build();
     let mut systems = despero.systems.build();
 
@@ -84,17 +86,19 @@ pub(crate) fn default_runner(mut despero: Despero) {
 
     setup_systems.execute((
         &mut despero.world,
-        &mut despero.app_exit,
+        &mut despero.events,
         &mut despero.time_handler,
         &mut despero.physics_handler,
+        &mut despero.asset_manager,
     )).expect("Cannot execute setup schedule");
 
     loop {
         systems.execute((
             &mut despero.world,
-            &mut despero.app_exit,
+            &mut despero.events,
             &mut despero.time_handler,
             &mut despero.physics_handler,
+            &mut despero.asset_manager,
         )).expect("Cannot execute loop schedule");
 
         if let Some(handler) = despero.events.get_handler::<EventHandler<AppExit>>() {

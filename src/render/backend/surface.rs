@@ -1,5 +1,3 @@
-#[cfg(feature = "gtk")]
-use gtk::prelude::*;
 use ash::vk;
 use crate::render::{
     backend::{

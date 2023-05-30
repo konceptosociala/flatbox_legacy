@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use std::any::Any;
+use as_any::AsAny;
 use ash::vk;
 
 use crate::assets::asset_manager::AssetHandle;
@@ -13,14 +13,10 @@ use crate::render::{
 
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]
-pub trait Material: Any + std::fmt::Debug + Send + Sync {
+pub trait Material: AsAny + std::fmt::Debug + Send + Sync {
     fn pipeline(renderer: &Renderer) -> Pipeline
     where
         Self: Sized;
-        
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_any_mut(&mut self) -> &mut dyn Any; // TODO: Use `as_any` crate for materials
 }
 
 /// Default material, which uses standard shader and graphics pipeline
@@ -136,14 +132,6 @@ impl Material for DefaultMat {
             40,
             vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
-    }
-    
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
     }
 }
 

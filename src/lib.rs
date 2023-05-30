@@ -1,3 +1,4 @@
+
 // 
 // .d88888b                    oo                           oo                                                      oo          dP 
 // 88.    "'                                                                                                                    88 
@@ -79,8 +80,15 @@
 //! ```
 //! 
 
+//#![warn(missing_docs)]
+// TODO: write full documentation for all components
+
 #[cfg(all(feature = "egui", not(feature = "render")))]
 compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
+
+use kira::manager::AudioManager;
+use kira::manager::AudioManagerSettings;
+use kira::manager::backend::cpal::CpalBackend;
 
 use crate::assets::*;
 use crate::ecs::*;
@@ -133,6 +141,8 @@ pub struct Despero {
     pub time_handler: Time,
     /// Asset manager for loading, managing, and accessing game assets such as textures, sounds, and materials
     pub asset_manager: AssetManager,
+    /// Audio playback manager, provided by [`kira`] crate
+    pub audio_manager: AudioManager<CpalBackend>,
     /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
@@ -155,6 +165,7 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
+            audio_manager: AudioManager::new(AudioManagerSettings::default()).expect("Cannot initialize audio manager"),
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
             #[cfg(not(feature = "render"))]
@@ -242,17 +253,27 @@ fn init_logger() {
         .init();
 }
 
+/// Builder struct for creating window configurations. It's taken as an argument during [`Despero`] initializing
 #[derive(Default, Debug, Clone)]
 pub struct WindowBuilder {
-    pub title: Option<&'static str>,
+    /// Title of the window
+    pub title: Option<&'static str>, 
+    /// Width of the window
+    pub width: Option<f32>,
+    /// Height of the window
+    pub height: Option<f32>,
+    /// Specifies whether the window should be fullscreen or windowed
+    pub fullscreen: Option<bool>,
+    /// Specifies whether the window should be resizable
+    pub resizable: Option<bool>,
+
+    /// Icon of the winit window. Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub icon: Option<Icon>,
-    
-    pub width: Option<f32>,
-    pub height: Option<f32>,
-    pub fullscreen: Option<bool>,
-    pub resizable: Option<bool>,
-    
+    /// Type of renderer to use for rendering the window. Can be `Forward` or `Deferred` (WIP). Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub renderer: Option<RenderType>,
+    /// Maximum numbers of textures pushed to Descriptor Sets. Default value is 4096. Requires feature `render` enabled
+    #[cfg(feature = "render")]
+    pub textures_count: Option<u32>,
 }

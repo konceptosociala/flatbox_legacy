@@ -5,7 +5,6 @@ use crate::render::{
         swapchain::Swapchain,
         buffer::Buffer,
     },
-    renderer::MAX_NUMBER_OF_TEXTURES,
 };
 
 pub struct DescriptorPool {
@@ -21,8 +20,9 @@ impl DescriptorPool {
     pub unsafe fn init(
         logical_device: &ash::Device,
         swapchain: &Swapchain,
+        max_sampler_count: u32,
     ) -> Result<DescriptorPool, vk::Result> {        
-        let descriptor_pool = Self::create_descriptor_pool(&logical_device, &swapchain)?;
+        let descriptor_pool = Self::create_descriptor_pool(&logical_device, &swapchain, max_sampler_count)?;
         
         let camera_set_layout = Self::create_descriptor_set_layout(
             &logical_device,
@@ -37,7 +37,7 @@ impl DescriptorPool {
             vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             vk::ShaderStageFlags::FRAGMENT,
             0,
-            MAX_NUMBER_OF_TEXTURES,
+            max_sampler_count,
         )?;
         
         let light_set_layout = Self::create_descriptor_set_layout(
@@ -167,6 +167,7 @@ impl DescriptorPool {
     unsafe fn create_descriptor_pool(
         logical_device: &ash::Device,
         swapchain: &Swapchain,
+        max_sampler_count: u32,
     ) -> Result<vk::DescriptorPool, vk::Result> {
         let pool_sizes = [
             vk::DescriptorPoolSize {
@@ -175,7 +176,7 @@ impl DescriptorPool {
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: MAX_NUMBER_OF_TEXTURES * swapchain.amount_of_images,
+                descriptor_count: max_sampler_count * swapchain.amount_of_images,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::STORAGE_BUFFER,
