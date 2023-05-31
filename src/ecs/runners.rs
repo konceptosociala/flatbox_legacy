@@ -28,7 +28,6 @@ pub fn default_runner(mut despero: Despero) {
         &mut despero.time_handler,
         &mut despero.physics_handler,
         &mut despero.asset_manager,
-        // &mut despero.audio_manager,
     )).expect("Cannot execute setup schedule");
 
     let event_loop = (&despero.renderer.window.event_loop).clone();
@@ -67,7 +66,6 @@ pub fn default_runner(mut despero: Despero) {
                 &mut despero.time_handler,
                 &mut despero.physics_handler,
                 &mut despero.asset_manager,
-                // &mut despero.audio_manager,
             )).expect("Cannot execute loop schedule");
             
             despero.world.clear_trackers();

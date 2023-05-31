@@ -86,10 +86,6 @@
 #[cfg(all(feature = "egui", not(feature = "render")))]
 compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
-use kira::manager::AudioManager;
-use kira::manager::AudioManagerSettings;
-use kira::manager::backend::cpal::CpalBackend;
-
 use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -117,6 +113,8 @@ pub mod time;
 pub mod physics;
 /// [Mlua](https://crates.io/crates/mlua) scripting implementations
 pub mod scripting;
+/// Audio processing components
+pub mod audio;
 /// Bundle of all essential components of the engine
 pub mod prelude;
 
@@ -141,8 +139,6 @@ pub struct Despero {
     pub time_handler: Time,
     /// Asset manager for loading, managing, and accessing game assets such as textures, sounds, and materials
     pub asset_manager: AssetManager,
-    /// Audio playback manager, provided by [`kira`] crate
-    pub audio_manager: AudioManager<CpalBackend>,
     /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
@@ -165,7 +161,6 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
-            audio_manager: AudioManager::new(AudioManagerSettings::default()).expect("Cannot initialize audio manager"),
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
             #[cfg(not(feature = "render"))]
