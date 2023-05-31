@@ -86,6 +86,7 @@
 #[cfg(all(feature = "egui", not(feature = "render")))]
 compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
+use crate::audio::*;
 use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -139,6 +140,8 @@ pub struct Despero {
     pub time_handler: Time,
     /// Asset manager for loading, managing, and accessing game assets such as textures, sounds, and materials
     pub asset_manager: AssetManager,
+    /// Audio playback manager
+    pub audio_manager: AudioManager,
     /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
@@ -161,6 +164,7 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
+            audio_manager: AudioManager::new(),
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
             #[cfg(not(feature = "render"))]

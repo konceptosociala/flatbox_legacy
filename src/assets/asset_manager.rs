@@ -41,7 +41,7 @@ impl From<AssetHandle> for u32 {
     }
 }
 
-// TODO: implement audio support
+// TODO: add audio components
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
     #[cfg(feature = "render")]
