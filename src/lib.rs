@@ -164,7 +164,7 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
-            audio_manager: AudioManager::new(),
+            audio_manager: AudioManager::new().expect("Cannot create audio manager"),
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
             #[cfg(not(feature = "render"))]

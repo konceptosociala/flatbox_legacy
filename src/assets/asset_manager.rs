@@ -7,6 +7,7 @@ use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
+use crate::audio::sound::Sound;
 #[cfg(feature = "render")]
 use crate::render::*;
 
@@ -41,9 +42,9 @@ impl From<AssetHandle> for u32 {
     }
 }
 
-// TODO: add audio components
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
+    pub sounds: Vec<Sound>,
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
     #[cfg(feature = "render")]
@@ -55,11 +56,41 @@ impl AssetManager {
         AssetManager::default()
     }    
 
+    pub fn create_sound() -> AssetHandle {
+        todo!();
+    }
+
+    pub fn get_sound(&self, _handle: AssetHandle) -> Option<&Sound> {
+        todo!();
+    }
+
+    pub fn get_sound_mut(&mut self, _handle: AssetHandle) -> Option<&mut Sound> {
+        todo!();
+    }
+
     pub fn append(&mut self, other: Self) {
+        self.sounds.extend(other.sounds);
+        #[cfg(feature = "render")]{
+            self.textures.extend(other.textures);
+            self.materials.extend(other.materials);
+        }
+    }
+
+    pub fn cleanup(
+        &mut self,
         #[cfg(feature = "render")]
-        self.textures.extend(other.textures);
-        #[cfg(feature = "render")]
-        self.materials.extend(other.materials);
+        renderer: &mut Renderer,
+    ){
+        self.sounds.clear();
+
+        #[cfg(feature = "render")]{
+            for texture in &mut self.textures {
+                texture.cleanup(renderer);
+            }
+            
+            self.textures.clear();
+            self.materials.clear();
+        }
     }
 }
 
@@ -134,17 +165,5 @@ impl AssetManager {
                 }
             })
             .collect()
-    }
-    
-    pub fn cleanup(
-        &mut self,
-        renderer: &mut Renderer,
-    ){
-        for texture in &mut self.textures {
-            texture.cleanup(renderer);
-        }
-        
-        self.textures.clear();
-        self.materials.clear();
     }
 }

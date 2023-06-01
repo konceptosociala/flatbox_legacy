@@ -1,5 +1,6 @@
 use thiserror::Error;
-use crate::physics::*;
+use crate::physics::error::PhysicsError;
+use crate::audio::error::AudioError;
 
 /// Main universal error handler. Use [`Result::CustomError`] variant, if it doesn't fit your needs
 #[derive(Debug, Error)]
@@ -18,6 +19,10 @@ pub enum Result {
     #[cfg(feature = "render")]
     #[error("Rendering error")]
     RenderError(#[from] ash::vk::Result),
+
+    /// Error during audio playback/instantiating/handling
+    #[error("Error while processing audio")]
+    AudioError(#[from] AudioError),
 
     /// Deserialization RON-object error
     #[error("Deserialization error")]

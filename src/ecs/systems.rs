@@ -1,44 +1,45 @@
 #[cfg(feature = "render")]
-use ash::vk;
-#[cfg(feature = "render")]
-use std::mem::{size_of, size_of_val};
-#[cfg(feature = "render")]
-use gpu_allocator::MemoryLocation;
+use {
+    ash::vk,
+    std::mem::{size_of, size_of_val},
+    gpu_allocator::MemoryLocation,
+};
 
 #[cfg(feature = "render")]
-use crate::assets::*;
+use crate::{
+    assets::*,
+    render::{
+        renderer::Renderer,
+        pbr::{
+            camera::Camera,
+            model::*,
+            light::*,
+        },
+        backend::{
+            buffer::Buffer,
+            swapchain::Swapchain,
+        },
+    },
+};
+
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
 use crate::error::DesperoResult;
 use crate::math::transform::Transform;
 
-#[cfg(feature = "render")]
-use crate::render::{
-    renderer::Renderer,
-    pbr::{
-        camera::Camera,
-        model::*,
-        light::*,
-    },
-    backend::{
-        buffer::Buffer,
-        swapchain::Swapchain,
-    },
-};
-
 #[cfg(feature = "egui")]
 use crate::render::ui::GuiContext;
 
-pub(crate) fn main_setup(){}
+pub fn main_setup(){}
 
-pub(crate) fn time_system(
+pub fn time_system(
     mut time: Write<Time>,
 ){
     time.update();
 }
 
-pub(crate) fn update_physics(
+pub fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
     physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
     added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
@@ -67,7 +68,7 @@ pub(crate) fn update_physics(
 }
 
 #[cfg(feature = "render")]
-pub(crate) fn generate_textures(
+pub fn generate_textures(
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
 ) -> DesperoResult<()> {
@@ -81,7 +82,7 @@ pub(crate) fn generate_textures(
 }
 
 #[cfg(feature = "render")]
-pub(crate) fn rendering_system(
+pub fn rendering_system(
     mut physics_handler: Write<PhysicsHandler>,
     #[cfg(feature = "egui")]
     events: Read<Events>,
@@ -169,7 +170,7 @@ pub(crate) fn rendering_system(
 }
 
 #[cfg(feature = "render")]
-pub(crate) fn update_models_system(
+pub fn update_models_system(
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
     world: SubWorld<(&mut Mesh, &mut AssetHandle, &Transform)>,
@@ -265,7 +266,7 @@ pub(crate) fn update_models_system(
 }
 
 #[cfg(feature = "render")]
-pub(crate) fn update_lights(
+pub fn update_lights(
     plight_world: SubWorld<(&PointLight, Changed<PointLight>)>,
     dlight_world: SubWorld<(&DirectionalLight, Changed<DirectionalLight>)>,
     mut renderer: Write<Renderer>,

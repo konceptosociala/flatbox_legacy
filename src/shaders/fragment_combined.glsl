@@ -20,19 +20,19 @@ layout (location=11) in flat uint normal_t_map;
 layout (set=1, binding=0) uniform sampler2D texturesamplers[];
 
 readonly layout (set=2, binding=0) buffer StorageBufferObject {
-	float num_directional;
-	float num_point;
-	vec3 data[];
+    float num_directional;
+    float num_point;
+    vec3 data[];
 } sbo;
 
 struct DirectionalLight{
-	vec3 direction_to_light;
-	vec3 irradiance;
+    vec3 direction_to_light;
+    vec3 irradiance;
 };
 
 struct PointLight{
-	vec3 position;
-	vec3 luminous_flux;
+    vec3 position;
+    vec3 luminous_flux;
 };
 
 const float PI = 3.1415926535897932;
@@ -40,25 +40,25 @@ const float PI = 3.1415926535897932;
 void main(){ // TODO: Physically based rendering
 
     int number_directional = int(sbo.num_directional);
-	int number_point = int(sbo.num_point);
+    int number_point = int(sbo.num_point);
 
     for(int i = 0; i < number_directional; i++) {
         vec3 direction = sbo.data[2 * i];
-		vec3 illuminance = sbo.data[2 * i + 1];
-		DirectionalLight dlight = DirectionalLight(normalize(direction), illuminance);
+        vec3 illuminance = sbo.data[2 * i + 1];
+        DirectionalLight dlight = DirectionalLight(normalize(direction), illuminance);
     }
 
     for(int i = 0; i < number_point; i++) {
         vec3 position = sbo.data[2 * i + 2 * number_point];
-		vec3 luminous_flux = sbo.data[2 * i + 1 + 2 * number_point];
-		PointLight plight = PointLight(position, luminous_flux);
+        vec3 luminous_flux = sbo.data[2 * i + 1 + 2 * number_point];
+        PointLight plight = PointLight(position, luminous_flux);
     }
 
-	vec3 lightColor = vec3(1.0);	
+    vec3 lightColor = vec3(1.0);    
     
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * lightColor;
-  	
+      
     // diffuse 
     vec3 norm = normalize(normal);
     vec3 lightDir = normalize(sbo.data[0]);

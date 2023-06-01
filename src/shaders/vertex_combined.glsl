@@ -15,13 +15,13 @@ layout (location=9) in float normal_t;
 layout (location=10) in uint normal_t_map;
 
 layout (set=0, binding=0) uniform UniformBufferObject {
-	mat4 view_matrix;
-	mat4 projection_matrix;
+    mat4 view_matrix;
+    mat4 projection_matrix;
 } ubo;
 
 layout( push_constant ) uniform PushConstants {
-	mat4 model_matrix;
-	mat4 inverse_model_matrix;
+    mat4 model_matrix;
+    mat4 inverse_model_matrix;
 } pc;
 
 layout (location=0) out vec2 uv;
@@ -46,16 +46,16 @@ void main() {
     out_normal = transpose(mat3(pc.inverse_model_matrix)) * normal;
     out_worldpos = vec3(worldpos);
     out_camera_coordinates =
-		- ubo.view_matrix[3][0] * vec3 (ubo.view_matrix[0][0],ubo.view_matrix[1][0],ubo.view_matrix[2][0])
-		- ubo.view_matrix[3][1] * vec3 (ubo.view_matrix[0][1],ubo.view_matrix[1][1],ubo.view_matrix[2][1])
-		- ubo.view_matrix[3][2] * vec3 (ubo.view_matrix[0][2],ubo.view_matrix[1][2],ubo.view_matrix[2][2]);
+        - ubo.view_matrix[3][0] * vec3 (ubo.view_matrix[0][0],ubo.view_matrix[1][0],ubo.view_matrix[2][0])
+        - ubo.view_matrix[3][1] * vec3 (ubo.view_matrix[0][1],ubo.view_matrix[1][1],ubo.view_matrix[2][1])
+        - ubo.view_matrix[3][2] * vec3 (ubo.view_matrix[0][2],ubo.view_matrix[1][2],ubo.view_matrix[2][2]);
 
-	out_color = color;
-	out_albedo_map = albedo_map;
-	out_metallic = metallic;
-	out_metallic_map = metallic_map;
-	out_roughness = roughness;
-	out_roughness_map = roughness_map;
-	out_normal_t = normal_t;
-	out_normal_t_map = normal_t_map;
+    out_color = color;
+    out_albedo_map = albedo_map;
+    out_metallic = metallic;
+    out_metallic_map = metallic_map;
+    out_roughness = roughness;
+    out_roughness_map = roughness_map;
+    out_normal_t = normal_t;
+    out_normal_t_map = normal_t_map;
 }
