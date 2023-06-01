@@ -1,3 +1,7 @@
+/*! 
+Systems
+*/
+
 #[cfg(feature = "render")]
 use {
     ash::vk,
@@ -22,6 +26,7 @@ use crate::{
     },
 };
 
+use crate::audio::*;
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -37,6 +42,21 @@ pub fn time_system(
     mut time: Write<Time>,
 ){
     time.update();
+}
+
+pub fn processing_audio(
+    cast_world: SubWorld<(&Transform, &mut AudioCast)>,
+    listener_world: SubWorld<(&Transform, &mut AudioListener)>
+) -> DesperoResult<()> {
+    for (_, (t, mut c)) in &mut cast_world.query::<(&Transform, &mut AudioCast)>(){
+        c.set_transform(&t)?;
+    }
+
+    for (_, (t, mut l)) in &mut listener_world.query::<(&Transform, &mut AudioListener)>(){
+        l.set_transform(&t)?;
+    }
+
+    Ok(())
 }
 
 pub fn update_physics(

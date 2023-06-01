@@ -1,4 +1,3 @@
-
 // 
 // .d88888b                    oo                           oo                                                      oo          dP 
 // 88.    "'                                                                                                                    88 
@@ -10,75 +9,78 @@
 //                           d8dP                                                                                               
 //
 
-//! Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
-//! which implements paradigm of ECS and provides developers with
-//! appropriate toolkit to develop PBR games with advanced technologies
-//!
-//! # Simple example
-//!
-//! ```rust
-//! use despero::prelude::*;
-//! 
-//! fn main(){
-//!     Despero::init(WindowBuilder {
-//!         title: Some("My Game"),
-//!         ..Default::default()
-//!     })
-//!        
-//!         .default_systems()
-//!
-//!         .add_setup_system(create_model)
-//!         .add_setup_system(create_camera)
-//!         .add_system(rotate_model)
-//!         .run();
-//! }
-//! 
-//! fn create_model(
-//!     mut cmd: Write<CommandBuffer>,
-//!     mut asset_manager: Write<AssetManager>,
-//! ){
-//!     let texture = asset_manager.create_texture("assets/texture.jpg", Filter::Linear);
-//!        
-//!     cmd.spawn(ModelBundle {
-//!         mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
-//!         material: asset_manager.create_material(
-//!             DefaultMat::builder()
-//!                 .color(Vector3::new(0.5, 0.5, 0.7).into())
-//!                 .albedo(texture)
-//!                 .metallic(0.0)
-//!                 .roughness(1.0)
-//!                 .build(),
-//!         ),
-//!         transform: Transform::default(),
-//!     });
-//!
-//!     info!("I run only once!");
-//! }
-//! 
-//! fn rotate_model(
-//!     world: SubWorld<&mut Transform>,
-//! ){
-//!     for (_, mut t) in &mut world.query::<&mut Transform>() {
-//!         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
-//!     }
-//!
-//!     info!("I run in loop!");
-//! }
-//!  
-//! fn create_camera(
-//!     mut cmd: Write<CommandBuffer>,
-//! ){
-//!     cmd.spawn(CameraBundle{
-//!         camera: 
-//!             Camera::builder()
-//!                 .is_active(true)
-//!                 .camera_type(CameraType::LookAt)
-//!                 .build(),
-//!         transform: Transform::default(),
-//!     });
-//! }
-//! ```
-//! 
+/*!
+
+Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
+which implements paradigm of ECS and provides developers with
+appropriate toolkit to develop PBR games with advanced technologies
+
+# Simple example
+
+```rust
+use despero::prelude::*;
+
+fn main(){
+    Despero::init(WindowBuilder {
+        title: Some("My Game"),
+        ..Default::default()
+    })
+       
+        .default_systems()
+
+        .add_setup_system(create_model)
+        .add_setup_system(create_camera)
+        .add_system(rotate_model)
+        .run();
+}
+
+fn create_model(
+    mut cmd: Write<CommandBuffer>,
+    mut asset_manager: Write<AssetManager>,
+){
+    let texture = asset_manager.create_texture("assets/texture.jpg", Filter::Linear);
+       
+    cmd.spawn(ModelBundle {
+        mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+        material: asset_manager.create_material(
+            DefaultMat::builder()
+                .color(Vector3::new(0.5, 0.5, 0.7).into())
+                .albedo(texture)
+                .metallic(0.0)
+                .roughness(1.0)
+                .build(),
+        ),
+        transform: Transform::default(),
+    });
+
+    info!("I run only once!");
+}
+
+fn rotate_model(
+    world: SubWorld<&mut Transform>,
+){
+    for (_, mut t) in &mut world.query::<&mut Transform>() {
+        t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
+    }
+
+    info!("I run in loop!");
+}
+ 
+fn create_camera(
+    mut cmd: Write<CommandBuffer>,
+){
+    cmd.spawn(CameraBundle{
+        camera: 
+            Camera::builder()
+                .is_active(true)
+                .camera_type(CameraType::LookAt)
+                .build(),
+        transform: Transform::default(),
+    });
+}
+```
+
+*/
 
 //#![warn(missing_docs)]
 // TODO: write full documentation for all components
@@ -197,7 +199,8 @@ impl Despero {
         
         self.systems
             .add_system(time_system)
-            .add_system(update_physics);
+            .add_system(update_physics)
+            .add_system(processing_audio);
             
         #[cfg(feature = "render")]
         self.systems

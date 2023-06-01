@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+#[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum PhysicsError {
     #[error("Invalid RigidBody handle provided")]

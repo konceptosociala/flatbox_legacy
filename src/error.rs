@@ -3,6 +3,7 @@ use crate::physics::error::PhysicsError;
 use crate::audio::error::AudioError;
 
 /// Main universal error handler. Use [`Result::CustomError`] variant, if it doesn't fit your needs
+#[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum Result {
     /// Error during invalid creating or accessing memory allocation

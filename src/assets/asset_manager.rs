@@ -7,7 +7,7 @@ use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
-use crate::audio::sound::Sound;
+use crate::{audio::{sound::Sound}, prelude::DesperoResult};
 #[cfg(feature = "render")]
 use crate::render::*;
 
@@ -56,16 +56,22 @@ impl AssetManager {
         AssetManager::default()
     }    
 
-    pub fn create_sound() -> AssetHandle {
-        todo!();
+    pub fn create_sound(
+        &mut self,
+        path: &'static str,
+    ) -> DesperoResult<AssetHandle> {
+        let index = self.sounds.len();
+        self.sounds.push(Sound::new_from_file(path)?);
+
+        Ok(AssetHandle(index))
     }
 
-    pub fn get_sound(&self, _handle: AssetHandle) -> Option<&Sound> {
-        todo!();
+    pub fn get_sound(&self, handle: AssetHandle) -> Option<&Sound> {
+        self.sounds.get(handle.0)
     }
 
-    pub fn get_sound_mut(&mut self, _handle: AssetHandle) -> Option<&mut Sound> {
-        todo!();
+    pub fn get_sound_mut(&mut self, handle: AssetHandle) -> Option<&mut Sound> {
+        self.sounds.get_mut(handle.0)
     }
 
     pub fn append(&mut self, other: Self) {
