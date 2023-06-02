@@ -50,7 +50,7 @@ as-any = "0.3.0"
 kira = "0.8.3"
 
 # ECS
-hecs = { package = "despero-hecs", version = "0.9.1-f", features = ["column-serialize"] }
+hecs = { package = "despero-hecs", version = "0.9.1-f", features = ["column-serialize", "macros"] }
 hecs-schedule = { package = "despero-hecs-schedule", version = "0.6.2" }
 
 # Physics

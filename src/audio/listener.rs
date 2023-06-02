@@ -28,3 +28,11 @@ impl AudioListener {
         Ok(())
     }
 }
+
+impl std::fmt::Debug for AudioListener {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("AudioListener")
+         .field(&self.handle.id())
+         .finish()
+    }
+}

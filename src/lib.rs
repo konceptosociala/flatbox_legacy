@@ -88,6 +88,8 @@ fn create_camera(
 #[cfg(all(feature = "egui", not(feature = "render")))]
 compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
+use std::any::TypeId;
+
 use crate::audio::*;
 use crate::assets::*;
 use crate::ecs::*;
@@ -144,6 +146,8 @@ pub struct Despero {
     pub asset_manager: AssetManager,
     /// Audio playback manager
     pub audio_manager: AudioManager,
+    /// Applied extension types
+    pub extensions: Vec<TypeId>,
     /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
@@ -167,6 +171,7 @@ impl Despero {
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
             audio_manager: AudioManager::new().expect("Cannot create audio manager"),
+            extensions: vec![],
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
             #[cfg(not(feature = "render"))]
@@ -192,7 +197,9 @@ impl Despero {
         self
     }
     
-    /// Use default engine systems, including processing of physics, time, lights and rendering. To process rendering `render` feature must be enabled
+    /// Use default engine systems, including processing of physics, time, lights and rendering. 
+    /// To process rendering `render` feature must be enabled. You can manually add necessary
+    /// ones using [`systems`] module
     pub fn default_systems(mut self) -> Self {
         self.setup_systems
             .add_system(main_setup);
@@ -213,8 +220,22 @@ impl Despero {
     }
 
     /// Set custom game runner. Default is [`default_runner`]
-    pub fn set_runner(&mut self, runner: Box<dyn Fn(Despero)>) {
+    pub fn set_runner(mut self, runner: Box<dyn Fn(Despero)>) -> Self {
         self.runner = runner;
+        self
+    }
+
+    /// Apply [`Extension`] to the application. Only **one** instance of a concrete 
+    /// extension is allowed, otherwise non-panic error is logged
+    pub fn apply_extension<Ext: Extension + 'static>(mut self, ext: Ext) -> Self {
+        if self.extensions.contains(&TypeId::of::<Ext>()) {
+            log::error!("Extension \"{}\" is already bound!", std::any::type_name::<Ext>());
+            return self;
+        }
+
+        ext.apply(&mut self);
+        self.extensions.push(TypeId::of::<Ext>());
+        self
     }
     
     /// Run main event loop
@@ -278,4 +299,9 @@ pub struct WindowBuilder {
     /// Maximum numbers of textures pushed to Descriptor Sets. Default value is 4096. Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub textures_count: Option<u32>,
+}
+
+/// [`Despero`] application extension trait for fast configuration without writing boileplate
+pub trait Extension {
+    fn apply(&self, app: &mut Despero);
 }

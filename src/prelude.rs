@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 pub use crate::{Despero, WindowBuilder};
 pub use crate::error::DesperoResult;
 

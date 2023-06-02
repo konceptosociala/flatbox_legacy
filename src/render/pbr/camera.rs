@@ -190,7 +190,7 @@ impl CameraBuilder {
     }
 }
 
-#[derive(Bundle, )]
+#[derive(Bundle)]
 pub struct CameraBundle {
     pub camera: Camera,
     pub transform: Transform,

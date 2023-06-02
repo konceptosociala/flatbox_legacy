@@ -23,5 +23,4 @@ pub use backend::pipeline::*;
 pub use backend::window::*;
 
 pub use winit::event::VirtualKeyCode as KeyCode;
-pub use winit::event::*;
 pub use winit::window::Icon;

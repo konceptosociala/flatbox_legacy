@@ -1,6 +1,35 @@
 /*! 
-Systems
+
+# Default systems
+
+Here are systems that the engine uses to process the main 
+components of the game: rendering, audio, physics, etc.
+
+You can enable their use with [`Despero::default_systems`] 
+
+```rust
+use despero::prelude::*;
+
+Despero::init(WindowBuilder::default())
+    .default_systems()
+    .run();
+```
+
+or add necessary ones manually with [`Despero::add_system`]
+
+```rust
+use despero::prelude::*;
+
+Despero::init(WindowBuilder::default())
+    .add_system(time_system)
+    .add_system(update_physics)
+    .run();
+```
+
 */
+
+#[allow(unused_imports)]
+use crate::Despero;
 
 #[cfg(feature = "render")]
 use {
