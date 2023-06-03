@@ -8,10 +8,10 @@ use winit::{
 use crate::Despero;
 use super::event::{AppExit, EventHandler};
 
-pub fn empty_runner(_: Despero){}
+pub fn empty_runner(_: &mut Despero){}
 
 #[cfg(feature = "render")]
-pub fn default_runner(mut despero: Despero) {
+pub fn default_runner(despero: &mut Despero) {
     use crate::render::ui::GuiContext;
 
     let mut setup_systems = despero.setup_systems.build();
@@ -78,7 +78,7 @@ pub fn default_runner(mut despero: Despero) {
 }
 
 #[cfg(not(feature = "render"))]
-pub fn default_runner(mut despero: Despero) {
+pub fn default_runner(despero: &mut Despero) {
     let mut setup_systems = despero.setup_systems.build();
     let mut systems = despero.systems.build();
 

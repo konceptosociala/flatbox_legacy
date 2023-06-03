@@ -1,6 +1,6 @@
 #![allow(ambiguous_glob_reexports)]
 
-pub use crate::{Despero, WindowBuilder};
+pub use crate::{Despero, WindowBuilder, Extension};
 pub use crate::error::DesperoResult;
 
 pub use crate::assets::*;

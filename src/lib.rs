@@ -135,7 +135,7 @@ pub struct Despero {
     /// Builder for configuring and building the setup system schedule. Setup systems are executed only once at the beginning of the game
     pub setup_systems: ScheduleBuilder,
     /// Function that defines the game loop and handles game execution. It takes an instance of Despero as an argument
-    pub runner: Box<dyn Fn(Despero)>,
+    pub runner: Box<dyn Fn(&mut Despero)>,
     /// Collection of event handlers for managing user input and system events
     pub events: Events,
     /// Handler for managing the physics simulation within the game
@@ -180,7 +180,7 @@ impl Despero {
     }
     
     /// Add cyclical system to schedule
-    pub fn add_system<Args, Ret, S>(mut self, system: S) -> Self 
+    pub fn add_system<Args, Ret, S>(&mut self, system: S) -> &mut Self 
     where
         S: 'static + System<Args, Ret> + Send,
     {
@@ -189,7 +189,7 @@ impl Despero {
     }
     
     /// Add setup system to schedule
-    pub fn add_setup_system<Args, Ret, S>(mut self, system: S) -> Self 
+    pub fn add_setup_system<Args, Ret, S>(&mut self, system: S) -> &mut Self 
     where
         S: 'static + System<Args, Ret> + Send,
     {
@@ -200,7 +200,7 @@ impl Despero {
     /// Use default engine systems, including processing of physics, time, lights and rendering. 
     /// To process rendering `render` feature must be enabled. You can manually add necessary
     /// ones using [`systems`] module
-    pub fn default_systems(mut self) -> Self {
+    pub fn default_systems(&mut self) -> &mut Self {
         self.setup_systems
             .add_system(main_setup);
         
@@ -220,26 +220,26 @@ impl Despero {
     }
 
     /// Set custom game runner. Default is [`default_runner`]
-    pub fn set_runner(mut self, runner: Box<dyn Fn(Despero)>) -> Self {
+    pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Despero)>) -> &mut Self {
         self.runner = runner;
         self
     }
 
     /// Apply [`Extension`] to the application. Only **one** instance of a concrete 
     /// extension is allowed, otherwise non-panic error is logged
-    pub fn apply_extension<Ext: Extension + 'static>(mut self, ext: Ext) -> Self {
+    pub fn apply_extension<Ext: Extension + 'static>(&mut self, ext: Ext) -> &mut Self {
         if self.extensions.contains(&TypeId::of::<Ext>()) {
             log::error!("Extension \"{}\" is already bound!", std::any::type_name::<Ext>());
             return self;
         }
 
-        ext.apply(&mut self);
+        ext.apply(self);
         self.extensions.push(TypeId::of::<Ext>());
         self
     }
     
     /// Run main event loop
-    pub fn run(mut self) {
+    pub fn run(&mut self) {
         let runner = std::mem::replace(&mut self.runner, Box::new(empty_runner));
         runner(self);
     }
