@@ -151,7 +151,7 @@ pub fn rendering_system(
     }    
 
     #[cfg(feature = "egui")]
-    let mut egui_ctx = events.get_handler::<EventHandler<GuiContext>>().unwrap();
+    let mut egui_ctx = events.get_handler::<GuiContext>().unwrap();
 
     renderer.update_commandbuffer(
         &mut model_world,

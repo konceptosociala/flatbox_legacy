@@ -59,11 +59,11 @@ impl Events {
         Events::default()
     }
 
-    pub fn get_handler<H: GenericEventHandler>(&self) -> Option<MappedMutexGuard<H>> { // TODO: Event type instead of EventHandler type
-        if let Some(handler) = self.storage.get(&TypeId::of::<H>()){
+    pub fn get_handler<E: Event>(&self) -> Option<MappedMutexGuard<EventHandler<E>>> { 
+        if let Some(handler) = self.storage.get(&TypeId::of::<EventHandler<E>>()){
             let data = handler.lock();
             return MutexGuard::try_map(data, |data| {
-                data.as_any_mut().downcast_mut::<H>()
+                data.as_any_mut().downcast_mut::<EventHandler<E>>()
             }).ok() 
         }
 

@@ -94,7 +94,7 @@ fn process_scene(
     events: Read<Events>,
     time: Read<Time>,
 ){
-    let gui_events = events.get_handler::<EventHandler<GuiContext>>().unwrap();
+    let gui_events = events.get_handler::<GuiContext>().unwrap();
 
     if let Some(ctx) = gui_events.read() {
         if let Some(current) = ctx.pointer_hover_pos() {

@@ -52,7 +52,7 @@ pub fn default_runner(despero: &mut Despero) {
                 
         WinitEvent::MainEventsCleared => {
             despero.renderer.window.request_redraw();
-            if let Some(handler) = despero.events.get_handler::<EventHandler<AppExit>>() {
+            if let Some(handler) = despero.events.get_handler::<AppExit>() {
                 if let Some(_) = handler.read() {
                     *controlflow = winit::event_loop::ControlFlow::Exit;
                 }

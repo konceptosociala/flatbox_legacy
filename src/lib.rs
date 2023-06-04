@@ -279,6 +279,7 @@ fn init_logger() {
 /// Builder struct for creating window configurations. It's taken as an argument during [`Despero`] initializing
 #[derive(Default, Debug, Clone)]
 pub struct WindowBuilder {
+    // === WINDOW SETTINGS ===
     /// Title of the window
     pub title: Option<&'static str>, 
     /// Width of the window
@@ -290,6 +291,13 @@ pub struct WindowBuilder {
     /// Specifies whether the window should be resizable
     pub resizable: Option<bool>,
 
+    // === AUDIO SETTINGS ===
+    /// Maximum count of audio listeners in the [main audio scene](AudioSceneId::Main)
+    pub listener_count: Option<usize>,
+    /// Maximum count of audio casts in the [main audio scene](AudioSceneId::Main)
+    pub cast_count: Option<usize>,
+
+    // === RENDERING SETTINGS ===
     /// Icon of the winit window. Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub icon: Option<Icon>,

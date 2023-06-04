@@ -70,7 +70,7 @@ fn gui_system(
         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(1.0, 1.0, 1.0)), to_radian(1.0));
     }
     
-    let gui_events = events.get_handler::<EventHandler<GuiContext>>().unwrap();
+    let gui_events = events.get_handler::<GuiContext>().unwrap();
     if let Some(ctx) = gui_events.read() {
         
         gui::SidePanel::left("my_panel").show(&ctx, |ui| {
