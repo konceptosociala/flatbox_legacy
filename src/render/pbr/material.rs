@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use as_any::AsAny;
 use ash::vk;
 
-use crate::assets::asset_manager::AssetHandle;
+use crate::assets::AssetHandle;
 use crate::render::{
     renderer::*,
     backend::{

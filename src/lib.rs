@@ -90,7 +90,6 @@ compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
 use std::any::TypeId;
 
-use crate::audio::*;
 use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -144,8 +143,6 @@ pub struct Despero {
     pub time_handler: Time,
     /// Asset manager for loading, managing, and accessing game assets such as textures, sounds, and materials
     pub asset_manager: AssetManager,
-    /// Audio playback manager
-    pub audio_manager: AudioManager,
     /// Applied extension types
     pub extensions: Vec<TypeId>,
     /// Rendering context for managing render pipeline and Vulkan components
@@ -170,7 +167,6 @@ impl Despero {
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
-            audio_manager: AudioManager::new().expect("Cannot create audio manager"),
             extensions: vec![],
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
@@ -292,9 +288,9 @@ pub struct WindowBuilder {
     pub resizable: Option<bool>,
 
     // === AUDIO SETTINGS ===
-    /// Maximum count of audio listeners in the [main audio scene](AudioSceneId::Main)
+    /// Maximum count of audio listeners
     pub listener_count: Option<usize>,
-    /// Maximum count of audio casts in the [main audio scene](AudioSceneId::Main)
+    /// Maximum count of audio casts
     pub cast_count: Option<usize>,
 
     // === RENDERING SETTINGS ===

@@ -36,6 +36,7 @@ serde = { version = "1.0.152", features = ["derive"] }
 typetag = "0.2.8"
 ron = "0.8.0"
 lz4 = "1.24.0"
+tar = "0.4.38"
 
 # Misc
 parking_lot = { version = "0.12.1", features = ["serde"] }

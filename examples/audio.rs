@@ -10,14 +10,14 @@ fn main() {
 
 fn create_audio(
     mut asset_manager: Write<AssetManager>,
-    mut audio_manager: Write<AudioManager>,
     mut cmd: Write<CommandBuffer>,
 ) -> DesperoResult<()> {
     let mut sound = Sound::new_from_file("assets/birds.mp3")?;
-    let cast = audio_manager.new_cast(AudioSceneId::Main);
-    
+    let cast = asset_manager.audio.new_cast();
     sound.set_cast(&cast);
-    audio_manager.play(sound);
+    let handle = asset_manager.audio.push_sound(sound);
+
+    asset_manager.audio.play(handle)?;
 
     let texture_id = asset_manager.create_texture("assets/uv.jpg", Filter::Nearest);    
     let mesh = Mesh::load_obj("assets/model.obj").swap_remove(0);
@@ -41,8 +41,7 @@ fn create_audio(
             .is_active(true)
             .build(),
         AudioListener::new(
-            &mut audio_manager,
-            AudioSceneId::Main,
+            &mut asset_manager.audio,
         ),
         Transform::from_translation(Vector3::new(0.0, 0.0, 5.0)),
     ));

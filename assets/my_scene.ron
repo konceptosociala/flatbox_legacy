@@ -1,5 +1,10 @@
 Scene(
     assets: AssetManager(
+        audio: AudioManager(
+            sounds: [],
+            cast_count: 128,
+            listener_count: 8,
+        ),
         textures: [],
         materials: [],
     ),

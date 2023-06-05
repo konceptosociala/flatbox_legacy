@@ -17,7 +17,7 @@ use crate::render::{
     },
 };
 
-use crate::assets::asset_manager::AssetHandle;
+use crate::assets::AssetHandle;
 use crate::ecs::*;
 use crate::math::transform::Transform;
 

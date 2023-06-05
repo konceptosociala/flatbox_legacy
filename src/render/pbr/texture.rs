@@ -3,6 +3,7 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
+use crate::assets::AssetLoadType;
 use crate::render::{
     backend::buffer::Buffer,
     renderer::Renderer,
@@ -18,10 +19,20 @@ pub enum Filter {
     Cubic,
 } 
 
+impl From<Filter> for vk::Filter {
+    fn from(filter: Filter) -> Self {
+        match filter {
+            Filter::Nearest => vk::Filter::NEAREST,
+            Filter::Cubic => vk::Filter::CUBIC_EXT,
+            _ => vk::Filter::LINEAR,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Default, Serialize, Deserialize)]
 pub struct Texture {
-    pub path: String,
+    pub load_type: AssetLoadType,
     pub filter: Filter,
     
     // Raw image data
@@ -48,7 +59,7 @@ pub struct Texture {
 impl std::fmt::Debug for Texture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Texture")
-            .field("path", &self.path)
+            .field("load_type", &self.load_type)
             .field("filter", &self.filter)
             .finish()
     }
@@ -61,7 +72,7 @@ impl Texture {
         filter: Filter,
     ) -> Self {
         Texture {
-            path: path.into(),
+            load_type: path.into(),
             filter,
             image: None,
             vk_image: None,
@@ -69,6 +80,22 @@ impl Texture {
             imageview: None,
             sampler: None,
         }
+    }
+
+    pub(crate) fn new_resource(
+        renderer: &mut Renderer,
+        filter: Filter,
+        image: image::RgbaImage,
+    ) -> DesperoResult<Self> {
+        let mut texture = Texture {
+            load_type: AssetLoadType::Resource,
+            filter,
+            ..Default::default()
+        };
+
+        texture.generate_from(renderer, image)?;
+
+        Ok(texture)
     }
     
     /// Create texture from file and load it to memory
@@ -82,20 +109,29 @@ impl Texture {
         
         Ok(texture)
     }
-    
+
     /// Generate texture rendering data for blank texture
     pub fn generate(&mut self, renderer: &mut Renderer) -> DesperoResult<()> {
-        // Create image
-        let image = image::open(self.path.as_str())
+        let path = match self.load_type.clone() {
+            AssetLoadType::Path(path) => path,
+            _ => return Ok(()),
+        };
+
+        let image = image::open(path.as_str())
             .map(|img| img.to_rgba8())
             .expect("unable to open image");
-            
-        // Choose filter
-        let raw_filter = match self.filter {
-            Filter::Nearest => vk::Filter::NEAREST,
-            Filter::Cubic => vk::Filter::CUBIC_EXT,
-            _ => vk::Filter::LINEAR,
-        };
+        
+        self.generate_from(renderer, image)?;
+        
+        Ok(())
+    }
+
+    fn generate_from(
+        &mut self, 
+        renderer: &mut Renderer,
+        image: image::RgbaImage,
+    ) -> DesperoResult<()>{
+        let raw_filter: vk::Filter = self.filter.clone().into();
             
         let (width, height) = image.dimensions();
         
@@ -303,7 +339,7 @@ impl Texture {
         self.image_allocation = Some(allocation);
         self.imageview = Some(imageview);
         self.sampler = Some(sampler);
-        
+
         Ok(())
     }
     

@@ -2,7 +2,7 @@ use kira::{spatial::listener::ListenerHandle, tween::Tween};
 
 use crate::{
     audio::{
-        AudioManager, AudioSceneId,
+        AudioManager,
         error::AudioError,
     },
     math::Transform, 
@@ -16,9 +16,8 @@ pub struct AudioListener {
 impl AudioListener {
     pub fn new(
         audio_manager: &mut AudioManager,
-        scene_id: AudioSceneId,
     ) -> Self {
-        audio_manager.new_listener(scene_id)
+        audio_manager.new_listener()
     }
 
     pub(crate) fn set_transform(&mut self, t: &Transform) -> DesperoResult<()> {

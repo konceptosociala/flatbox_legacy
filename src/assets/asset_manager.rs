@@ -7,44 +7,14 @@ use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
-use crate::{audio::{sound::Sound}, prelude::DesperoResult};
+use super::AssetHandle;
+use crate::audio::AudioManager;
 #[cfg(feature = "render")]
 use crate::render::*;
 
-#[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AssetHandle(usize);
-
-impl AssetHandle {
-    pub fn new() -> Self {
-        AssetHandle::default()
-    }
-    
-    pub fn from_index(index: usize) -> Self {
-        AssetHandle(index)
-    }
-    
-    pub fn invalid() -> Self {
-        AssetHandle(usize::MAX)
-    }
-    
-    pub fn unwrap(&self) -> usize {
-        self.0
-    }
-    
-    pub fn append(&mut self, count: usize) {
-        self.0 += count;
-    }
-}
-
-impl From<AssetHandle> for u32 {
-    fn from(value: AssetHandle) -> Self {
-        value.unwrap() as u32
-    }
-}
-
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AssetManager {
-    pub sounds: Vec<Sound>,
+    pub audio: AudioManager,
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
     #[cfg(feature = "render")]
@@ -54,32 +24,6 @@ pub struct AssetManager {
 impl AssetManager {
     pub fn new() -> Self {
         AssetManager::default()
-    }    
-
-    pub fn create_sound(
-        &mut self,
-        path: &'static str,
-    ) -> DesperoResult<AssetHandle> {
-        let index = self.sounds.len();
-        self.sounds.push(Sound::new_from_file(path)?);
-
-        Ok(AssetHandle(index))
-    }
-
-    pub fn get_sound(&self, handle: AssetHandle) -> Option<&Sound> {
-        self.sounds.get(handle.0)
-    }
-
-    pub fn get_sound_mut(&mut self, handle: AssetHandle) -> Option<&mut Sound> {
-        self.sounds.get_mut(handle.0)
-    }
-
-    pub fn append(&mut self, other: Self) {
-        self.sounds.extend(other.sounds);
-        #[cfg(feature = "render")]{
-            self.textures.extend(other.textures);
-            self.materials.extend(other.materials);
-        }
     }
 
     pub fn cleanup(
@@ -87,7 +31,7 @@ impl AssetManager {
         #[cfg(feature = "render")]
         renderer: &mut Renderer,
     ){
-        self.sounds.clear();
+        self.audio.cleanup();
 
         #[cfg(feature = "render")]{
             for texture in &mut self.textures {

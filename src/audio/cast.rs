@@ -4,7 +4,7 @@ use kira::tween::Tween;
 use crate::error::DesperoResult;
 use crate::audio::{
     error::AudioError,
-    AudioManager, AudioSceneId,
+    AudioManager,
 };
 use crate::math::transform::Transform;
 
@@ -15,9 +15,8 @@ pub struct AudioCast {
 impl AudioCast {
     pub fn new(
         audio_manager: &mut AudioManager,
-        scene_id: AudioSceneId,
     ) -> Self {
-        audio_manager.new_cast(scene_id)
+        audio_manager.new_cast()
     }
 
     pub(crate) fn set_transform(&mut self, t: &Transform) -> DesperoResult<()> {
