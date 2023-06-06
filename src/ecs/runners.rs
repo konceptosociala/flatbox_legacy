@@ -99,7 +99,7 @@ pub fn default_runner(despero: &mut Despero) {
             &mut despero.asset_manager,
         )).expect("Cannot execute loop schedule");
 
-        if let Some(handler) = despero.events.get_handler::<EventHandler<AppExit>>() {
+        if let Some(handler) = despero.events.get_handler::<AppExit>() {
             if let Some(_) = handler.read() {
                 return ();
             }

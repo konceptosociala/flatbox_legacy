@@ -1,7 +1,11 @@
-use std::path::Path;
-use std::fs::read_to_string;
 use std::sync::Arc;
-use std::fs::File;
+use std::io::{Read, Cursor};
+use std::path::Path;
+use std::fs::{File, read_to_string};
+
+#[cfg(feature = "render")]
+use image::ImageFormat;
+use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use tar::EntryType;
 use ron::ser::{Serializer, PrettyConfig};
 
@@ -10,12 +14,15 @@ use serde::{
     Deserialize
 };
 
+use crate::audio::AudioError;
 use crate::ecs::*;
 use crate::error::*;
 use crate::assets::{
     asset_manager::*,
     ser_component::*,
 };
+
+use super::AssetLoadType;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename = "Entity")]
@@ -40,8 +47,8 @@ impl Scene {
         )?)
     }
     
-    /// Load scene with assets from compressed `.lvl` package.
-    /// It is `.tar.lz4` package which can be created manually or with 
+    /// Load scene with assets from compressed `.tar.lz4` package.
+    /// It is ordinary package which can be created manually or with 
     /// [Metio Editor](https://konceptosociala.eu.org/softvaro/metio).
     /// 
     /// It has the following structure:
@@ -56,40 +63,80 @@ impl Scene {
     /// │  ├─ sound1.mp3
     /// ```
     pub fn load_packaged<P: AsRef<Path>>(path: P) -> DesperoResult<Self> {
-        // TODO: Packaged scene
-        // 
-        let mut asset_manager = AssetManager::new();
+        let mut scene = Scene::new();
 
-        let package = File::open("assets.pkg")?;
+        let package = File::open(path)?;
         let decoded = lz4::Decoder::new(package)?;
         let mut archive = tar::Archive::new(decoded);
 
-        for file in archive.entries().unwrap() {
-            let file = file.unwrap();
-            let header = file.header();
-            match header.entry_type() {
-                EntryType::Regular => {
-                    if header.path().unwrap() == Path::new("manager.ron") {
-                        asset_manager = ron::de::from_reader(file)?;
-                    }
-                },
-                EntryType::Directory => {
-                    // if `sounds`:
-                    //
-                    //
+        let mut entries = vec![]; // Vec<(Header, Vec<u8>)>
 
-                    // if `textures`:
-                    // for texture in asset_manager.textures {
-                    //     let reader = BufReader::new(file);
-                    //     let image = image::load(reader, ImageFormat::from_path(path));
-                    //     texture.generate_from(image);
-                    // }
-                    // 
-                },
-                _ => {},
+        for file in archive.entries().unwrap() {
+            let mut file = file.unwrap();
+            let header = file.header().clone();
+
+            let mut bytes = vec![];
+            file.read_to_end(&mut bytes)?;
+
+            entries.push((header, bytes));
+        }
+
+        for (header, file) in &mut entries {
+            let path = header.path().unwrap();
+            if path == Path::new("scene.ron") {
+                log::debug!("Deserializing scene `{}`...", path.display());
+                scene = ron::de::from_reader(&**file)?;
             }
         }
-        Ok(Self::new())
+
+        for (header, file) in entries {
+            let filepath = header.path().unwrap();
+
+            if header.entry_type() == EntryType::Regular {
+                let name = filepath
+                    .file_stem()
+                    .unwrap()
+                    .to_os_string()
+                    .into_string()
+                    .unwrap();
+
+                #[cfg(feature = "render")]
+                let ext = filepath.extension().unwrap().to_owned();
+
+                if filepath.starts_with("textures") {
+                    #[cfg(feature = "render")]
+                    for texture in &mut scene.assets.textures {
+                        if texture.load_type == AssetLoadType::Resource(name.clone()) {
+                            let cursor = Cursor::new(file.clone());
+
+                            let image = image::load(
+                                cursor, 
+                                ImageFormat::from_extension(ext.clone()).expect("Wrong image extension!")
+                            )
+                            .map(|img| img.to_rgba8())
+                            .expect("Unable to open image");
+                            
+                            texture.image = Some(image);
+                        }
+                    }
+                } else if filepath.starts_with("audio") {
+                    for sound in &mut scene.assets.audio.sounds {
+                        if sound.load_type == AssetLoadType::Resource(name.clone()) {
+                            let cursor = Cursor::new(file.clone());
+
+                            let static_data = StaticSoundData::from_media_source(
+                                cursor,
+                                StaticSoundSettings::default(),
+                            ).map_err(|e| AudioError::from(e))?;
+
+                            sound.static_data = Some(static_data);
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(scene)
     }
     
     pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> DesperoResult<()> {     
@@ -111,9 +158,10 @@ pub trait SpawnSceneExt {
 
 impl SpawnSceneExt for CommandBuffer {
     fn spawn_scene(&mut self, scene: Scene, asset_manager: &mut AssetManager) {
-        self.write(|world| {
-            world.clear();
-        });
+        // self.write(|world| {
+        //     world.clear();
+        // });
+        // TODO: Clear world
 
         for entity in scene.entities {
             let mut entity_builder = EntityBuilder::new();
@@ -131,7 +179,7 @@ impl SpawnSceneExt for CommandBuffer {
 
 impl SpawnSceneExt for World {
     fn spawn_scene(&mut self, scene: Scene, asset_manager: &mut AssetManager) {
-        self.clear();
+        // self.clear();
 
         for entity in scene.entities {
             let mut entity_builder = EntityBuilder::new();

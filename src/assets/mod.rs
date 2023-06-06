@@ -10,18 +10,18 @@ pub use ser_component::*;
 pub use settings::*;
 pub use world_serializer::*;
 
+use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 
-#[derive(Default, Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AssetLoadType {
-    #[default]
-    Resource,
-    Path(String),
+    Resource(String),
+    Path(PathBuf),
 }
 
-impl<T: ToString> From<T> for AssetLoadType {
-    fn from(value: T) -> Self {
-        AssetLoadType::Path(value.to_string())
+impl Default for AssetLoadType {
+    fn default() -> Self {
+        AssetLoadType::Resource("".into())
     }
 }
 

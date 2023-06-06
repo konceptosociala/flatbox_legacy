@@ -17,7 +17,7 @@ use super::{AudioError, cast::AudioCast};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Sound {
-    loader_type: AssetLoadType,
+    pub(crate) load_type: AssetLoadType,
 
     #[serde(skip_serializing)]
     pub(crate) static_data: Option<StaticSoundData>,
@@ -33,7 +33,7 @@ impl Sound {
         );
 
         Ok(Sound {
-            loader_type: path.into(),
+            load_type: AssetLoadType::Path(path.into()),
             static_data,
         })
     }
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for Sound {
     {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "snake_case")]
-        enum SoundField { LoaderType }
+        enum SoundField { LoadType }
 
         struct SoundVisitor;
 
@@ -67,9 +67,9 @@ impl<'de> Deserialize<'de> for Sound {
             where
                 V: SeqAccess<'de>,
             {
-                let loader_type: AssetLoadType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
+                let load_type: AssetLoadType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
 
-                let static_data = match loader_type.clone() {
+                let static_data = match load_type.clone() {
                     AssetLoadType::Path(path) => {
                         Some(
                             StaticSoundData::from_file(
@@ -82,7 +82,7 @@ impl<'de> Deserialize<'de> for Sound {
                 };
 
                 Ok(Sound {
-                    loader_type,
+                    load_type,
                     static_data,
                 })
             }
@@ -91,20 +91,20 @@ impl<'de> Deserialize<'de> for Sound {
             where
                 V: MapAccess<'de>,
             {
-                let mut loader_type: Option<AssetLoadType> = None;
+                let mut load_type: Option<AssetLoadType> = None;
                 while let Some(key) = map.next_key()? {
                     match key {
-                        SoundField::LoaderType => {
-                            if loader_type.is_some() {
-                                return Err(DeError::duplicate_field("loader_type"));
+                        SoundField::LoadType => {
+                            if load_type.is_some() {
+                                return Err(DeError::duplicate_field("load_type"));
                             }
-                            loader_type = Some(map.next_value()?);
+                            load_type = Some(map.next_value()?);
                         }
                     }
                 }
-                let loader_type = loader_type.ok_or_else(|| DeError::missing_field("loader_type"))?;
+                let load_type = load_type.ok_or_else(|| DeError::missing_field("load_type"))?;
                 
-                let static_data = match loader_type.clone() {
+                let static_data = match load_type.clone() {
                     AssetLoadType::Path(path) => {
                         Some(
                             StaticSoundData::from_file(
@@ -117,13 +117,13 @@ impl<'de> Deserialize<'de> for Sound {
                 };
 
                 Ok(Sound {
-                    loader_type,
+                    load_type,
                     static_data,
                 })
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["loader_type"];
+        const FIELDS: &'static [&'static str] = &["load_type"];
         deserializer.deserialize_struct("Sound", FIELDS, SoundVisitor)
     }
 }

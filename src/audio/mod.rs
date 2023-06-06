@@ -41,10 +41,12 @@ pub use sound::*;
 
 type KiraAudioManager = kira::manager::AudioManager<CpalBackend>; 
 
+// TODO: Link casts to sounds in packaged scene
+
 /// Main audio managment struct. It's actually a part of [`AssetManager`]
 #[derive(Serialize)]
 pub struct AudioManager {
-    sounds: Vec<Sound>,
+    pub(crate) sounds: Vec<Sound>,
     cast_count: usize,
     listener_count: usize,
 

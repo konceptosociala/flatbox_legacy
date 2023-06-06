@@ -58,6 +58,14 @@ impl Vertex {
     }
 }
 
+// TODO: Mesh to Model:
+//
+// Model {
+//     load_type: AssetLoadType,
+//     mesh: Option<Mesh>,
+// }
+//
+
 /// Model mesh struct
 pub struct Mesh {
     pub vertexdata: Vec<Vertex>,

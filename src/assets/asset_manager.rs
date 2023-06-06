@@ -7,8 +7,10 @@ use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
-use super::AssetHandle;
 use crate::audio::AudioManager;
+
+#[cfg(feature = "render")]
+use super::AssetHandle;
 #[cfg(feature = "render")]
 use crate::render::*;
 

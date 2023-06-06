@@ -122,8 +122,21 @@ pub fn generate_textures(
     mut renderer: Write<Renderer>,
 ) -> DesperoResult<()> {
     for texture in &mut asset_manager.textures {
-        if texture.sampler == None {
-            texture.generate(&mut renderer)?;
+        match texture.load_type {
+            AssetLoadType::Path(_) => {
+                log::debug!("Path texture found");
+                if texture.vk_image.is_none() {
+                    texture.generate(&mut renderer)?;
+                    log::debug!("Path texture generated");
+                }
+            },
+            AssetLoadType::Resource(_) => {
+                log::debug!("Resource texture found");
+                if let Some(ref image) = texture.image {
+                    log::debug!("Resource texture found");
+                    texture.generate_from(&mut renderer, image.clone())?;
+                }
+            },
         }
     }
     

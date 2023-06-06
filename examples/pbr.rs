@@ -37,7 +37,7 @@ fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
 ){    
-    let diffuse = asset_manager.create_texture("assets/pbr_test/diffuse.jpg", Filter::Linear);
+    let diffuse = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
     
     cmd.spawn(
         ModelBundle::builder()
@@ -72,11 +72,11 @@ fn create_scene(
         },
     ));
     
-    let sky_tex = asset_manager.create_texture("assets/StandardCubeMap.png", Filter::Linear);
+    let sky_tex = asset_manager.create_texture("assets/textures/StandardCubeMap.png", Filter::Linear);
     
     cmd.spawn(
         ModelBundle::builder()
-            .mesh(Mesh::load_obj("assets/skybox.obj").swap_remove(0))
+            .mesh(Mesh::load_obj("assets/models/skybox.obj").swap_remove(0))
             .material(
                 asset_manager.create_material(
                     DefaultMat::builder()

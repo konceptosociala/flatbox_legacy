@@ -72,7 +72,7 @@ impl Texture {
         filter: Filter,
     ) -> Self {
         Texture {
-            load_type: path.into(),
+            load_type: AssetLoadType::Path(path.into()),
             filter,
             image: None,
             vk_image: None,
@@ -80,22 +80,6 @@ impl Texture {
             imageview: None,
             sampler: None,
         }
-    }
-
-    pub(crate) fn new_resource(
-        renderer: &mut Renderer,
-        filter: Filter,
-        image: image::RgbaImage,
-    ) -> DesperoResult<Self> {
-        let mut texture = Texture {
-            load_type: AssetLoadType::Resource,
-            filter,
-            ..Default::default()
-        };
-
-        texture.generate_from(renderer, image)?;
-
-        Ok(texture)
     }
     
     /// Create texture from file and load it to memory
@@ -117,7 +101,7 @@ impl Texture {
             _ => return Ok(()),
         };
 
-        let image = image::open(path.as_str())
+        let image = image::open(path)
             .map(|img| img.to_rgba8())
             .expect("unable to open image");
         
@@ -126,7 +110,7 @@ impl Texture {
         Ok(())
     }
 
-    fn generate_from(
+    pub(crate) fn generate_from(
         &mut self, 
         renderer: &mut Renderer,
         image: image::RgbaImage,
