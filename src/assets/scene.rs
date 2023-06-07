@@ -163,6 +163,8 @@ impl SpawnSceneExt for CommandBuffer {
         // });
         // TODO: Clear world
 
+        // TODO: Physics in scene
+
         for entity in scene.entities {
             let mut entity_builder = EntityBuilder::new();
             
@@ -173,6 +175,7 @@ impl SpawnSceneExt for CommandBuffer {
             self.spawn(entity_builder.build());
         }
         
+        // asset_manager.cleanup(renderer)
         *asset_manager = scene.assets;
     }
 }

@@ -123,18 +123,18 @@ pub fn generate_textures(
 ) -> DesperoResult<()> {
     for texture in &mut asset_manager.textures {
         match texture.load_type {
-            AssetLoadType::Path(_) => {
-                log::debug!("Path texture found");
+            AssetLoadType::Path(ref path) => {
                 if texture.vk_image.is_none() {
+                    log::debug!("Generating texture `{}`...", path.display());
                     texture.generate(&mut renderer)?;
-                    log::debug!("Path texture generated");
                 }
             },
-            AssetLoadType::Resource(_) => {
-                log::debug!("Resource texture found");
+            AssetLoadType::Resource(ref res) => {
                 if let Some(ref image) = texture.image {
-                    log::debug!("Resource texture found");
-                    texture.generate_from(&mut renderer, image.clone())?;
+                    if texture.vk_image.is_none() {
+                        log::debug!("Generating resource texture `{}`...", res);
+                        texture.generate_from(&mut renderer, image.clone())?;
+                    }
                 }
             },
         }

@@ -7,7 +7,7 @@ pub trait SerializableComponent: Component {
 
 /// Macro for implementing [`SerializableComponent`] trait for multiple types, that implement [`Clone`] trait; for using in [`Scene`]'s. Use to avoid boilerplate
 /// 
-/// # Example
+/// # Usage example
 /// 
 /// ```rust
 /// #[derive(Clone)]

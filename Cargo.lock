@@ -716,6 +716,7 @@ dependencies = [
  "pretty_env_logger",
  "rapier3d",
  "raw-window-handle 0.4.3",
+ "readonly",
  "ron",
  "serde",
  "tar",
@@ -2188,6 +2189,17 @@ dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
  "num_cpus",
+]
+
+[[package]]
+name = "readonly"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb656d27c22b5c47154452686cae5e096f12e124daacb36a0bfcb32dbebb39e3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.18",
 ]
 
 [[package]]

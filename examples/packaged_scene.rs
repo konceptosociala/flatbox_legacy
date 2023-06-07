@@ -12,7 +12,7 @@ fn load_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
 ) -> DesperoResult<()> {
-    let scene = Scene::load_packaged("assets/packages/my_scene.tar.lz4")?;
+    let scene = Scene::load_packaged("assets/packages/my_scene.lvl")?;
 
     cmd.spawn_scene(scene, &mut asset_manager);
 

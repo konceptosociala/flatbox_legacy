@@ -11,11 +11,11 @@ use serde::{
 };
 use nalgebra as na;
 
-use crate::render::{
+use crate::{render::{
     backend::{
         buffer::Buffer,
     },
-};
+}, prelude::AssetLoadType};
 
 use crate::assets::AssetHandle;
 use crate::ecs::*;
@@ -58,13 +58,15 @@ impl Vertex {
     }
 }
 
-// TODO: Mesh to Model:
-//
-// Model {
-//     load_type: AssetLoadType,
-//     mesh: Option<Mesh>,
-// }
-//
+#[derive(Clone, Copy, Default, Debug, PartialEq, Hash)]
+pub enum MeshType {
+    #[default]
+    Cube,
+    Plane,
+    Icosahedron,
+    Sphere,
+    Loaded,
+}
 
 /// Model mesh struct
 pub struct Mesh {
@@ -281,10 +283,10 @@ impl Mesh {
     }
     
     /// Create untextured sphere mesh with given resolution
-    pub fn sphere(refinements: u32) -> Self {
+    pub fn sphere() -> Self {
         let mut sphere = Mesh::icosahedron();
         
-        for _ in 0..refinements{
+        for _ in 0..2{
             sphere.refine();
         }
 
@@ -565,6 +567,16 @@ impl<'de> Deserialize<'de> for Mesh {
         const FIELDS: &'static [&'static str] = &["vertexdata", "indexdata"];
         deserializer.deserialize_struct("Mesh", FIELDS, MeshVisitor)
     }
+}
+
+// TODO: Mesh to Model:
+
+#[readonly::make]
+pub struct Model {
+    pub load_type: AssetLoadType,
+    #[readonly]
+    pub mesh_type: MeshType,
+    pub mesh: Option<Mesh>,
 }
 
 /// ECS model bundle

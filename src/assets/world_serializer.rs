@@ -15,7 +15,40 @@ pub trait WorldSerializer {
     ) -> DesperoResult<()>;
 }
 
-// TODO: WorldSerializer description
+/// Macro that is used to create custom [`WorldSerializer`]s, 
+/// that are capable of saving and loading individual serializable
+/// components from the [`World`]
+/// 
+/// # Usage example
+/// 
+/// ```rust 
+/// #[derive(Serialize, Deserialize)]
+/// struct MyComponent(u32);
+/// 
+/// #[derive(Default)]
+/// struct MyWorldSaver {
+///     components: Vec<String>, // required field
+/// }
+/// 
+/// world_serializer!(
+///     // Serializer struct
+///     MyWorldSaver,
+///         // Serializable components
+///         Camera,
+///         Timer,
+///         Transform,
+///         MyComponent,
+/// );
+/// 
+/// fn save_world(
+///     world: Read<World>,
+/// ) -> DesperoResult<()> {
+///     let ws = MyWorldSaver::default();
+/// 
+///     ws.save("/path/to/save", &world)?;
+/// }
+/// 
+/// ```
 #[macro_export]
 macro_rules! world_serializer {
     ($ctx:ident, $($comp:ty),*) => {
@@ -132,7 +165,7 @@ macro_rules! world_serializer {
                 *world = deserialize_world(                
                     self,
                     &mut de,
-                ).map_err(|e| ron::Error::from(e))?; // TODO: Serde AssetManager
+                ).map_err(|e| ron::Error::from(e))?; // TODO: Serde assets and physics
                 
                 Ok(())
             }
