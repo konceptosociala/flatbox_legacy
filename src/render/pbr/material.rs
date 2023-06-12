@@ -1,3 +1,4 @@
+use dyn_clone::DynClone;
 use serde::{Serialize, Deserialize};
 use as_any::AsAny;
 use ash::vk;
@@ -13,7 +14,7 @@ use crate::render::{
 
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]
-pub trait Material: AsAny + std::fmt::Debug + Send + Sync {
+pub trait Material: AsAny + DynClone + std::fmt::Debug + Send + Sync {
     fn pipeline(renderer: &Renderer) -> Pipeline
     where
         Self: Sized;
@@ -137,13 +138,13 @@ impl Material for DefaultMat {
 
 pub struct DefaultMatBuilder {
     pub color: [f32; 3],
-    pub albedo: AssetHandle,
+    pub albedo: AssetHandle<'T'>,
     pub metallic: f32,
-    pub metallic_map: AssetHandle,
+    pub metallic_map: AssetHandle<'T'>,
     pub roughness: f32,
-    pub roughness_map: AssetHandle,
+    pub roughness_map: AssetHandle<'T'>,
     pub normal: f32,
-    pub normal_map: AssetHandle,
+    pub normal_map: AssetHandle<'T'>,
 }
 
 impl DefaultMatBuilder {
@@ -165,7 +166,7 @@ impl DefaultMatBuilder {
         self
     }
     
-    pub fn albedo(mut self, handle: AssetHandle) -> Self {
+    pub fn albedo(mut self, handle: AssetHandle<'T'>) -> Self {
         self.albedo = handle;
         self
     }
@@ -175,7 +176,7 @@ impl DefaultMatBuilder {
         self
     }
 
-    pub fn metallic_map(mut self, handle: AssetHandle) -> Self {
+    pub fn metallic_map(mut self, handle: AssetHandle<'T'>) -> Self {
         self.metallic_map = handle;
         self
     }
@@ -185,7 +186,7 @@ impl DefaultMatBuilder {
         self
     }
     
-    pub fn roughness_map(mut self, handle: AssetHandle) -> Self {
+    pub fn roughness_map(mut self, handle: AssetHandle<'T'>) -> Self {
         self.roughness_map = handle;
         self
     }
@@ -195,7 +196,7 @@ impl DefaultMatBuilder {
         self
     }
 
-    pub fn normal_map(mut self, handle: AssetHandle) -> Self {
+    pub fn normal_map(mut self, handle: AssetHandle<'T'>) -> Self {
         self.normal_map = handle;
         self
     }

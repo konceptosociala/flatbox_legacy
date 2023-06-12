@@ -213,18 +213,24 @@ impl Renderer {
         for mat_type in self.material_pipelines.keys() {
             bind_graphics_pipeline(&self.material_pipelines, &self.device, &commandbuffer, mat_type);
             
-            for (_, (mesh, handle, transform)) in &mut world.query::<(
-                &Mesh, &AssetHandle, &Transform,
+            for (_, (model, handle, transform)) in &mut world.query::<(
+                &Model, &AssetHandle<'M'>, &Transform,
             )>(){
-                if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
-                    (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
-                {
-                    let material = asset_manager.get_material(*handle).unwrap();
-                    if (**material).type_id() == *mat_type {
-                        bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
+                if let Some(ref mesh) = model.mesh {
+                    if let (Some(vertexbuffer), Some(instancebuffer), Some(indexbuffer)) = 
+                        (&mesh.vertexbuffer, &mesh.instancebuffer, &mesh.indexbuffer)
+                    {
+                        let material = match asset_manager.get_material(*handle) {
+                            Some(m) => m,
+                            _ => break,
+                        };
                         
-                        apply_transform(&self.device, &self.descriptor_pool, &commandbuffer, &transform);
-                        draw_mesh(&self.device, &commandbuffer, mesh.indexdata.len());
+                        if (**material).type_id() == *mat_type {
+                            bind_vertex_buffers(&self.device, &commandbuffer, &indexbuffer, &vertexbuffer, &instancebuffer);
+                            
+                            apply_transform(&self.device, &self.descriptor_pool, &commandbuffer, &transform);
+                            draw_mesh(&self.device, &commandbuffer, mesh.indexdata.len());
+                        }
                     }
                 }
             }
@@ -279,6 +285,11 @@ impl Renderer {
             *self.window.surface.get_formats(self.instance.physical_device)?.first().unwrap(),
         );
     
+        Ok(())
+    }
+
+    pub fn idle(&self) -> DesperoResult<()> {
+        unsafe { self.device.device_wait_idle()? };
         Ok(())
     }
     

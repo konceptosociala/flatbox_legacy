@@ -145,12 +145,11 @@ pub struct Despero {
     pub asset_manager: AssetManager,
     /// Applied extension types
     pub extensions: Vec<TypeId>,
+    /// Builder for configuring the game window properties: size, title, window mode etc
+    pub window_builder: WindowBuilder,
     /// Rendering context for managing render pipeline and Vulkan components
     #[cfg(feature = "render")]
     pub renderer: Renderer,
-    /// Builder for configuring the game window properties: size, title, window mode etc
-    #[cfg(not(feature = "render"))]
-    pub window_builder: WindowBuilder,
 }
 
 impl Despero {
@@ -168,10 +167,9 @@ impl Despero {
             time_handler: Time::new(),
             asset_manager: AssetManager::new(),
             extensions: vec![],
+            window_builder: window_builder.clone(),
             #[cfg(feature = "render")]
             renderer: Renderer::init(window_builder).expect("Cannot create renderer"),
-            #[cfg(not(feature = "render"))]
-            window_builder,
         }
     }
     

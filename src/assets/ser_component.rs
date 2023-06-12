@@ -25,7 +25,7 @@ pub trait SerializableComponent: Component {
 /// 
 #[macro_export]
 macro_rules! impl_ser_component {
-    ($($comp:ident),*) => {
+    ($($comp:ty),*) => {
         $(
             #[typetag::serde]
             impl SerializableComponent for $comp {
@@ -39,8 +39,11 @@ macro_rules! impl_ser_component {
 
 impl_ser_component!(
     bool, u8, i8, u16, i16, u32, i32, u64, i64, usize, isize,
-    AssetHandle, BodyHandle, Timer, Transform
+    BodyHandle, Timer, Transform, AssetHandle<'S'>
 );
 
 #[cfg(feature = "render")]
-impl_ser_component!(Camera, DirectionalLight, Mesh, PointLight);
+impl_ser_component!(
+    Camera, DirectionalLight, Model, PointLight, 
+    AssetHandle<'T'>, AssetHandle<'M'>
+);

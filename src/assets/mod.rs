@@ -2,33 +2,20 @@ pub mod asset_manager;
 pub mod scene;
 pub mod ser_component;
 pub mod settings;
-pub mod world_serializer;
+pub mod save_load;
 
 pub use asset_manager::*;
 pub use scene::*;
 pub use ser_component::*;
 pub use settings::*;
-pub use world_serializer::*;
+pub use save_load::*;
 
-use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum AssetLoadType {
-    Resource(String),
-    Path(PathBuf),
-}
-
-impl Default for AssetLoadType {
-    fn default() -> Self {
-        AssetLoadType::Resource("".into())
-    }
-}
-
 #[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AssetHandle(usize);
+pub struct AssetHandle<const TYPE: char>(usize);
 
-impl AssetHandle {
+impl<const TYPE: char> AssetHandle<TYPE> {
     pub fn new() -> Self {
         AssetHandle::default()
     }
@@ -50,8 +37,8 @@ impl AssetHandle {
     }
 }
 
-impl From<AssetHandle> for u32 {
-    fn from(value: AssetHandle) -> Self {
+impl<const TYPE: char> From<AssetHandle<TYPE>> for u32 {
+    fn from(value: AssetHandle<TYPE>) -> Self {
         value.unwrap() as u32
     }
 }

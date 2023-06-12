@@ -52,7 +52,7 @@ impl AssetManager {
         &mut self,
         path: &'static str,
         filter: Filter,
-    ) -> AssetHandle {
+    ) -> AssetHandle<'T'> {
         let new_texture = Texture::new_blank(
             path,
             filter,
@@ -66,21 +66,21 @@ impl AssetManager {
     pub fn create_material<M: Material + Send + Sync>(
         &mut self,
         material: M,
-    ) -> AssetHandle {
+    ) -> AssetHandle<'M'> {
         let index = self.materials.len();
         self.materials.push(Arc::new(Mutex::new(Box::new(material))));
         AssetHandle(index)
     }
     
-    pub fn get_texture(&self, handle: AssetHandle) -> Option<&Texture> {
+    pub fn get_texture(&self, handle: AssetHandle<'T'>) -> Option<&Texture> {
         self.textures.get(handle.0)
     }
     
-    pub fn get_texture_mut(&mut self, handle: AssetHandle) -> Option<&mut Texture> {
+    pub fn get_texture_mut(&mut self, handle: AssetHandle<'T'>) -> Option<&mut Texture> {
         self.textures.get_mut(handle.0)
     }
 
-    pub fn get_material(&self, handle: AssetHandle) -> Option<MutexGuard<Box<dyn Material>>> {
+    pub fn get_material(&self, handle: AssetHandle<'M'>) -> Option<MutexGuard<Box<dyn Material>>> {
         if let Some(material) = self.materials.get(handle.0) {
             return Some(material.lock());  
         }
@@ -88,7 +88,7 @@ impl AssetManager {
         None
     }
     
-    pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle) -> Option<MappedMutexGuard<M>> {
+    pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle<'M'>) -> Option<MappedMutexGuard<M>> {
         if let Some(material) = self.materials.get(handle.0) {
             let data = material.lock();
             return MutexGuard::try_map(data, |data| {

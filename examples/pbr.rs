@@ -36,12 +36,12 @@ fn get_material(
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
-){    
+) -> DesperoResult<()> {    
     let diffuse = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
     
     cmd.spawn(
         ModelBundle::builder()
-            .mesh(Mesh::plane())
+            .model(Model::plane())
             .material(asset_manager.create_material(
                 DefaultMat::builder()
                     .albedo(diffuse)
@@ -76,7 +76,7 @@ fn create_scene(
     
     cmd.spawn(
         ModelBundle::builder()
-            .mesh(Mesh::load_obj("assets/models/skybox.obj").swap_remove(0))
+            .model(Model::new("assets/models/skybox.obj")?)
             .material(
                 asset_manager.create_material(
                     DefaultMat::builder()
@@ -87,6 +87,8 @@ fn create_scene(
             .transform(Transform::default())
             .build()
     );
+
+    Ok(())
 }
 
 fn process_scene(

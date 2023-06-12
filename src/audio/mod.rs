@@ -77,24 +77,24 @@ impl AudioManager {
         })
     }
 
-    pub fn new_sound(&mut self, path: &'static str) -> DesperoResult<AssetHandle> {
+    pub fn new_sound(&mut self, path: &'static str) -> DesperoResult<AssetHandle<'S'>> {
         let sound = Sound::new_from_file(path)?;
 
         Ok(self.push_sound(sound))
     }
 
-    pub fn push_sound(&mut self, sound: Sound) -> AssetHandle {
+    pub fn push_sound(&mut self, sound: Sound) -> AssetHandle<'S'> {
         let index = self.sounds.len();
         self.sounds.push(sound);
 
         AssetHandle::from_index(index)
     }
 
-    pub fn play(&mut self, handle: AssetHandle) -> DesperoResult<()>{
+    pub fn play(&mut self, handle: AssetHandle<'S'>) -> DesperoResult<()>{
         match self.get_sound(handle) {
             Some(sound) => {
                 self.inner()
-                    .play(sound.static_data.clone().unwrap())
+                    .play(sound.static_data.clone())
                     .map_err(|e| AudioError::from(e))?;
             },
             None => {
@@ -131,18 +131,18 @@ impl AudioManager {
     pub fn create_sound(
         &mut self,
         path: &'static str,
-    ) -> DesperoResult<AssetHandle> {
+    ) -> DesperoResult<AssetHandle<'S'>> {
         let index = self.sounds.len();
         self.sounds.push(Sound::new_from_file(path)?);
 
         Ok(AssetHandle::from_index(index))
     }
 
-    pub fn get_sound(&self, handle: AssetHandle) -> Option<&Sound> {
+    pub fn get_sound(&self, handle: AssetHandle<'S'>) -> Option<&Sound> {
         self.sounds.get(handle.unwrap())
     }
 
-    pub fn get_sound_mut(&mut self, handle: AssetHandle) -> Option<&mut Sound> {
+    pub fn get_sound_mut(&mut self, handle: AssetHandle<'S'>) -> Option<&mut Sound> {
         self.sounds.get_mut(handle.unwrap())
     }
 

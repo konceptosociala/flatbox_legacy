@@ -1,9 +1,10 @@
+use std::path::PathBuf;
+
 use serde::{Serialize, Deserialize};
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
 
-use crate::assets::AssetLoadType;
 use crate::render::{
     backend::buffer::Buffer,
     renderer::Renderer,
@@ -32,7 +33,7 @@ impl From<Filter> for vk::Filter {
 #[allow(dead_code)]
 #[derive(Default, Serialize, Deserialize)]
 pub struct Texture {
-    pub load_type: AssetLoadType,
+    pub path: PathBuf,
     pub filter: Filter,
     
     // Raw image data
@@ -59,7 +60,7 @@ pub struct Texture {
 impl std::fmt::Debug for Texture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Texture")
-            .field("load_type", &self.load_type)
+            .field("path", &self.path)
             .field("filter", &self.filter)
             .finish()
     }
@@ -72,7 +73,7 @@ impl Texture {
         filter: Filter,
     ) -> Self {
         Texture {
-            load_type: AssetLoadType::Path(path.into()),
+            path: path.into(),
             filter,
             image: None,
             vk_image: None,
@@ -96,12 +97,7 @@ impl Texture {
 
     /// Generate texture rendering data for blank texture
     pub fn generate(&mut self, renderer: &mut Renderer) -> DesperoResult<()> {
-        let path = match self.load_type.clone() {
-            AssetLoadType::Path(path) => path,
-            _ => return Ok(()),
-        };
-
-        let image = image::open(path)
+        let image = image::open(self.path.clone())
             .map(|img| img.to_rgba8())
             .expect("unable to open image");
         
@@ -118,6 +114,8 @@ impl Texture {
         let raw_filter: vk::Filter = self.filter.clone().into();
             
         let (width, height) = image.dimensions();
+
+        unsafe { renderer.device.device_wait_idle()?; }
         
         let img_create_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
@@ -328,6 +326,7 @@ impl Texture {
     }
     
     pub fn cleanup(&mut self, renderer: &mut Renderer) {
+
         if let Some(_) = self.image_allocation {
             let mut new_alloc: Option<Allocation> = None;
             std::mem::swap(&mut new_alloc, &mut self.image_allocation);
@@ -340,14 +339,15 @@ impl Texture {
             self.sampler = None;
         }
         
-        if let Some(imageview) = self.imageview {
-            unsafe { renderer.device.destroy_image_view(imageview, None); }
+        // TODO: SEGFAULT DESTROYING VK_IMAGE
+        if let Some(_) = self.imageview {
+            // unsafe { renderer.device.destroy_image_view(imageview, None); }
             self.imageview = None;
-        }
-        
-        if let Some(vk_image) = self.vk_image {
-            unsafe { renderer.device.destroy_image(vk_image, None); }
+        }    
+
+        if let Some(_) = self.vk_image {
+            // unsafe { renderer.device.destroy_image(vk_image, None); }
             self.vk_image = None;
-        }        
+        }    
     }
 }

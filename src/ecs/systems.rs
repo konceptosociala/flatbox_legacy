@@ -122,21 +122,9 @@ pub fn generate_textures(
     mut renderer: Write<Renderer>,
 ) -> DesperoResult<()> {
     for texture in &mut asset_manager.textures {
-        match texture.load_type {
-            AssetLoadType::Path(ref path) => {
-                if texture.vk_image.is_none() {
-                    log::debug!("Generating texture `{}`...", path.display());
-                    texture.generate(&mut renderer)?;
-                }
-            },
-            AssetLoadType::Resource(ref res) => {
-                if let Some(ref image) = texture.image {
-                    if texture.vk_image.is_none() {
-                        log::debug!("Generating resource texture `{}`...", res);
-                        texture.generate_from(&mut renderer, image.clone())?;
-                    }
-                }
-            },
+        if texture.vk_image.is_none() {
+            log::debug!("Generating texture `{}`...", texture.path.display());
+            texture.generate(&mut renderer)?;
         }
     }
     
@@ -150,7 +138,7 @@ pub fn rendering_system(
     events: Read<Events>,
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
-    mut model_world: SubWorld<(&mut Mesh, &mut AssetHandle, &mut Transform)>,
+    mut model_world: SubWorld<(&mut Model, &mut AssetHandle<'M'>, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
 ) -> DesperoResult<()> {
     let image_index = get_image_index(&renderer.swapchain)?;
@@ -235,12 +223,21 @@ pub fn rendering_system(
 pub fn update_models_system(
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
-    world: SubWorld<(&mut Mesh, &mut AssetHandle, &Transform)>,
+    world: SubWorld<(&mut Model, &AssetHandle<'M'>, &Transform)>,
 ) -> DesperoResult<()> {
-    for (_, (mut mesh, handle, _)) in &mut world.query::<(
-        &mut Mesh, &AssetHandle, &Transform,
+    for (_, (mut model, handle, _)) in &mut world.query::<(
+        &mut Model, &AssetHandle<'M'>, &Transform
     )>(){
-        let material = asset_manager.get_material(*handle).unwrap();
+        let mut mesh = match &mut model.mesh {
+            Some(m) => m,
+            _ => break,
+        };
+
+        let material = match asset_manager.get_material(*handle) {
+            Some(m) => m,
+            _ => break,
+        };
+
         let logical_device = renderer.device.clone();
         let allocator = &mut renderer.allocator;
         let vertexdata = mesh.vertexdata.clone();

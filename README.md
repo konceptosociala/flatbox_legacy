@@ -19,10 +19,10 @@ The crate is in a very early stage of development. Use it at your own risk
 
 ## Features
 
-- [x] Dynamic scene serialization/deserialization
+- [x] Dynamic scene saving/loading
 - [x] Save-Load system
   - [x] ECS World
-  - [ ] Resources `(WIP)`
+  - [x] Resources
 - [ ] Physics 
   - [x] Rigid bodies, colliders
   - [ ] Joints
@@ -32,8 +32,7 @@ The crate is in a very early stage of development. Use it at your own risk
 - [x] Custom materials
 - [ ] PBR Material `(WIP)`
 - [x] Wide error handling
-- [ ] Extension system `(WIP)`
+- [x] Extension system
   - [x] Custom runner
   - [x] Custom event handlers
-  - [ ] Custom components
-- [ ] Audio playback (2D/3D)
+- [x] Audio playback (2D/3D)

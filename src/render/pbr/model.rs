@@ -1,4 +1,5 @@
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
+use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use serde::{
     Serialize, 
@@ -11,11 +12,14 @@ use serde::{
 };
 use nalgebra as na;
 
-use crate::{render::{
-    backend::{
-        buffer::Buffer,
-    },
-}, prelude::AssetLoadType};
+use crate::{
+    render::{
+        backend::{
+            buffer::Buffer,
+        },
+    }, 
+    error::DesperoResult,
+};
 
 use crate::assets::AssetHandle;
 use crate::ecs::*;
@@ -58,14 +62,27 @@ impl Vertex {
     }
 }
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Hash)]
+/// Represents the type of mesh in [`Model`] struct.
+/// It indicates whether mesh must be created in runtime,
+/// loaded from file (or resource) or created manually
+/// with index and vertex buffers.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub enum MeshType {
+    /// Plane mesh (textured)
+    Plane,
+    /// Cube mesh
     #[default]
     Cube,
-    Plane,
+    /// Icosphere mesh
     Icosahedron,
+    /// Refined icosphere mesh
     Sphere,
+    /// Mesh which have been loaded from file or resource
     Loaded,
+    /// Custom model type, which neither loaded from file, nor
+    /// created in runtime. Unlike other meshes it's (de-)serialized.
+    /// Use it when constructing models manually
+    Generic,
 }
 
 /// Model mesh struct
@@ -300,7 +317,7 @@ impl Mesh {
     /// Load model from `.obj` file
     pub fn load_obj<P>(path: P) -> Vec<Self>
     where 
-        P: AsRef<std::path::Path> + Debug
+        P: AsRef<Path> + Debug
     {
         let (models, _) = tobj::load_obj(
             path,
@@ -467,41 +484,13 @@ impl<'de> Deserialize<'de> for Mesh {
     where
         D: Deserializer<'de>
     {
-        enum Field { 
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum MeshField { 
             VertexData, 
             IndexData
         }
-        
-        impl<'de> Deserialize<'de> for Field {
-            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                struct FieldVisitor;
-                
-                impl<'de> Visitor<'de> for FieldVisitor {
-                    type Value = Field;
-                    
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                        formatter.write_str("`vertexdata` or `indexdata`")
-                    }
-                    
-                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
-                    where
-                        E: DeError,
-                    {
-                        match value {
-                            "vertexdata" => Ok(Field::VertexData),
-                            "indexdata" => Ok(Field::IndexData),
-                            _ => Err(DeError::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                
-                deserializer.deserialize_identifier(FieldVisitor)
-            }
-        }
-        
+    
         struct MeshVisitor;
         
         impl<'de> Visitor<'de> for MeshVisitor {
@@ -536,13 +525,13 @@ impl<'de> Deserialize<'de> for Mesh {
                 let mut indexdata = None;
                 while let Some(key) = map.next_key()? {
                     match key {
-                        Field::VertexData => {
+                        MeshField::VertexData => {
                             if vertexdata.is_some() {
                                 return Err(DeError::duplicate_field("vertexdata"));
                             }
                             vertexdata = Some(map.next_value()?);
                         }
-                        Field::IndexData => {
+                        MeshField::IndexData => {
                             if indexdata.is_some() {
                                 return Err(DeError::duplicate_field("indexdata"));
                             }
@@ -569,21 +558,221 @@ impl<'de> Deserialize<'de> for Mesh {
     }
 }
 
-// TODO: Mesh to Model:
-
+#[derive(Debug, Clone, Default)]
 #[readonly::make]
 pub struct Model {
-    pub load_type: AssetLoadType,
+    pub path: PathBuf,
+    /// Model mesh type. It can be selected manually and is
+    /// readonly during future use
     #[readonly]
     pub mesh_type: MeshType,
     pub mesh: Option<Mesh>,
 }
 
+impl Model {
+    pub fn new<P>(path: P) -> DesperoResult<Self> 
+    where 
+        P: AsRef<Path> + Debug
+    {
+        let error = format!(
+            "Error loading model `{}`: invalid file extension!", 
+            path.as_ref().display()
+        );
+
+        let extension = path.as_ref()
+            .extension()
+            .ok_or(crate::Result::from(error.clone()))?
+            .to_str().unwrap();
+
+        // TODO: Load COLLADA
+        let mesh = match extension {
+            "obj" => Mesh::load_obj(path.as_ref()).swap_remove(0),
+            "dae" => panic!("Loading COLLADA models is not supported yet"),
+            _ => return Err(crate::Result::from(error.clone())),
+        };
+
+        Ok(Model {
+            path: path.as_ref().to_path_buf(),
+            mesh_type: MeshType::Loaded,
+            mesh: Some(mesh),
+        })
+    }
+
+    pub fn plane() -> Self {
+        Model {
+            path: PathBuf::new(),
+            mesh_type: MeshType::Plane,
+            mesh: Some(Mesh::plane()),
+        }
+    }
+
+    pub fn cube() -> Self {
+        Model {
+            path: PathBuf::new(),
+            mesh_type: MeshType::Cube,
+            mesh: Some(Mesh::cube()),
+        }
+    }
+
+    pub fn icosahedron() -> Self {
+        Model {
+            path: PathBuf::new(),
+            mesh_type: MeshType::Icosahedron,
+            mesh: Some(Mesh::icosahedron()),
+        }
+    }
+
+    pub fn sphere() -> Self {
+        Model {
+            path: PathBuf::new(),
+            mesh_type: MeshType::Sphere,
+            mesh: Some(Mesh::sphere()),
+        }
+    }
+}
+
+impl Serialize for Model {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut model = serializer.serialize_struct("Model", 3)?;
+        model.serialize_field("path", &self.path)?;
+        model.serialize_field("mesh_type", &self.mesh_type)?;
+
+        match self.mesh_type {
+            MeshType::Generic => {
+                model.serialize_field("mesh", &self.mesh)?;
+            },
+            _ => {
+                model.serialize_field("mesh", &Option::<Mesh>::None)?;
+            }
+        }
+
+        model.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Model {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "snake_case")]
+        enum ModelField { 
+            Path,
+            MeshType,
+            Mesh,
+        }
+
+        struct ModelVisitor;
+
+        impl<'de> Visitor<'de> for ModelVisitor {
+            type Value = Model;
+            
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Model")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Model, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let path: PathBuf = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
+                let mesh_type: MeshType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+
+                let mesh = match mesh_type {
+                    MeshType::Cube => { Some(Mesh::cube()) },
+                    MeshType::Icosahedron => { Some(Mesh::icosahedron()) },
+                    MeshType::Sphere => { Some(Mesh::sphere()) },
+                    MeshType::Plane => { Some(Mesh::plane()) },
+                    MeshType::Loaded => {
+                        return Ok(Model::new(path)
+                            .expect("Cannot load deserialized model from path"));
+                    },
+                    MeshType::Generic => { 
+                        seq.next_element()?.ok_or_else(|| DeError::invalid_length(2, &self))? 
+                    },
+                };
+
+                Ok(Model {
+                    path,
+                    mesh_type,
+                    mesh,
+                })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Model, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut path: Option<PathBuf> = None;
+                let mut mesh_type: Option<MeshType> = None;
+                let mut mesh: Option<Option<Mesh>> = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        ModelField::Path => {
+                            if path.is_some() {
+                                return Err(DeError::duplicate_field("path"));
+                            }
+                            path = Some(map.next_value()?);
+                        },
+                        ModelField::MeshType => {
+                            if mesh_type.is_some() {
+                                return Err(DeError::duplicate_field("mesh_type"));
+                            }
+                            mesh_type = Some(map.next_value()?);
+                        },
+                        ModelField::Mesh => {
+                            if mesh.is_some() {
+                                return Err(DeError::duplicate_field("mesh"));
+                            }
+                            mesh = Some(map.next_value()?);
+                        },
+                    }
+                }
+
+                let path = path.ok_or_else(|| DeError::missing_field("path"))?;
+                let mesh_type = mesh_type.ok_or_else(|| DeError::missing_field("mesh_type"))?;
+
+                let mesh = match mesh_type {
+                    MeshType::Cube => { Some(Mesh::cube()) },
+                    MeshType::Icosahedron => { Some(Mesh::icosahedron()) },
+                    MeshType::Sphere => { Some(Mesh::sphere()) },
+                    MeshType::Plane => { Some(Mesh::plane()) },
+                    MeshType::Loaded => {
+                        return Ok(Model::new(path)
+                            .expect("Cannot load deserialized model from path"));
+                    },
+                    MeshType::Generic => { 
+                        mesh.ok_or_else(|| DeError::missing_field("mesh"))?
+                    },
+                };
+
+                Ok(Model {
+                    path,
+                    mesh_type,
+                    mesh,
+                })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &[
+            "path", 
+            "mesh_type",
+            "mesh"
+        ];
+        deserializer.deserialize_struct("Model", FIELDS, ModelVisitor)
+    }
+}
+
 /// ECS model bundle
 #[derive(Bundle, Debug, Clone)]
 pub struct ModelBundle {
-    pub mesh: Mesh,
-    pub material: AssetHandle,
+    pub model: Model,
+    pub material: AssetHandle<'M'>,
     pub transform: Transform,
 }
 
@@ -600,7 +789,7 @@ impl ModelBundle {
 impl Default for ModelBundle {
     fn default() -> Self {
         ModelBundle {
-            mesh: Mesh::cube(),
+            model: Model::cube(),
             material: AssetHandle::new(),
             transform: Transform::default(),
         }
@@ -608,26 +797,26 @@ impl Default for ModelBundle {
 }
 
 pub struct ModelBundleBuilder {
-    mesh: Mesh,
-    material: AssetHandle,
+    model: Model,
+    material: AssetHandle<'M'>,
     transform: Transform,
 }
 
 impl ModelBundleBuilder {
     pub fn new() -> Self {
         ModelBundleBuilder {
-            mesh: Mesh::cube(),
+            model: Model::cube(),
             material: AssetHandle::default(),
             transform: Transform::default(),
         }
     }
     
-    pub fn mesh(mut self, mesh: Mesh) -> Self {
-        self.mesh = mesh;
+    pub fn model(mut self, model: Model) -> Self {
+        self.model = model;
         self
     }
     
-    pub fn material(mut self, material: AssetHandle) -> Self {
+    pub fn material(mut self, material: AssetHandle<'M'>) -> Self {
         self.material = material;
         self
     }
@@ -639,7 +828,7 @@ impl ModelBundleBuilder {
     
     pub fn build(self) -> ModelBundle {
         ModelBundle {
-            mesh: self.mesh,
+            model: self.model,
             material: self.material,
             transform: self.transform,
         }

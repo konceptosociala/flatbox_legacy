@@ -46,5 +46,17 @@ pub enum Result {
     CustomError(String),
 }
 
+impl From<&str> for Result {
+    fn from(msg: &str) -> Self {
+        Result::CustomError(String::from(msg))
+    }
+}
+
+impl From<String> for Result {
+    fn from(msg: String) -> Self {
+        Result::CustomError(msg)
+    }
+}
+
 /// Alias for easy error handling
 pub type DesperoResult<T> = std::result::Result<T, Result>;

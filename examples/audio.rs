@@ -12,15 +12,15 @@ fn create_audio(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
 ) -> DesperoResult<()> {
-    let mut sound = Sound::new_from_file("assets/birds.mp3")?;
+    let mut sound = Sound::new_from_file("assets/audio/birds.mp3")?;
     let cast = asset_manager.audio.new_cast();
     sound.set_cast(&cast);
     let handle = asset_manager.audio.push_sound(sound);
 
     asset_manager.audio.play(handle)?;
 
-    let texture_id = asset_manager.create_texture("assets/uv.jpg", Filter::Nearest);    
-    let mesh = Mesh::load_obj("assets/model.obj").swap_remove(0);
+    let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
+    let mesh = Mesh::load_obj("assets/models/model.obj").swap_remove(0);
     
     cmd.spawn((
         mesh,

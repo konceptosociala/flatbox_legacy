@@ -4,7 +4,11 @@ pub mod runners;
 
 pub use hecs_schedule::{
     *,
-    borrow::ComponentBorrow,
+    borrow::{
+        ComponentBorrow,
+        MaybeWrite,
+        MaybeRead,
+    },
 };
 
 pub use hecs::{
