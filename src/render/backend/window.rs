@@ -64,6 +64,7 @@ impl From<WindowBuilder> for WinitWindowBuilder {
                 }
             )
             
+            .with_maximized(v.maximized.unwrap_or(false))
             .with_resizable(v.resizable.unwrap_or(true))
             .with_fullscreen(
                 match v.fullscreen.unwrap_or(false) {

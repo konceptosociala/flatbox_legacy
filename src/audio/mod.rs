@@ -33,15 +33,17 @@ pub mod cast;
 pub mod error;
 pub mod listener;
 pub mod sound;
+pub mod volume;
 
 pub use cast::*;
 pub use error::*;
 pub use listener::*;
 pub use sound::*;
+pub use volume::*;
 
 type KiraAudioManager = kira::manager::AudioManager<CpalBackend>; 
 
-// TODO: Link casts to sounds in packaged scene
+// TODO: Link casts to sounds
 
 /// Main audio managment struct. It's actually a part of [`AssetManager`]
 #[derive(Serialize)]

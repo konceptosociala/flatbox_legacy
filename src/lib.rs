@@ -282,6 +282,8 @@ pub struct WindowBuilder {
     pub height: Option<f32>,
     /// Specifies whether the window should be fullscreen or windowed
     pub fullscreen: Option<bool>,
+    /// Specifies whether the window is maximized on startup
+    pub maximized: Option<bool>,
     /// Specifies whether the window should be resizable
     pub resizable: Option<bool>,
 
@@ -292,6 +294,8 @@ pub struct WindowBuilder {
     pub cast_count: Option<usize>,
 
     // === RENDERING SETTINGS ===
+    /// Window clear background color:
+    pub clear_color: Option<nalgebra::Vector3<f32>>,
     /// Icon of the winit window. Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub icon: Option<Icon>,

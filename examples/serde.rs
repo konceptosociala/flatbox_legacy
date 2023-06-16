@@ -105,16 +105,25 @@ fn gui_system(
                     *w = world;
                 });
             }
+
+            ui.separator();
+
+            ui.label(format!("Material count: {}", asset_manager.materials.len()));
         });
     }
 
     Ok(())
 }
 
-fn system(scene_world: SubWorld<(&u32, &Transform, Added<u32>)>,) {
+fn system(
+    scene_world: SubWorld<(&u32, &Transform, Added<u32>)>,
+    mut asset_manager: Write<AssetManager>,
+){
     for (_, (_, _, added)) in &mut scene_world.query::<(&u32, &Transform, Added<u32>)>(){
         if added {
             debug!("Scene successfully loaded!");
         }
     }
+
+    asset_manager.create_material(DefaultMat::default());
 }

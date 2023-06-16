@@ -2,8 +2,6 @@ use std::sync::Arc;
 use std::path::Path;
 use std::fs::{File, read_to_string};
 
-// TODO: REMOVE FUCKING PACKAGED SCENE!!
-
 use ron::ser::{Serializer, PrettyConfig};
 
 use serde::{

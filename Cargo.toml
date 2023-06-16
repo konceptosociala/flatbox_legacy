@@ -47,7 +47,6 @@ nalgebra = { version = "0.31.2", features = ["serde-serialize", "mint"] }
 thiserror = "1.0.38"
 as-any = "0.3.0"
 readonly = "0.2.8"
-dyn-clone = "1.0.11"
 
 # Audio
 kira = "0.8.3"

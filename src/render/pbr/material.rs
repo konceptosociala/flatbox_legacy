@@ -1,4 +1,3 @@
-use dyn_clone::DynClone;
 use serde::{Serialize, Deserialize};
 use as_any::AsAny;
 use ash::vk;
@@ -14,7 +13,7 @@ use crate::render::{
 
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]
-pub trait Material: AsAny + DynClone + std::fmt::Debug + Send + Sync {
+pub trait Material: AsAny + std::fmt::Debug + Send + Sync {
     fn pipeline(renderer: &Renderer) -> Pipeline
     where
         Self: Sized;

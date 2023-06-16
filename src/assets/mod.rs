@@ -1,14 +1,20 @@
 pub mod asset_manager;
 pub mod scene;
 pub mod ser_component;
-pub mod settings;
 pub mod save_load;
 
 pub use asset_manager::*;
 pub use scene::*;
 pub use ser_component::*;
-pub use settings::*;
 pub use save_load::*;
+
+pub mod tar {
+    pub use tar::*;
+}
+
+pub mod lz4 {
+    pub use lz4::*;
+}
 
 use serde::{Serialize, Deserialize};
 

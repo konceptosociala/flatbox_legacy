@@ -23,9 +23,9 @@ pub enum Filter {
 impl From<Filter> for vk::Filter {
     fn from(filter: Filter) -> Self {
         match filter {
+            Filter::Linear => vk::Filter::LINEAR,
             Filter::Nearest => vk::Filter::NEAREST,
             Filter::Cubic => vk::Filter::CUBIC_EXT,
-            _ => vk::Filter::LINEAR,
         }
     }
 }
@@ -340,13 +340,13 @@ impl Texture {
         }
         
         // TODO: SEGFAULT DESTROYING VK_IMAGE
-        if let Some(_) = self.imageview {
-            // unsafe { renderer.device.destroy_image_view(imageview, None); }
+        if let Some(imageview) = self.imageview {
+            unsafe { renderer.device.destroy_image_view(imageview, None); }
             self.imageview = None;
         }    
 
-        if let Some(_) = self.vk_image {
-            // unsafe { renderer.device.destroy_image(vk_image, None); }
+        if let Some(vk_image) = self.vk_image {
+            unsafe { renderer.device.destroy_image(vk_image, None); }
             self.vk_image = None;
         }    
     }

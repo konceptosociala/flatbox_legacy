@@ -92,7 +92,8 @@ impl Renderer {
             log::error!("Deferred rendering is not supported yet");
         }
         
-        let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator)?;
+        let clear_color = window_builder.clear_color.unwrap_or(na::Vector3::new(0.0, 0.0, 0.0));
+        let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator, clear_color)?;
         
         let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
         swapchain.create_framebuffers(&device, renderpass)?;
@@ -257,6 +258,8 @@ impl Renderer {
     pub unsafe fn recreate_swapchain(&mut self) -> DesperoResult<()> {
         self.device.device_wait_idle()?;
 
+        let clear_color = self.swapchain.clear_color.clone();
+
         self.swapchain.cleanup(&self.device, &mut *self.allocator.lock().unwrap());
         self.swapchain = Swapchain::init(
             &self.instance,
@@ -264,6 +267,7 @@ impl Renderer {
             &self.window.surface,
             &self.queue_families,
             &mut *self.allocator.lock().unwrap(),
+            clear_color,
         )?;
         
         self.swapchain.create_framebuffers(&self.device, self.renderpass)?;
@@ -387,7 +391,7 @@ fn begin_renderpass(
     commandbuffer: &vk::CommandBuffer,
     index: usize,
 ){
-    let clear_values = set_clear_values(na::Vector3::new(0.0, 0.0, 0.0));
+    let clear_values = set_clear_values(swapchain.clear_color);
     
     let renderpass_begininfo = vk::RenderPassBeginInfo::builder()
         .render_pass(*renderpass)

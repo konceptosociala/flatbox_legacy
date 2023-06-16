@@ -1,6 +1,7 @@
 use ash::vk;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use gpu_allocator::vulkan::*;
+use nalgebra as na;
 
 use crate::render::backend::{
     instance::Instance,
@@ -26,6 +27,7 @@ pub struct Swapchain {
     pub rendering_finished: Vec<vk::Semaphore>,
     pub amount_of_images: u32,
     pub current_image: usize,
+    pub clear_color: na::Vector3<f32>,
 }
 
 impl Swapchain {
@@ -36,6 +38,7 @@ impl Swapchain {
         surface: &Surface,
         queue_families: &QueueFamilies,
         allocator: &mut Allocator,
+        clear_color: na::Vector3<f32>,
     ) -> Result<Swapchain, vk::Result> {
         let (swapchain_loader, swapchain, queue_family_indices, extent) = unsafe {
             Self::create_swapchain(instance, logical_device, surface, queue_families)?
@@ -64,6 +67,7 @@ impl Swapchain {
             may_begin_drawing,
             amount_of_images,
             current_image: 0,
+            clear_color,
         })
     }
     
