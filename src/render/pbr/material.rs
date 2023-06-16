@@ -1,6 +1,8 @@
+use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use as_any::AsAny;
 use ash::vk;
+use parking_lot::Mutex;
 
 use crate::assets::AssetHandle;
 use crate::render::{
@@ -212,4 +214,8 @@ impl DefaultMatBuilder {
             normal_map: self.normal_map.into(),
         }
     }
+}
+
+pub struct CachedMaterials {
+    pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
 }

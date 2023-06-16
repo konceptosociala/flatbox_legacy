@@ -339,7 +339,6 @@ impl Texture {
             self.sampler = None;
         }
         
-        // TODO: SEGFAULT DESTROYING VK_IMAGE
         if let Some(imageview) = self.imageview {
             unsafe { renderer.device.destroy_image_view(imageview, None); }
             self.imageview = None;

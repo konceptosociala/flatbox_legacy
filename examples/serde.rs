@@ -97,18 +97,20 @@ fn gui_system(
                     .expect("Cannot load world");
 
                 asset_manager.cleanup(&mut renderer);
-                *asset_manager = assets;
+                asset_manager.textures = assets.textures;
+                asset_manager.audio = assets.audio;
+
+                // Замість `asset_manager.materials = assets.materials` оце:
 
                 *physics_handler = physics;
                 
                 cmd.write(move |w: &mut World| {
                     *w = world;
+                    w.spawn((CachedMaterials {
+                        materials: assets.materials,
+                    },));
                 });
             }
-
-            ui.separator();
-
-            ui.label(format!("Material count: {}", asset_manager.materials.len()));
         });
     }
 
@@ -116,14 +118,13 @@ fn gui_system(
 }
 
 fn system(
-    scene_world: SubWorld<(&u32, &Transform, Added<u32>)>,
+    cached_world: SubWorld<&mut CachedMaterials>,
     mut asset_manager: Write<AssetManager>,
+    mut cmd: Write<CommandBuffer>,
 ){
-    for (_, (_, _, added)) in &mut scene_world.query::<(&u32, &Transform, Added<u32>)>(){
-        if added {
-            debug!("Scene successfully loaded!");
-        }
+    for (e, mut cache) in &mut cached_world.query::<&mut CachedMaterials>(){
+        debug!("Loading cached materials...");
+        asset_manager.materials = std::mem::take(&mut cache.materials);
+        cmd.despawn(e);
     }
-
-    asset_manager.create_material(DefaultMat::default());
 }
