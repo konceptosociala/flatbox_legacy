@@ -21,12 +21,12 @@ impl_save_load!(
         Camera
 );
 
-fn main() {    
+fn main() {
     Despero::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(setup)
         .add_system(gui_system)
-        .add_system(system) 
+        .add_system(system)
         .add_system(rotation)
         .run();
 }
@@ -92,15 +92,14 @@ fn gui_system(
                 ).expect("Cannot save world");
             }
             
-            if ui.button("Load world").clicked() {
+            if ctx.input().key_pressed(gui::Key::Backspace) {
+            // if ui.button("Load world").clicked() {
                 let (world, assets, physics) = ws.load("assets/saves/world.tar.lz4")
                     .expect("Cannot load world");
 
                 asset_manager.cleanup(&mut renderer);
                 asset_manager.textures = assets.textures;
                 asset_manager.audio = assets.audio;
-
-                // Замість `asset_manager.materials = assets.materials` оце:
 
                 *physics_handler = physics;
                 
@@ -122,7 +121,15 @@ fn system(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
 ){
+    for texture in &asset_manager.textures {
+        if !texture.is_generated() {
+            debug!("Texture {} is not generated yet!", texture.path.display());
+            return;
+        }
+    }
+
     for (e, mut cache) in &mut cached_world.query::<&mut CachedMaterials>(){
+        debug!("Textures are generated!");
         debug!("Loading cached materials...");
         asset_manager.materials = std::mem::take(&mut cache.materials);
         cmd.despawn(e);

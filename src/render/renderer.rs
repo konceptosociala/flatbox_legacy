@@ -197,11 +197,11 @@ impl Renderer {
         &mut self,
         world: &mut SubWorld<W>,
         #[cfg(feature = "egui")]
-        event_handler: &mut EventHandler<GuiContext>,
+        gui_handler: &mut EventHandler<GuiContext>,
         physics_handler: &mut PhysicsHandler,
         asset_manager: &AssetManager,
         index: usize,
-    ) -> DesperoResult<()> {        
+    ) -> DesperoResult<()> {     
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         
         update_texture_sets(&asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
@@ -247,7 +247,7 @@ impl Renderer {
         end_renderpass(&self.device, &commandbuffer);
         
         #[cfg(feature = "egui")]
-        render_egui(&mut self.egui, &mut self.window, event_handler, &commandbuffer, index);
+        render_egui(&mut self.egui, &mut self.window, gui_handler, &commandbuffer, index);
         
         end_commandbuffer(&self.device, &commandbuffer);
         self.commandbuffer_pools.current_commandbuffer = None;

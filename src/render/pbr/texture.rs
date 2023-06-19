@@ -106,6 +106,14 @@ impl Texture {
         Ok(())
     }
 
+    pub fn is_generated(&self) -> bool {
+        self.image.is_some() &&
+        self.vk_image.is_some() &&
+        self.image_allocation.is_some() &&
+        self.imageview.is_some() &&
+        self.sampler.is_some()
+    }
+
     pub(crate) fn generate_from(
         &mut self, 
         renderer: &mut Renderer,
@@ -326,11 +334,8 @@ impl Texture {
     }
     
     pub fn cleanup(&mut self, renderer: &mut Renderer) {
-
         if let Some(_) = self.image_allocation {
-            let mut new_alloc: Option<Allocation> = None;
-            std::mem::swap(&mut new_alloc, &mut self.image_allocation);
-            let new_alloc = new_alloc.unwrap();
+            let new_alloc = std::mem::take(&mut self.image_allocation).unwrap();
             (*renderer.allocator.lock().unwrap()).free(new_alloc).unwrap();
         }
         

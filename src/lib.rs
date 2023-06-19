@@ -213,6 +213,11 @@ impl Despero {
         self
     }
 
+    pub fn add_events<E: Event>(&mut self) -> &mut Self {
+        self.events.push_handler(EventHandler::<E>::new());
+        self
+    }
+
     /// Set custom game runner. Default is [`default_runner`]
     pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Despero)>) -> &mut Self {
         self.runner = runner;
