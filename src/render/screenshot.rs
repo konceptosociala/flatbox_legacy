@@ -3,14 +3,14 @@ use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 
 use crate::render::renderer::Renderer;
-use crate::error::DesperoResult;
+use crate::error::SonjaResult;
 
 pub trait ScreenshotExt {
-    fn screenshot(&mut self, path: &str) -> DesperoResult<()>;
+    fn screenshot(&mut self, path: &str) -> SonjaResult<()>;
 }
 
 impl ScreenshotExt for Renderer {
-    fn screenshot(&mut self, path: &str) -> DesperoResult<()> {
+    fn screenshot(&mut self, path: &str) -> SonjaResult<()> {
         // Create CommandBuffer
         let commandbuf_allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(self.commandbuffer_pools.commandpool_graphics)

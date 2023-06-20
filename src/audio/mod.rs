@@ -27,7 +27,7 @@ use crate::assets::{
     AssetHandle,
     asset_manager::AssetManager,
 };
-use crate::error::DesperoResult;
+use crate::error::SonjaResult;
 
 pub mod cast;
 pub mod error;
@@ -62,7 +62,7 @@ impl AudioManager {
     pub fn new(
         cast_count: usize,
         listener_count: usize,
-    ) -> DesperoResult<Self> {
+    ) -> SonjaResult<Self> {
         let settings = SpatialSceneSettings::new()
             .emitter_capacity(cast_count)
             .listener_capacity(listener_count);
@@ -79,7 +79,7 @@ impl AudioManager {
         })
     }
 
-    pub fn new_sound(&mut self, path: &'static str) -> DesperoResult<AssetHandle<'S'>> {
+    pub fn new_sound(&mut self, path: &'static str) -> SonjaResult<AssetHandle<'S'>> {
         let sound = Sound::new_from_file(path)?;
 
         Ok(self.push_sound(sound))
@@ -92,7 +92,7 @@ impl AudioManager {
         AssetHandle::from_index(index)
     }
 
-    pub fn play(&mut self, handle: AssetHandle<'S'>) -> DesperoResult<()>{
+    pub fn play(&mut self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
         match self.get_sound(handle) {
             Some(sound) => {
                 self.inner()
@@ -133,7 +133,7 @@ impl AudioManager {
     pub fn create_sound(
         &mut self,
         path: &'static str,
-    ) -> DesperoResult<AssetHandle<'S'>> {
+    ) -> SonjaResult<AssetHandle<'S'>> {
         let index = self.sounds.len();
         self.sounds.push(Sound::new_from_file(path)?);
 

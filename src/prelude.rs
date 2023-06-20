@@ -1,7 +1,7 @@
 #![allow(ambiguous_glob_reexports)]
 
-pub use crate::{Despero, WindowBuilder, Extension};
-pub use crate::error::DesperoResult;
+pub use crate::{Sonja, WindowBuilder, Extension};
+pub use crate::error::SonjaResult;
 
 pub use crate::assets::*;
 pub use crate::audio::*;

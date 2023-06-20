@@ -692,42 +692,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
-name = "despero"
-version = "0.2.0"
-dependencies = [
- "as-any",
- "ash",
- "ash-window",
- "collada",
- "despero-hecs",
- "despero-hecs-schedule",
- "egui",
- "egui-winit",
- "egui-winit-ash-integration",
- "env_logger",
- "gpu-allocator",
- "image",
- "kira",
- "log",
- "lz4",
- "mlua",
- "nalgebra",
- "parking_lot",
- "pretty_env_logger",
- "rapier3d",
- "raw-window-handle 0.4.3",
- "readonly",
- "ron",
- "serde",
- "tar",
- "thiserror",
- "tobj",
- "typetag",
- "vk-shader-macros",
- "winit",
-]
-
-[[package]]
 name = "despero-hecs"
 version = "0.9.1-f"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2468,6 +2432,42 @@ checksum = "0a345c870a1fae0b1b779085e81b51e614767c239e93503588e54c5b17f4b0e8"
 dependencies = [
  "smithay-client-toolkit",
  "wayland-client",
+]
+
+[[package]]
+name = "sonja"
+version = "0.2.0"
+dependencies = [
+ "as-any",
+ "ash",
+ "ash-window",
+ "collada",
+ "despero-hecs",
+ "despero-hecs-schedule",
+ "egui",
+ "egui-winit",
+ "egui-winit-ash-integration",
+ "env_logger",
+ "gpu-allocator",
+ "image",
+ "kira",
+ "log",
+ "lz4",
+ "mlua",
+ "nalgebra",
+ "parking_lot",
+ "pretty_env_logger",
+ "rapier3d",
+ "raw-window-handle 0.4.3",
+ "readonly",
+ "ron",
+ "serde",
+ "tar",
+ "thiserror",
+ "tobj",
+ "typetag",
+ "vk-shader-macros",
+ "winit",
 ]
 
 [[package]]

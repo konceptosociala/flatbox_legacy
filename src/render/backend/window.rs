@@ -30,7 +30,7 @@ impl Window {
     pub fn init(
         instance: &Instance,         
         window_builder: WinitWindowBuilder,
-    ) -> DesperoResult<Window> {
+    ) -> SonjaResult<Window> {
         let event_loop = Arc::new(Mutex::new(EventLoop::new()));
         let window = Arc::new(Mutex::new(window_builder.build(&*event_loop.lock().unwrap()).expect("Cannot create window")));
         let surface = ManuallyDrop::new(Surface::init(&window.lock().unwrap(), &instance)?);

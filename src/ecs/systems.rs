@@ -4,22 +4,22 @@
 //! Here are systems that the engine uses to process the main 
 //! components of the game: rendering, audio, physics, etc.
 //!
-//! You can enable their use with [`Despero::default_systems`] 
+//! You can enable their use with [`Sonja::default_systems`] 
 //!
 //! ```rust
-//! use despero::prelude::*;
+//! use sonja::prelude::*;
 //!
-//! Despero::init(WindowBuilder::default())
+//! Sonja::init(WindowBuilder::default())
 //!     .default_systems()
 //!     .run();
 //! ```
 //! 
-//! or add necessary ones manually with [`Despero::add_system`]
+//! or add necessary ones manually with [`Sonja::add_system`]
 //! 
 //! ```rust
-//! use despero::prelude::*;
+//! use sonja::prelude::*;
 //! 
-//! Despero::init(WindowBuilder::default())
+//! Sonja::init(WindowBuilder::default())
 //!     .add_system(time_system)
 //!     .add_system(update_physics)
 //!     .run();
@@ -27,7 +27,7 @@
 //! 
 
 #[allow(unused_imports)]
-use crate::Despero;
+use crate::Sonja;
 
 #[cfg(feature = "render")]
 use {
@@ -57,7 +57,7 @@ use crate::audio::*;
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
-use crate::error::DesperoResult;
+use crate::error::SonjaResult;
 use crate::math::transform::Transform;
 
 #[cfg(feature = "egui")]
@@ -74,7 +74,7 @@ pub fn time_system(
 pub fn processing_audio(
     cast_world: SubWorld<(&Transform, &mut AudioCast)>,
     listener_world: SubWorld<(&Transform, &mut AudioListener)>
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     for (_, (t, mut c)) in &mut cast_world.query::<(&Transform, &mut AudioCast)>(){
         c.set_transform(&t)?;
     }
@@ -90,7 +90,7 @@ pub fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
     physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
     added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
-) -> DesperoResult<()> {    
+) -> SonjaResult<()> {    
     for (_, (transform, handle, added)) in &mut added_world.query::<(
         &Transform, &BodyHandle, Added<BodyHandle>
     )>(){
@@ -118,7 +118,7 @@ pub fn update_physics(
 pub fn generate_textures(
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     for texture in &mut asset_manager.textures {
         if texture.vk_image.is_none() {
             log::debug!("Generating texture `{}`...", texture.path.display());
@@ -138,7 +138,7 @@ pub fn rendering_system(
     asset_manager: Read<AssetManager>,
     mut model_world: SubWorld<(&mut Model, &mut AssetHandle<'M'>, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     let image_index = get_image_index(&renderer.swapchain)?;
     
     check_fences(&renderer.device, &renderer.swapchain)?;
@@ -222,7 +222,7 @@ pub fn update_models_system(
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
     world: SubWorld<(&mut Model, &AssetHandle<'M'>, &Transform)>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     for (_, (mut model, handle, _)) in &mut world.query::<(
         &mut Model, &AssetHandle<'M'>, &Transform
     )>(){
@@ -327,7 +327,7 @@ pub fn update_lights(
     plight_world: SubWorld<(&PointLight, Changed<PointLight>)>,
     dlight_world: SubWorld<(&DirectionalLight, Changed<DirectionalLight>)>,
     mut renderer: Write<Renderer>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
         .into_iter()
         .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
@@ -389,7 +389,7 @@ pub fn update_lights(
 }
 
 #[cfg(feature = "render")]
-fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
+fn get_image_index(swapchain: &Swapchain) -> SonjaResult<u32> {
     let (image_index, _) = unsafe {
         swapchain
             .swapchain_loader
@@ -407,7 +407,7 @@ fn get_image_index(swapchain: &Swapchain) -> DesperoResult<u32> {
 fn check_fences(
     logical_device: &ash::Device,
     swapchain: &Swapchain
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     unsafe {
         logical_device
             .wait_for_fences(

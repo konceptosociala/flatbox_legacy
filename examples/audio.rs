@@ -1,7 +1,7 @@
-use despero::prelude::*;
+use sonja::prelude::*;
 
 fn main() {    
-    Despero::init(WindowBuilder::default())
+    Sonja::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(create_audio)
         .add_system(rotate)
@@ -11,7 +11,7 @@ fn main() {
 fn create_audio(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     let mut sound = Sound::new_from_file("assets/audio/birds.mp3")?;
     let cast = asset_manager.audio.new_cast();
     sound.set_cast(&cast);

@@ -11,7 +11,7 @@ use serde::{
     },
 };
 
-use crate::error::DesperoResult;
+use crate::error::SonjaResult;
 
 use super::{
     AudioError, 
@@ -27,7 +27,7 @@ pub struct Sound {
 }
 
 impl Sound {
-    pub fn new_from_file(path: &'static str) -> DesperoResult<Self> {
+    pub fn new_from_file(path: &'static str) -> SonjaResult<Self> {
         let static_data = StaticSoundData::from_file(
             path, 
             StaticSoundSettings::default()

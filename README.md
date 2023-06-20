@@ -1,12 +1,12 @@
 <p align="center">
-    <a href="https://konceptosociala.eu.org/despero"><img src="despero.svg" height="156" width="156" alt="despero"></a>
+    <a href="https://konceptosociala.eu.org/softvaro/sonja"><img src="sonja.svg" height="156" width="156" alt="sonja"></a>
 </p>    
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Alpha-blue?style=flat-square" alt="status">
-  <a href="crates.io/crates/despero"><img src="https://img.shields.io/crates/v/despero.svg?style=flat-square" alt="crates"></a>
-  <img src="https://img.shields.io/github/stars/konceptosociala/despero?style=flat-square&color=orange">
-  <a href="https://github.com/konceptosociala/despero/issues"><img src="https://img.shields.io/github/issues/konceptosociala/despero?color=green&style=flat-square"></a>
+  <a href="crates.io/crates/sonja"><img src="https://img.shields.io/crates/v/sonja.svg?style=flat-square" alt="crates"></a>
+  <img src="https://img.shields.io/github/stars/konceptosociala/sonja?style=flat-square&color=orange">
+  <a href="https://github.com/konceptosociala/sonja/issues"><img src="https://img.shields.io/github/issues/konceptosociala/sonja?color=green&style=flat-square"></a>
 </p>
 
 <p align="center">

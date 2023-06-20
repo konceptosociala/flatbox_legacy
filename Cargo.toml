@@ -1,14 +1,14 @@
 [package]
-name = "despero"
+name = "sonja"
 version = "0.2.0"
 authors = ["Koncepto Sociala"]
 edition = "2021"
 
 license = "Unlicense"
 description = "Rusty game engine, using API Vulkan and implementing paradigm of ECS"
-homepage = "https://konceptosociala.eu.org/softvaro/despero"
-documentation = "https://docs.rs/despero"
-repository = "https://github.com/konceptosociala/despero"
+homepage = "https://konceptosociala.eu.org/softvaro/sonja"
+documentation = "https://docs.rs/sonja"
+repository = "https://github.com/konceptosociala/sonja"
 readme = "README.md"
 
 keywords = ["gamedev", "graphics", "engine"]

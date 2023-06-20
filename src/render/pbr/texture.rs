@@ -88,7 +88,7 @@ impl Texture {
         path: &'static str, 
         filter: Filter,
         renderer: &mut Renderer
-    ) -> DesperoResult<Self> {
+    ) -> SonjaResult<Self> {
         let mut texture = Texture::new_blank(path, filter);
         texture.generate(renderer)?;
         
@@ -96,7 +96,7 @@ impl Texture {
     }
 
     /// Generate texture rendering data for blank texture
-    pub fn generate(&mut self, renderer: &mut Renderer) -> DesperoResult<()> {
+    pub fn generate(&mut self, renderer: &mut Renderer) -> SonjaResult<()> {
         let image = image::open(self.path.clone())
             .map(|img| img.to_rgba8())
             .expect("unable to open image");
@@ -118,7 +118,7 @@ impl Texture {
         &mut self, 
         renderer: &mut Renderer,
         image: image::RgbaImage,
-    ) -> DesperoResult<()>{
+    ) -> SonjaResult<()>{
         let raw_filter: vk::Filter = self.filter.clone().into();
             
         let (width, height) = image.dimensions();

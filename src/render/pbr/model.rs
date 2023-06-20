@@ -18,7 +18,7 @@ use crate::{
             buffer::Buffer,
         },
     }, 
-    error::DesperoResult,
+    error::SonjaResult,
 };
 
 use crate::assets::AssetHandle;
@@ -570,7 +570,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new<P>(path: P) -> DesperoResult<Self> 
+    pub fn new<P>(path: P) -> SonjaResult<Self> 
     where 
         P: AsRef<Path> + Debug
     {

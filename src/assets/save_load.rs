@@ -1,5 +1,5 @@
 use crate::ecs::*;
-use crate::error::DesperoResult;
+use crate::error::SonjaResult;
 use crate::assets::asset_manager::AssetManager;
 use crate::physics::physics_handler::PhysicsHandler;
 
@@ -10,12 +10,12 @@ pub trait SaveLoad {
         asset_manager: &AssetManager,
         physics_handler: &PhysicsHandler,
         path: P,
-    ) -> DesperoResult<()>;
+    ) -> SonjaResult<()>;
     
     fn load<P: AsRef<std::path::Path>>(
         &mut self,
         path: P,
-    ) -> DesperoResult<(World, AssetManager, PhysicsHandler)>;
+    ) -> SonjaResult<(World, AssetManager, PhysicsHandler)>;
 }
 
 /// Macro that is used to create custom [`SaveLoad`]ers, 
@@ -34,19 +34,20 @@ pub trait SaveLoad {
 ///     components: Vec<String>, // required field
 /// }
 /// 
-/// impl_save_load!(
-///     // Serializer struct
-///     MySaveLoader,
-///         // Serializable components
-///         Camera,
-///         Timer,
+/// impl_save_load! {
+///     loader: MySaveLoader, 
+///     components: [
+///         Camera, 
+///         Timer, 
 ///         Transform,
-///         MyComponent,
-/// );
+///         AssetHandle<'M'>,
+///         MyComponent
+///     ]
+/// }
 /// 
 /// fn save_world(
 ///     world: Read<World>,
-/// ) -> DesperoResult<()> {
+/// ) -> SonjaResult<()> {
 ///     let ws = MyWorldSaver::default();
 /// 
 ///     ws.save("/path/to/save", &world)?;
@@ -55,7 +56,10 @@ pub trait SaveLoad {
 /// ```
 #[macro_export]
 macro_rules! impl_save_load {
-    ($ctx:ident, $($comp:ty),*) => {
+    {
+        loader: $ctx:ident, 
+        components: [ $( $comp:ty ),* ]
+    } => {
         impl SerializeContext for $ctx {
             fn component_count(&self, archetype: &Archetype) -> usize {                
                 archetype.component_types()
@@ -146,7 +150,7 @@ macro_rules! impl_save_load {
                 asset_manager: &AssetManager,
                 physics_handler: &PhysicsHandler,
                 path: P,
-            ) -> DesperoResult<()> {
+            ) -> SonjaResult<()> {
                 use std::mem::size_of_val;
                 use std::fs::File;
                 use std::io::Cursor;
@@ -193,7 +197,7 @@ macro_rules! impl_save_load {
             fn load<P: AsRef<std::path::Path>>(
                 &mut self,
                 path: P,
-            ) -> DesperoResult<(World, AssetManager, PhysicsHandler)> {
+            ) -> SonjaResult<(World, AssetManager, PhysicsHandler)> {
                 use std::fs::File;
                 use std::io::Read;
 

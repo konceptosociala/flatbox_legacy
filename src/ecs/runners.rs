@@ -5,36 +5,36 @@ use winit::{
     platform::run_return::EventLoopExtRunReturn,
 };
 
-use crate::Despero;
+use crate::Sonja;
 use super::event::{AppExit, EventHandler};
 
-pub fn empty_runner(_: &mut Despero){}
+pub fn empty_runner(_: &mut Sonja){}
 
 #[cfg(feature = "render")]
-pub fn default_runner(despero: &mut Despero) {
+pub fn default_runner(sonja: &mut Sonja) {
     use crate::render::ui::GuiContext;
 
-    let mut setup_systems = despero.setup_systems.build();
-    let mut systems = despero.systems.build();
+    let mut setup_systems = sonja.setup_systems.build();
+    let mut systems = sonja.systems.build();
     
     #[cfg(feature = "egui")]
-    despero.events.push_handler(EventHandler::<GuiContext>::new());
-    despero.events.push_handler(EventHandler::<AppExit>::new());
+    sonja.events.push_handler(EventHandler::<GuiContext>::new());
+    sonja.events.push_handler(EventHandler::<AppExit>::new());
     
     setup_systems.execute((
-        &mut despero.world,
-        &mut despero.renderer,
-        &mut despero.events,
-        &mut despero.time_handler,
-        &mut despero.physics_handler,
-        &mut despero.asset_manager,
+        &mut sonja.world,
+        &mut sonja.renderer,
+        &mut sonja.events,
+        &mut sonja.time_handler,
+        &mut sonja.physics_handler,
+        &mut sonja.asset_manager,
     )).expect("Cannot execute setup schedule");
 
-    let event_loop = (&despero.renderer.window.event_loop).clone();
+    let event_loop = (&sonja.renderer.window.event_loop).clone();
     (*event_loop.lock().unwrap()).run_return(move |event, _, controlflow| match event {    
         WinitEvent::WindowEvent { event, window_id: _ } => {
             #[cfg(feature = "egui")]
-            let _response = despero.renderer.egui.handle_event(&event);
+            let _response = sonja.renderer.egui.handle_event(&event);
             
             match event {
                 WindowEvent::CloseRequested => {
@@ -45,13 +45,13 @@ pub fn default_runner(despero: &mut Despero) {
         }
         
         WinitEvent::NewEvents(StartCause::Init) => {
-            unsafe { despero.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
+            unsafe { sonja.renderer.recreate_swapchain().expect("Cannot recreate swapchain"); }
             log::debug!("Recreated swapchain");
         }
                 
         WinitEvent::MainEventsCleared => {
-            despero.renderer.window.request_redraw();
-            if let Some(handler) = despero.events.get_handler::<AppExit>() {
+            sonja.renderer.window.request_redraw();
+            if let Some(handler) = sonja.events.get_handler::<AppExit>() {
                 if let Some(_) = handler.read() {
                     *controlflow = winit::event_loop::ControlFlow::Exit;
                 }
@@ -60,15 +60,15 @@ pub fn default_runner(despero: &mut Despero) {
         
         WinitEvent::RedrawRequested(_) => {
             systems.execute((
-                &mut despero.world,
-                &mut despero.renderer,
-                &mut despero.events,
-                &mut despero.time_handler,
-                &mut despero.physics_handler,
-                &mut despero.asset_manager,
+                &mut sonja.world,
+                &mut sonja.renderer,
+                &mut sonja.events,
+                &mut sonja.time_handler,
+                &mut sonja.physics_handler,
+                &mut sonja.asset_manager,
             )).expect("Cannot execute loop schedule");
             
-            despero.world.clear_trackers();
+            sonja.world.clear_trackers();
         }
         
         _ => {}
@@ -76,35 +76,35 @@ pub fn default_runner(despero: &mut Despero) {
 }
 
 #[cfg(not(feature = "render"))]
-pub fn default_runner(despero: &mut Despero) {
-    let mut setup_systems = despero.setup_systems.build();
-    let mut systems = despero.systems.build();
+pub fn default_runner(sonja: &mut Sonja) {
+    let mut setup_systems = sonja.setup_systems.build();
+    let mut systems = sonja.systems.build();
 
-    despero.events.push_handler(EventHandler::<AppExit>::new());
+    sonja.events.push_handler(EventHandler::<AppExit>::new());
 
     setup_systems.execute((
-        &mut despero.world,
-        &mut despero.events,
-        &mut despero.time_handler,
-        &mut despero.physics_handler,
-        &mut despero.asset_manager,
+        &mut sonja.world,
+        &mut sonja.events,
+        &mut sonja.time_handler,
+        &mut sonja.physics_handler,
+        &mut sonja.asset_manager,
     )).expect("Cannot execute setup schedule");
 
     loop {
         systems.execute((
-            &mut despero.world,
-            &mut despero.events,
-            &mut despero.time_handler,
-            &mut despero.physics_handler,
-            &mut despero.asset_manager,
+            &mut sonja.world,
+            &mut sonja.events,
+            &mut sonja.time_handler,
+            &mut sonja.physics_handler,
+            &mut sonja.asset_manager,
         )).expect("Cannot execute loop schedule");
 
-        if let Some(handler) = despero.events.get_handler::<AppExit>() {
+        if let Some(handler) = sonja.events.get_handler::<AppExit>() {
             if let Some(_) = handler.read() {
                 return ();
             }
         }
         
-        despero.world.clear_trackers();
+        sonja.world.clear_trackers();
     }
 }

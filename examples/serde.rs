@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
-use despero::prelude::*;
-use despero::impl_save_load;
+use sonja::prelude::*;
+use sonja::impl_save_load;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct WorldSaver {
@@ -13,16 +13,18 @@ impl WorldSaver {
     }
 }
 
-impl_save_load!(
-    WorldSaver, 
+impl_save_load! {
+    loader: WorldSaver, 
+    components: [
         Model, 
         Transform, 
         AssetHandle<'M'>,
         Camera
-);
+    ]
+}
 
 fn main() {
-    Despero::init(WindowBuilder::default())
+    Sonja::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(setup)
         .add_system(gui_system)
@@ -34,7 +36,7 @@ fn main() {
 fn setup(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
-) -> DesperoResult<()> {
+) -> SonjaResult<()> {
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
     let model = Model::new("assets/models/model.obj")?;
     
@@ -74,7 +76,7 @@ fn gui_system(
     mut renderer: Write<Renderer>,
     world: Read<World>,
     events: Read<Events>,
-) -> DesperoResult<()> {    
+) -> SonjaResult<()> {    
     let gui_events = events.get_handler::<GuiContext>().unwrap();
     if let Some(ctx) = gui_events.read() {
         

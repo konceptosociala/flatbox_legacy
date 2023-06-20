@@ -69,8 +69,8 @@ impl Instance {
     /// Create [`Instance`] application info
     fn init_app_info() -> vk::ApplicationInfo {
         vk::ApplicationInfo::builder()
-            .application_name(&CString::new("Despero Game").unwrap())
-            .engine_name(&CString::new("DesperØ").unwrap())
+            .application_name(&CString::new("Sonja Game").unwrap())
+            .engine_name(&CString::new("Sonja").unwrap())
             .engine_version(vk::make_api_version(0, 0, 0, 0))
             .api_version(vk::make_api_version(0, 1, 0, 106))
             .build()

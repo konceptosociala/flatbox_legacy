@@ -1,27 +1,33 @@
 // 
-// .d88888b                    oo                           oo                                                      oo          dP 
-// 88.    "'                                                                                                                    88 
-// `Y88888b. .d8888b. 88d888b. dP .d8888b.       88d8b.d8b. dP    .d8888b. 88d8b.d8b. .d8888b. .d8888b.    dP   .dP dP 88d888b. 88 
-//       `8b 88'  `88 88'  `88 88 88'  `88       88'`88'`88 88    88'  `88 88'`88'`88 88'  `88 Y8ooooo.    88   d8' 88 88'  `88 dP 
-// d8'   .8P 88.  .88 88    88 88 88.  .88 dP    88  88  88 88    88.  .88 88  88  88 88.  .88       88    88 .88'  88 88    88 
-//  Y88888P  `88888P' dP    dP 88 `88888P8 88    dP  dP  dP dP    `88888P8 dP  dP  dP `88888P8 `88888P'    8888P'   dP dP    dP oo
+// .d88888b                    oo                           oo     
+// 88.    "'                                                      
+// `Y88888b. .d8888b. 88d888b. dP .d8888b.       88d8b.d8b. dP    
+//       `8b 88'  `88 88'  `88 88 88'  `88       88'`88'`88 88    
+// d8'   .8P 88.  .88 88    88 88 88.  .88 dP    88  88  88 88    
+//  Y88888P  `88888P' dP    dP 88 `88888P8 88    dP  dP  dP dP
 //                             88          .P                                                                                   
 //                           d8dP                                                                                               
+//                                                   oo          dP
+//                                                               88
+// .d8888b. 88d8b.d8b. .d8888b. .d8888b.    dP   .dP dP 88d888b. 88  
+// 88'  `88 88'`88'`88 88'  `88 Y8ooooo.    88   d8' 88 88'  `88 dP 
+// 88.  .88 88  88  88 88.  .88       88    88 .88'  88 88    88 
+// `88888P8 dP  dP  dP `88888P8 `88888P'    8888P'   dP dP    dP oo
 //
 
 /*!
 
-Despero (_esp._ **despair**) is rusty data-driven 3D game engine, 
+**Sonja** is rusty data-driven 3D game engine, 
 which implements paradigm of ECS and provides developers with
 appropriate toolkit to develop PBR games with advanced technologies
 
 # Simple example
 
 ```rust
-use despero::prelude::*;
+use sonja::prelude::*;
 
 fn main(){
-    Despero::init(WindowBuilder {
+    Sonja::init(WindowBuilder {
         title: Some("My Game"),
         ..Default::default()
     })
@@ -126,15 +132,15 @@ pub mod prelude;
 pub use crate::error::Result;
 
 /// Main struct representing a game engine instance with various fields and functionality
-pub struct Despero {
+pub struct Sonja {
     /// Game world containing entities and components. Can be serialized and deserialized
     pub world: World,
     /// Builder for configuring and building the game system schedule
     pub systems: ScheduleBuilder,
     /// Builder for configuring and building the setup system schedule. Setup systems are executed only once at the beginning of the game
     pub setup_systems: ScheduleBuilder,
-    /// Function that defines the game loop and handles game execution. It takes an instance of Despero as an argument
-    pub runner: Box<dyn Fn(&mut Despero)>,
+    /// Function that defines the game loop and handles game execution. It takes an instance of Sonja as an argument
+    pub runner: Box<dyn Fn(&mut Sonja)>,
     /// Collection of event handlers for managing user input and system events
     pub events: Events,
     /// Handler for managing the physics simulation within the game
@@ -152,12 +158,12 @@ pub struct Despero {
     pub renderer: Renderer,
 }
 
-impl Despero {
-    /// Initialize Despero application
-    pub fn init(window_builder: WindowBuilder) -> Despero {
+impl Sonja {
+    /// Initialize Sonja application
+    pub fn init(window_builder: WindowBuilder) -> Sonja {
         init_logger();
         
-        Despero {
+        Sonja {
             world: World::new(),
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
@@ -219,7 +225,7 @@ impl Despero {
     }
 
     /// Set custom game runner. Default is [`default_runner`]
-    pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Despero)>) -> &mut Self {
+    pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Sonja)>) -> &mut Self {
         self.runner = runner;
         self
     }
@@ -244,7 +250,7 @@ impl Despero {
     }
 }
 
-impl Drop for Despero {
+impl Drop for Sonja {
     fn drop(&mut self) {
         #[cfg(feature = "render")]
         self.asset_manager.cleanup(&mut self.renderer);
@@ -258,7 +264,7 @@ fn init_logger() {
     pretty_env_logger::formatted_builder()
         .filter_level(
             env_logger::filter::Builder::new()
-                .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=debug")))
+                .parse(&std::env::var("SONJA_LOG").unwrap_or(String::from("SONJA_LOG=debug")))
                 .build()
                 .filter()
         )
@@ -268,14 +274,14 @@ fn init_logger() {
     pretty_env_logger::formatted_builder()
         .filter_level(
             env_logger::filter::Builder::new()
-                .parse(&std::env::var("DESPERO_LOG").unwrap_or(String::from("DESPERO_LOG=info")))
+                .parse(&std::env::var("SONJA_LOG").unwrap_or(String::from("SONJA_LOG=info")))
                 .build()
                 .filter()
         )
         .init();
 }
 
-/// Builder struct for creating window configurations. It's taken as an argument during [`Despero`] initializing
+/// Builder struct for creating window configurations. It's taken as an argument during [`Sonja`] initializing
 #[derive(Default, Debug, Clone)]
 pub struct WindowBuilder {
     // === WINDOW SETTINGS ===
@@ -312,7 +318,7 @@ pub struct WindowBuilder {
     pub textures_count: Option<u32>,
 }
 
-/// [`Despero`] application extension trait for fast configuration without writing boileplate
+/// [`Sonja`] application extension trait for fast configuration without writing boileplate
 pub trait Extension {
-    fn apply(&self, app: &mut Despero);
+    fn apply(&self, app: &mut Sonja);
 }

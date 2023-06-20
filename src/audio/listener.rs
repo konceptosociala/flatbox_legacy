@@ -6,7 +6,7 @@ use crate::{
         error::AudioError,
     },
     math::Transform, 
-    error::DesperoResult,
+    error::SonjaResult,
 };
 
 pub struct AudioListener {
@@ -20,7 +20,7 @@ impl AudioListener {
         audio_manager.new_listener()
     }
 
-    pub(crate) fn set_transform(&mut self, t: &Transform) -> DesperoResult<()> {
+    pub(crate) fn set_transform(&mut self, t: &Transform) -> SonjaResult<()> {
         self.handle.set_position(t.translation, Tween::default()).map_err(|e| AudioError::from(e))?;
         self.handle.set_orientation(t.rotation, Tween::default()).map_err(|e| AudioError::from(e))?;
 

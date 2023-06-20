@@ -1,4 +1,4 @@
-use despero::prelude::*;
+use sonja::prelude::*;
 
 #[derive(Clone, Default, Debug)]
 struct CameraConfiguration {
@@ -9,7 +9,7 @@ struct CameraConfiguration {
 }
 
 fn main() {
-    Despero::init(WindowBuilder {
+    Sonja::init(WindowBuilder {
         title: Some("PBR Test"),
         fullscreen: Some(true),
         renderer: Some(RenderType::Forward),
@@ -36,7 +36,7 @@ fn get_material(
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
-) -> DesperoResult<()> {    
+) -> SonjaResult<()> {    
     let diffuse = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
     
     cmd.spawn(

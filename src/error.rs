@@ -59,4 +59,4 @@ impl From<String> for Result {
 }
 
 /// Alias for easy error handling
-pub type DesperoResult<T> = std::result::Result<T, Result>;
+pub type SonjaResult<T> = std::result::Result<T, Result>;
