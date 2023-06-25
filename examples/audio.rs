@@ -1,4 +1,5 @@
 use sonja::prelude::*;
+use sonja::audio_storage;
 
 fn main() {    
     Sonja::init(WindowBuilder::default())
@@ -12,18 +13,11 @@ fn create_audio(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
 ) -> SonjaResult<()> {
-    let mut sound = Sound::new_from_file("assets/audio/birds.mp3")?;
-    let cast = asset_manager.audio.new_cast();
-    sound.set_cast(&cast);
-    let handle = asset_manager.audio.push_sound(sound);
-
-    asset_manager.audio.play(handle)?;
-
-    let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
-    let mesh = Mesh::load_obj("assets/models/model.obj").swap_remove(0);
+    let handle = asset_manager.audio.create_sound("assets/audio/birds.mp3")?;
+    let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Linear);    
     
     cmd.spawn((
-        mesh,
+        Model::new("assets/models/model.obj")?,
         asset_manager.create_material(
             DefaultMat::builder()
                 .albedo(texture_id)
@@ -32,7 +26,8 @@ fn create_audio(
                 .build(),
         ),
         Transform::default(),
-        cast,
+        asset_manager.audio.new_cast(),
+        audio_storage![handle],
     ));
 
     cmd.spawn((

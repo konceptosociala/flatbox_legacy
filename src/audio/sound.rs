@@ -1,6 +1,9 @@
 use std::fmt;
 use std::path::PathBuf;
-use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::{
+    sound::static_sound::{StaticSoundData, StaticSoundSettings}, 
+    spatial::emitter::EmitterId
+};
 use serde::{
     Serialize, Deserialize, 
     de::{
@@ -23,6 +26,8 @@ pub struct Sound {
     pub(crate) path: PathBuf,
 
     #[serde(skip_serializing)]
+    pub(crate) cast_id: Option<EmitterId>,
+    #[serde(skip_serializing)]
     pub(crate) static_data: StaticSoundData,
 }
 
@@ -35,14 +40,22 @@ impl Sound {
 
         Ok(Sound {
             path: path.into(),
+            cast_id: None,
             static_data,
         })
     }
 
-    pub fn set_cast(&mut self, cast: &AudioCast) {
+    pub(crate) fn set_cast(&mut self, cast: &AudioCast) {
+        let id = Some(cast.handle.id());
+        if self.cast_id == id {
+            return;
+        }
+
         let settings = StaticSoundSettings::new().output_destination(&cast.handle);
         let new_data = self.static_data.clone().with_settings(settings);
+
         self.static_data = new_data;
+        self.cast_id = id;
     }
 }
 
@@ -77,6 +90,7 @@ impl<'de> Deserialize<'de> for Sound {
 
                 Ok(Sound {
                     path,
+                    cast_id: None,
                     static_data,
                 })
             }
@@ -105,6 +119,7 @@ impl<'de> Deserialize<'de> for Sound {
 
                 Ok(Sound {
                     path,
+                    cast_id: None,
                     static_data,
                 })
             }

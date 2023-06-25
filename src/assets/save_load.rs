@@ -58,7 +58,7 @@ pub trait SaveLoad {
 macro_rules! impl_save_load {
     {
         loader: $ctx:ident, 
-        components: [ $( $comp:ty ),* ]
+        components: [ $( $comp:ty ),+ ]
     } => {
         impl SerializeContext for $ctx {
             fn component_count(&self, archetype: &Archetype) -> usize {                

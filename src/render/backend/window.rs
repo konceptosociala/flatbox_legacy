@@ -19,6 +19,8 @@ use crate::WindowBuilder;
 
 use crate::error::*;
 
+pub type WinitFullscreen = winit::window::Fullscreen;
+
 /// Main window structure, containing rendering surface, window instance and event loop
 pub struct Window {
     pub(crate) event_loop: Arc<Mutex<EventLoop<()>>>,

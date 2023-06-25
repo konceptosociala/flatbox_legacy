@@ -43,12 +43,10 @@ pub use volume::*;
 
 type KiraAudioManager = kira::manager::AudioManager<CpalBackend>; 
 
-// TODO: Link casts to sounds
-
 /// Main audio managment struct. It's actually a part of [`AssetManager`]
 #[derive(Serialize)]
 pub struct AudioManager {
-    pub(crate) sounds: Vec<Sound>,
+    pub sounds: Vec<Sound>,
     cast_count: usize,
     listener_count: usize,
 
@@ -79,34 +77,6 @@ impl AudioManager {
         })
     }
 
-    pub fn new_sound(&mut self, path: &'static str) -> SonjaResult<AssetHandle<'S'>> {
-        let sound = Sound::new_from_file(path)?;
-
-        Ok(self.push_sound(sound))
-    }
-
-    pub fn push_sound(&mut self, sound: Sound) -> AssetHandle<'S'> {
-        let index = self.sounds.len();
-        self.sounds.push(sound);
-
-        AssetHandle::from_index(index)
-    }
-
-    pub fn play(&mut self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
-        match self.get_sound(handle) {
-            Some(sound) => {
-                self.inner()
-                    .play(sound.static_data.clone())
-                    .map_err(|e| AudioError::from(e))?;
-            },
-            None => {
-                log::error!("Sound with handle {handle:?} not found!");
-            },
-        }
-
-        Ok(())
-    }
-
     pub fn new_cast(
         &mut self, 
     ) -> AudioCast {
@@ -130,6 +100,21 @@ impl AudioManager {
         AudioListener { handle }
     }
 
+    pub fn play(&mut self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
+        match self.get_sound(handle) {
+            Some(sound) => {
+                self.inner()
+                    .play(sound.static_data.clone())
+                    .map_err(|e| AudioError::from(e))?;
+            },
+            None => {
+                log::error!("Sound with handle {handle:?} not found!");
+            },
+        }
+
+        Ok(())
+    }
+
     pub fn create_sound(
         &mut self,
         path: &'static str,
@@ -138,6 +123,20 @@ impl AudioManager {
         self.sounds.push(Sound::new_from_file(path)?);
 
         Ok(AssetHandle::from_index(index))
+    }
+
+    pub fn clone_sound(
+        &mut self, 
+        handle: AssetHandle<'S'>
+    ) -> Option<AssetHandle<'S'>> {
+        if let Some(sound) = self.get_sound(handle) {
+            let index = self.sounds.len();
+            self.sounds.push(sound.clone());
+            
+            return Some(AssetHandle::from_index(index));
+        }
+
+        None
     }
 
     pub fn get_sound(&self, handle: AssetHandle<'S'>) -> Option<&Sound> {
@@ -257,4 +256,34 @@ impl<'de> Deserialize<'de> for AudioManager {
 
         deserializer.deserialize_struct("AudioManager", FIELDS, AudioManagerVisitor)
     }
+}
+
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+pub struct AudioStorage {
+    pub sounds: Vec<AssetHandle<'S'>>,
+}
+
+impl AudioStorage {
+    pub fn new() -> Self {
+        AudioStorage::default()
+    }
+}
+
+/// Creates [`AudioStorage`] like a `vec![]` of handles
+/// 
+/// # Usage example
+/// ```rust
+/// let storage = audio_storage![handle1, handle2];
+/// ```
+#[macro_export]
+macro_rules! audio_storage {
+    [ $( $handle:expr ),* ] => {
+        {
+            let mut storage = AudioStorage::new();
+            $(
+                storage.sounds.push($handle);
+            )*
+            storage
+        }
+    };
 }

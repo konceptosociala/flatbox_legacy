@@ -38,7 +38,6 @@ use {
 
 #[cfg(feature = "render")]
 use crate::{
-    assets::*,
     render::{
         renderer::Renderer,
         pbr::{
@@ -53,6 +52,7 @@ use crate::{
     },
 };
 
+use crate::assets::*;
 use crate::audio::*;
 use crate::time::*;
 use crate::ecs::*;
@@ -72,9 +72,19 @@ pub fn time_system(
 }
 
 pub fn processing_audio(
+    storage_world: SubWorld<(&AudioStorage, &AudioCast)>,
     cast_world: SubWorld<(&Transform, &mut AudioCast)>,
-    listener_world: SubWorld<(&Transform, &mut AudioListener)>
+    listener_world: SubWorld<(&Transform, &mut AudioListener)>,
+    mut asset_manager: Write<AssetManager>,
 ) -> SonjaResult<()> {
+    for (_, (storage, cast)) in &mut storage_world.query::<(&AudioStorage, &AudioCast)>(){
+        for handle in &storage.sounds {
+            if let Some(sound) = asset_manager.audio.get_sound_mut(handle.clone()){
+                sound.set_cast(&cast);
+            }
+        }
+    }
+
     for (_, (t, mut c)) in &mut cast_world.query::<(&Transform, &mut AudioCast)>(){
         c.set_transform(&t)?;
     }
@@ -121,7 +131,6 @@ pub fn generate_textures(
 ) -> SonjaResult<()> {
     for texture in &mut asset_manager.textures {
         if texture.vk_image.is_none() {
-            log::debug!("Generating texture `{}`...", texture.path.display());
             texture.generate(&mut renderer)?;
         }
     }

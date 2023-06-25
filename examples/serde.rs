@@ -38,10 +38,9 @@ fn setup(
     mut cmd: Write<CommandBuffer>,
 ) -> SonjaResult<()> {
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
-    let model = Model::new("assets/models/model.obj")?;
     
     cmd.spawn(ModelBundle {
-        model,
+        model: Model::new("assets/models/model.obj")?,
         material: asset_manager.create_material(
             DefaultMat::builder()
                 .albedo(texture_id)
@@ -52,11 +51,10 @@ fn setup(
         transform: Transform::default(),
     });
     
-    cmd.spawn(CameraBundle{
-        camera: 
-            Camera::builder()
-                .is_active(true)
-                .build(),
+    cmd.spawn(CameraBundle {
+        camera: Camera::builder()
+            .is_active(true)
+            .build(),
         transform: Transform::from_translation(Vector3::new(0.0, 0.0, 5.0)),
     });
 
@@ -81,7 +79,7 @@ fn gui_system(
     if let Some(ctx) = gui_events.read() {
         
         gui::SidePanel::left("my_panel").show(&ctx, |ui| {
-            ui.label("World (de-)serialization test");
+            ui.label("Saving/Loading test");
             
             let mut ws = WorldSaver::new();
             
@@ -94,8 +92,7 @@ fn gui_system(
                 ).expect("Cannot save world");
             }
             
-            if ctx.input().key_pressed(gui::Key::Backspace) {
-            // if ui.button("Load world").clicked() {
+            if ui.button("Load world").clicked() {
                 let (world, assets, physics) = ws.load("assets/saves/world.tar.lz4")
                     .expect("Cannot load world");
 
@@ -125,7 +122,6 @@ fn system(
 ){
     for texture in &asset_manager.textures {
         if !texture.is_generated() {
-            debug!("Texture {} is not generated yet!", texture.path.display());
             return;
         }
     }

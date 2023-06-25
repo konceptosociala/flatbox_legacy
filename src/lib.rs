@@ -43,14 +43,14 @@ fn main(){
 fn create_model(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
-){
+) -> SonjaResult<()> {
     let texture = asset_manager.create_texture("assets/texture.jpg", Filter::Linear);
        
     cmd.spawn(ModelBundle {
-        mesh: Mesh::load_obj("assets/model.obj").swap_remove(0),
+        model: Model::new("assets/model.obj")?,
         material: asset_manager.create_material(
             DefaultMat::builder()
-                .color(Vector3::new(0.5, 0.5, 0.7).into())
+                .color(Vector3::new(0.5, 0.5, 0.7))
                 .albedo(texture)
                 .metallic(0.0)
                 .roughness(1.0)
@@ -59,7 +59,9 @@ fn create_model(
         transform: Transform::default(),
     });
 
-    info!("I run only once!");
+    debug!("I run only once!");
+
+    Ok(())
 }
 
 fn rotate_model(
@@ -69,7 +71,7 @@ fn rotate_model(
         t.rotation *= UnitQuaternion::from_axis_angle(&Unit::new_normalize(Vector3::new(0.0, 1.0, 0.0)), 0.05);
     }
 
-    info!("I run in loop!");
+    debug!("I run in loop!");
 }
  
 fn create_camera(

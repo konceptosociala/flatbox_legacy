@@ -10,29 +10,40 @@
 </p>
 
 <p align="center">
-    Rusty game engine, using API Vulkan and implementing paradigm of ECS
+    3D rusty game engine, using API Vulkan and implementing paradigm of ECS
 </p>
 
 ## WARNING
 The crate is in a very early stage of development. Use it at your own risk
 
-
 ## Features
 
-- [x] Dynamic scene saving/loading
-- [x] Save-Load system
-  - [x] ECS World
-  - [x] Resources
-- [ ] Physics 
-  - [x] Rigid bodies, colliders
-  - [ ] Joints
-  - [ ] Debug
-- [x] Egui
+### Rendering
 - [x] Screenshots
+- [x] Egui
 - [x] Custom materials
 - [ ] PBR Material `(WIP)`
+- [ ] Animation `(WIP)`
+- [ ] Model loading `(WIP)`
+  - [x] Wavefront (`.obj`)
+  - [ ] COLLADA (`.dae`)
+  - [ ] Extensible (`.x3d`)
+
+### Physics
+- [x] Rigid bodies, colliders
+- [ ] Joints
+- [ ] Debug
+
+### Misc
 - [x] Wide error handling
 - [x] Extension system
   - [x] Custom runner
   - [x] Custom event handlers
-- [x] Audio playback (2D/3D)
+- [x] Dynamic scene saving/loading
+- [x] Save-Load system
+  - [x] ECS World
+  - [x] Resources
+
+### Audio
+- [x] 2D
+- [x] 3D
