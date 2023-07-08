@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://konceptosociala.eu.org/softvaro/sonja"><img src="sonja.svg" height="156" width="156" alt="sonja"></a>
+    <a href="https://konceptosociala.eu.org/software/sonja"><img src="sonja.svg" height="156" width="156" alt="sonja"></a>
 </p>    
 
 <p align="center">
