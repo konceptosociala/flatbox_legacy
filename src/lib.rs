@@ -132,6 +132,7 @@ pub mod prelude;
 
 /// Error handler from `error` module
 pub use crate::error::Result;
+pub use log::{error, warn, info, debug, trace, log};
 
 /// Main struct representing a game engine instance with various fields and functionality
 pub struct Sonja {
@@ -160,10 +161,18 @@ pub struct Sonja {
     pub renderer: Renderer,
 }
 
+impl Default for Sonja {
+    fn default() -> Self {
+        Sonja::init(WindowBuilder::default())
+    }
+}
+
 impl Sonja {
     /// Initialize Sonja application
     pub fn init(window_builder: WindowBuilder) -> Sonja {
-        init_logger();
+        if window_builder.init_logger.unwrap_or(true) {
+            init_logger();
+        }
         
         Sonja {
             world: World::new(),
@@ -196,6 +205,16 @@ impl Sonja {
         S: 'static + System<Args, Ret> + Send,
     {
         self.setup_systems.add_system(system);
+        self
+    }
+
+    pub fn flush_setup_systems(&mut self) -> &mut Self {
+        self.setup_systems.flush();
+        self
+    }
+
+    pub fn flush_systems(&mut self) -> &mut Self {
+        self.systems.flush();
         self
     }
     
@@ -299,6 +318,8 @@ pub struct WindowBuilder {
     pub maximized: Option<bool>,
     /// Specifies whether the window should be resizable
     pub resizable: Option<bool>,
+    /// Specifies whether the logger must be initialized
+    pub init_logger: Option<bool>,
 
     // === AUDIO SETTINGS ===
     /// Maximum count of audio listeners

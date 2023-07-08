@@ -1,10 +1,10 @@
 use ash::vk;
 use nalgebra as na;
 use serde::{Serialize, Deserialize};
+use log::error;
 
 use crate::render::{
     renderer::Renderer,
-    debug::*,
 };
 
 use crate::ecs::*;
@@ -71,8 +71,10 @@ impl Camera {
         rotation_matrix *= na::Matrix4::from(transform.rotation);
         
         let mut translation = transform.translation;
-        translation.y *= -1.0;
-        let translation_matrix = na::Matrix4::identity().prepend_translation(&translation);
+        translation.x *= -1.0;
+        translation.z *= -1.0;
+
+        let translation_matrix = na::Matrix4::identity().prepend_translation(&transform.translation);
         
         let viewmatrix = {
             if self.camera_type == CameraType::FirstPerson {

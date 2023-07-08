@@ -276,7 +276,7 @@ pub fn update_models_system(
         }
     
         let mat_ptr = &**(material) as *const _ as *const u8;
-        let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&*material))};
+        let mat_slice = unsafe {std::slice::from_raw_parts(mat_ptr, size_of_val(&**(material)))};
         if let Some(buffer) = &mut mesh.instancebuffer {
             buffer.fill(
                 &logical_device,
@@ -339,12 +339,14 @@ pub fn update_lights(
 ) -> SonjaResult<()> {
     let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
         .into_iter()
-        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        // .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        .map(|(_, (l, _))| l.clone())
         .collect::<Vec<DirectionalLight>>();
     
     let point_lights = plight_world.query::<(&PointLight, Changed<PointLight>)>()
         .into_iter()
-        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        // .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        .map(|(_, (l, _))| l.clone())
         .collect::<Vec<PointLight>>();
         
     if directional_lights.is_empty() && point_lights.is_empty() {
@@ -360,7 +362,7 @@ pub fn update_lights(
     
     for dl in directional_lights {
         data.push(dl.direction.x);
-        data.push(dl.direction.y);
+        data.push(-dl.direction.y);
         data.push(dl.direction.z);
         data.push(0.0);
         data.push(dl.illuminance[0]);
@@ -370,7 +372,7 @@ pub fn update_lights(
     }
     for pl in point_lights {
         data.push(pl.position.x);
-        data.push(pl.position.y);
+        data.push(-pl.position.y);
         data.push(pl.position.z);
         data.push(0.0);
         data.push(pl.luminous_flux[0]);

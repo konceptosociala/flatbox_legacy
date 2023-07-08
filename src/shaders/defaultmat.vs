@@ -13,6 +13,8 @@ layout (location=7) in float roughness;
 layout (location=8) in uint roughness_map;
 layout (location=9) in float normal_t;
 layout (location=10) in uint normal_t_map;
+layout (location=11) in float ao;
+layout (location=12) in uint ao_map;
 
 layout (set=0, binding=0) uniform UniformBufferObject {
     mat4 view_matrix;
@@ -37,6 +39,8 @@ layout (location=8) out float out_roughness;
 layout (location=9) out uint out_roughness_map;
 layout (location=10) out float out_normal_t;
 layout (location=11) out uint out_normal_t_map;
+layout (location=12) out float out_ao;
+layout (location=13) out uint out_ao_map;
 
 void main() {
     vec4 worldpos = pc.model_matrix * vec4(position, 1.0);
@@ -58,4 +62,6 @@ void main() {
     out_roughness_map = roughness_map;
     out_normal_t = normal_t;
     out_normal_t_map = normal_t_map;
+    out_ao = ao;
+    out_ao_map = ao_map;
 }

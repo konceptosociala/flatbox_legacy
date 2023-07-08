@@ -14,13 +14,28 @@ use super::AssetHandle;
 #[cfg(feature = "render")]
 use crate::render::*;
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AssetManager {
     pub audio: AudioManager,
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
     #[cfg(feature = "render")]
     pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
+}
+
+impl Default for AssetManager {
+    fn default() -> Self {
+        AssetManager {
+            audio: AudioManager::default(),
+            #[cfg(feature = "render")]
+            textures: vec![
+                Texture::new_solid(Color::WHITE, 16, 16),
+                Texture::new_solid(Color::NORMAL, 16, 16),
+            ],
+            #[cfg(feature = "render")]
+            materials: vec![],
+        }
+    }
 }
 
 impl AssetManager {
@@ -53,11 +68,36 @@ impl AssetManager {
         path: &'static str,
         filter: Filter,
     ) -> AssetHandle<'T'> {
-        let new_texture = Texture::new_blank(
+        let new_texture = Texture::new_from_path(
             path,
             filter,
         );
         
+        let new_id = self.textures.len();
+        self.textures.push(new_texture);
+        AssetHandle(new_id)
+    }
+
+    pub fn create_solid_texture(
+        &mut self,
+        color: impl Into<Color<u8>>,
+        width: u32,
+        height: u32,
+    ) -> AssetHandle<'T'> {
+        let new_texture = Texture::new_solid(color.into(), width, height);
+        let new_id = self.textures.len();
+        self.textures.push(new_texture);
+        AssetHandle(new_id)
+    }
+
+    pub fn create_raw_texture(
+        &mut self,
+        raw_data: &[u8],
+        filter: Filter,
+        width: u32,
+        height: u32,
+    ) -> AssetHandle<'T'> {
+        let new_texture = Texture::new_from_raw(raw_data, filter, width, height);
         let new_id = self.textures.len();
         self.textures.push(new_texture);
         AssetHandle(new_id)

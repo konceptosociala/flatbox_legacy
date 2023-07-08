@@ -29,7 +29,7 @@ impl Pipeline {
         renderer: &Renderer,
         vertex_shader: &vk::ShaderModuleCreateInfo,
         fragment_shader: &vk::ShaderModuleCreateInfo,
-        instance_attributes: Vec<ShaderInputAttribute>,
+        instance_attributes: &[ShaderInputAttribute],
         instance_bytes: usize,
         topology: vk::PrimitiveTopology,
     ) -> SonjaResult<Pipeline> {

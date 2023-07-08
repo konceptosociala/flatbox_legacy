@@ -1,18 +1,19 @@
 use std::sync::Arc;
 use ash::vk;
+use log::{error, warn, debug, trace};
 
 pub struct Debug {
     loader: Arc<ash::extensions::ext::DebugUtils>,
     messenger: Arc<vk::DebugUtilsMessengerEXT>,
 }
 
-pub use log::{error, warn, info, debug, trace, log};
+use crate::error::SonjaResult;
 
 impl Debug {
     pub fn init(
         entry: &ash::Entry,
         instance: &ash::Instance,
-    ) -> Result<Debug, vk::Result> {        
+    ) -> SonjaResult<Debug> {     
         let loader = ash::extensions::ext::DebugUtils::new(&entry, &instance);
         let messenger = unsafe { loader.create_debug_utils_messenger(&Debug::init_debug_info(), None)? };
         

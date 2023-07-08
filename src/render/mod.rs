@@ -12,11 +12,12 @@ pub use debug::*;
 #[cfg(feature = "egui")]
 pub use ui::*;
 
-pub use pbr::camera::*;
-pub use pbr::model::*;
+pub use pbr::camera::{Camera, CameraBuilder, CameraBundle, CameraType};
+pub use pbr::model::{Mesh, MeshType, Model, ModelBundle, ModelBundleBuilder};
 pub use pbr::texture::*;
 pub use pbr::light::*;
 pub use pbr::material::*;
+pub use pbr::color::*;
 
 pub use backend::shader::*;
 pub use backend::pipeline::*;

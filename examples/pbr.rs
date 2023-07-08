@@ -20,35 +20,34 @@ fn main() {
         
         .add_setup_system(create_scene)
         .add_system(process_scene)
-
-        .add_system(get_material)
         
         .run();
 }
 
-fn get_material(
-    asset_manager: Read<AssetManager>,
-){
-    if let Some(mut material) = asset_manager.get_material_downcast::<DefaultMat>(AssetHandle::from_index(0)) {
-        material.color[0] += 0.01;
-    }
-}
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
 ) -> SonjaResult<()> {    
-    let diffuse = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
-    
+    let albedo = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
+    let roughness = asset_manager.create_texture("assets/textures/pbr_test/rgh.jpg", Filter::Linear);
+    let normal = asset_manager.create_texture("assets/textures/pbr_test/nrm.jpg", Filter::Linear);
+    let ao = asset_manager.create_texture("assets/textures/pbr_test/ao.jpg", Filter::Linear);
+
+    let material = asset_manager.create_material(
+        DefaultMat::builder()
+            .albedo(albedo)
+            .roughness_map(roughness)
+            .normal_map(normal)
+            .ao_map(ao)
+            .metallic(0.0)
+            .roughness(1.0)
+            .build()
+    );
+
     cmd.spawn(
         ModelBundle::builder()
             .model(Model::plane())
-            .material(asset_manager.create_material(
-                DefaultMat::builder()
-                    .albedo(diffuse)
-                    .metallic(0.0)
-                    .roughness(0.5)
-                    .build()
-            ))
+            .material(material)
             .transform(Transform::from_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(-45.0))))
             .build()
     );
@@ -71,35 +70,53 @@ fn create_scene(
             illuminance: [0.5, 0.5, 0.5],
         },
     ));
-    
-    let sky_tex = asset_manager.create_texture("assets/textures/StandardCubeMap.png", Filter::Linear);
-    
-    cmd.spawn(
-        ModelBundle::builder()
-            .model(Model::new("assets/models/skybox.obj")?)
-            .material(
-                asset_manager.create_material(
-                    DefaultMat::builder()
-                        .albedo(sky_tex)
-                        .build()
-                )
-            )
-            .transform(Transform::default())
-            .build()
-    );
+
+    cmd.spawn((
+        PointLight {
+            position: Point3::new(-1.0, 0.0, 1.0),
+            luminous_flux: [23.47, 21.31, 20.79],
+        },
+    ));
+
+    cmd.spawn((
+        PointLight {
+            position: Point3::new(1.0, 0.0, 1.0),
+            luminous_flux: [23.47, 21.31, 20.79],
+        },
+    ));
+        
+    // cmd.spawn(
+    //     ModelBundle::builder()
+    //         .model(Model::new("assets/models/skybox.obj")?)
+    //         .material(material)
+    //         .transform(Transform::default())
+    //         .build()
+    // );
 
     Ok(())
 }
 
 fn process_scene(
     camera_world: SubWorld<(&Camera, &mut CameraConfiguration, &mut Transform)>,
+    light_world: SubWorld<&mut PointLight>,
     events: Read<Events>,
     time: Read<Time>,
 ){
     let gui_events = events.get_handler::<GuiContext>().unwrap();
 
     if let Some(ctx) = gui_events.read() {
-        if let Some(current) = ctx.pointer_hover_pos() {
+        egui::SidePanel::left("my_left_panel").show(&ctx, |ui| {
+            for (e, mut light) in &mut light_world.query::<&mut PointLight>(){
+                ui.label(format!("Light {e:?}"));
+                ui.add(egui::Slider::new(&mut light.position.x, -5.0..=5.0).text("Light X"));
+                ui.add(egui::Slider::new(&mut light.position.y, -5.0..=5.0).text("Light X"));
+                ui.add(egui::Slider::new(&mut light.position.z, -5.0..=5.0).text("Light X"));
+                ui.separator();
+            }
+        });
+
+        // if let Some(current) = ctx.pointer_hover_pos() {
+        if let Some(current) = Option::<gui::Pos2>::None {
             for (_, (_, mut conf, mut t)) in &mut camera_world.query::<(&Camera, &mut CameraConfiguration, &mut Transform)>(){       
                 let (delta_x, delta_y) = {
                     if conf.latest_pos == Point2::origin() {

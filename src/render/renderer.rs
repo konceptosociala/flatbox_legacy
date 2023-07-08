@@ -239,7 +239,7 @@ impl Renderer {
         
         match std::env::var("PHYSICS_DEBUG") {
             Ok(v) => if v.as_str() == "true" { 
-                physics_handler.debug_render(self)
+                physics_handler.debug_render(self);
             },
             _ => {},
         }

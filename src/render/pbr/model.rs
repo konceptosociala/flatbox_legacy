@@ -66,7 +66,7 @@ impl Vertex {
 /// It indicates whether mesh must be created in runtime,
 /// loaded from file (or resource) or created manually
 /// with index and vertex buffers.
-#[derive(Clone, Copy, Default, Debug, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub enum MeshType {
     /// Plane mesh (textured)
     Plane,
@@ -78,7 +78,7 @@ pub enum MeshType {
     /// Refined icosphere mesh
     Sphere,
     /// Mesh which have been loaded from file or resource
-    Loaded,
+    Loaded(PathBuf),
     /// Custom model type, which neither loaded from file, nor
     /// created in runtime. Unlike other meshes it's (de-)serialized.
     /// Use it when constructing models manually
@@ -561,7 +561,6 @@ impl<'de> Deserialize<'de> for Mesh {
 #[derive(Debug, Clone, Default)]
 #[readonly::make]
 pub struct Model {
-    pub path: PathBuf,
     /// Model mesh type. It can be selected manually and is
     /// readonly during future use
     #[readonly]
@@ -592,15 +591,13 @@ impl Model {
         };
 
         Ok(Model {
-            path: path.as_ref().to_path_buf(),
-            mesh_type: MeshType::Loaded,
+            mesh_type: MeshType::Loaded(path.as_ref().to_owned()),
             mesh: Some(mesh),
         })
     }
 
     pub fn plane() -> Self {
         Model {
-            path: PathBuf::new(),
             mesh_type: MeshType::Plane,
             mesh: Some(Mesh::plane()),
         }
@@ -608,7 +605,6 @@ impl Model {
 
     pub fn cube() -> Self {
         Model {
-            path: PathBuf::new(),
             mesh_type: MeshType::Cube,
             mesh: Some(Mesh::cube()),
         }
@@ -616,7 +612,6 @@ impl Model {
 
     pub fn icosahedron() -> Self {
         Model {
-            path: PathBuf::new(),
             mesh_type: MeshType::Icosahedron,
             mesh: Some(Mesh::icosahedron()),
         }
@@ -624,7 +619,6 @@ impl Model {
 
     pub fn sphere() -> Self {
         Model {
-            path: PathBuf::new(),
             mesh_type: MeshType::Sphere,
             mesh: Some(Mesh::sphere()),
         }
@@ -636,8 +630,7 @@ impl Serialize for Model {
     where
         S: Serializer,
     {
-        let mut model = serializer.serialize_struct("Model", 3)?;
-        model.serialize_field("path", &self.path)?;
+        let mut model = serializer.serialize_struct("Model", 2)?;
         model.serialize_field("mesh_type", &self.mesh_type)?;
 
         match self.mesh_type {
@@ -661,7 +654,6 @@ impl<'de> Deserialize<'de> for Model {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "snake_case")]
         enum ModelField { 
-            Path,
             MeshType,
             Mesh,
         }
@@ -679,25 +671,23 @@ impl<'de> Deserialize<'de> for Model {
             where
                 V: SeqAccess<'de>,
             {
-                let path: PathBuf = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
-                let mesh_type: MeshType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                let mesh_type: MeshType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
 
                 let mesh = match mesh_type {
                     MeshType::Cube => { Some(Mesh::cube()) },
                     MeshType::Icosahedron => { Some(Mesh::icosahedron()) },
                     MeshType::Sphere => { Some(Mesh::sphere()) },
                     MeshType::Plane => { Some(Mesh::plane()) },
-                    MeshType::Loaded => {
+                    MeshType::Loaded(path) => {
                         return Ok(Model::new(path)
                             .expect("Cannot load deserialized model from path"));
                     },
                     MeshType::Generic => { 
-                        seq.next_element()?.ok_or_else(|| DeError::invalid_length(2, &self))? 
+                        seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))? 
                     },
                 };
 
                 Ok(Model {
-                    path,
                     mesh_type,
                     mesh,
                 })
@@ -707,18 +697,11 @@ impl<'de> Deserialize<'de> for Model {
             where
                 V: MapAccess<'de>,
             {
-                let mut path: Option<PathBuf> = None;
                 let mut mesh_type: Option<MeshType> = None;
                 let mut mesh: Option<Option<Mesh>> = None;
 
                 while let Some(key) = map.next_key()? {
                     match key {
-                        ModelField::Path => {
-                            if path.is_some() {
-                                return Err(DeError::duplicate_field("path"));
-                            }
-                            path = Some(map.next_value()?);
-                        },
                         ModelField::MeshType => {
                             if mesh_type.is_some() {
                                 return Err(DeError::duplicate_field("mesh_type"));
@@ -734,7 +717,6 @@ impl<'de> Deserialize<'de> for Model {
                     }
                 }
 
-                let path = path.ok_or_else(|| DeError::missing_field("path"))?;
                 let mesh_type = mesh_type.ok_or_else(|| DeError::missing_field("mesh_type"))?;
 
                 let mesh = match mesh_type {
@@ -742,7 +724,7 @@ impl<'de> Deserialize<'de> for Model {
                     MeshType::Icosahedron => { Some(Mesh::icosahedron()) },
                     MeshType::Sphere => { Some(Mesh::sphere()) },
                     MeshType::Plane => { Some(Mesh::plane()) },
-                    MeshType::Loaded => {
+                    MeshType::Loaded(path) => {
                         return Ok(Model::new(path)
                             .expect("Cannot load deserialized model from path"));
                     },
@@ -752,7 +734,6 @@ impl<'de> Deserialize<'de> for Model {
                 };
 
                 Ok(Model {
-                    path,
                     mesh_type,
                     mesh,
                 })
@@ -760,7 +741,6 @@ impl<'de> Deserialize<'de> for Model {
         }
 
         const FIELDS: &'static [&'static str] = &[
-            "path", 
             "mesh_type",
             "mesh"
         ];

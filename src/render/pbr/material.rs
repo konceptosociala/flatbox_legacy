@@ -33,6 +33,8 @@ pub struct DefaultMat {
     pub roughness_map: u32,
     pub normal: f32,
     pub normal_map: u32,
+    pub ao: f32,
+    pub ao_map: u32,
 }
 
 impl DefaultMat {
@@ -56,6 +58,8 @@ impl Default for DefaultMat {
             roughness_map: 0,
             normal: 1.0,
             normal_map: 0,
+            ao: 1.0,
+            ao_map: 0,
         }
     }
 }
@@ -112,17 +116,29 @@ impl Material for DefaultMat {
                 offset: 36,
                 format: vk::Format::R8G8B8A8_UINT,
             },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 11,
+                offset: 40,
+                format: vk::Format::R32_SFLOAT,
+            },
+            ShaderInputAttribute{
+                binding: 1,
+                location: 12,
+                offset: 44,
+                format: vk::Format::R8G8B8A8_UINT,
+            },
         ];
         
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/vertex_combined.glsl", 
+                "./src/shaders/defaultmat.vs", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/fragment_combined.glsl",
+                "./src/shaders/defaultmat.fs",
                 kind: frag,
             ));
         
@@ -130,35 +146,39 @@ impl Material for DefaultMat {
             &renderer,
             &vertex_shader,
             &fragment_shader,
-            instance_attributes,
-            40,
+            &instance_attributes,
+            48,
             vk::PrimitiveTopology::TRIANGLE_LIST,
         ).expect("Cannot create pipeline")
     }
 }
 
 pub struct DefaultMatBuilder {
-    pub color: [f32; 3],
-    pub albedo: AssetHandle<'T'>,
-    pub metallic: f32,
-    pub metallic_map: AssetHandle<'T'>,
-    pub roughness: f32,
-    pub roughness_map: AssetHandle<'T'>,
-    pub normal: f32,
-    pub normal_map: AssetHandle<'T'>,
+    color: [f32; 3],
+    albedo: AssetHandle<'T'>,
+    metallic: f32,
+    metallic_map: AssetHandle<'T'>,
+    roughness: f32,
+    roughness_map: AssetHandle<'T'>,
+    normal: f32,
+    normal_map: AssetHandle<'T'>,
+    ao: f32,
+    ao_map: AssetHandle<'T'>,
 }
 
 impl DefaultMatBuilder {
     pub fn new() -> Self {
         DefaultMatBuilder {
             color: [1.0, 1.0, 1.0],
-            albedo: AssetHandle::new(),
+            albedo: AssetHandle::BUILTIN_ALBEDO,
             metallic: 0.5,
-            metallic_map: AssetHandle::new(),
+            metallic_map: AssetHandle::BUILTIN_METALLIC,
             roughness: 0.5,
-            roughness_map: AssetHandle::new(),
+            roughness_map: AssetHandle::BUILTIN_ROUGHNESS,
             normal: 1.0,
-            normal_map: AssetHandle::new(),
+            normal_map: AssetHandle::BUILTIN_NORMAL,
+            ao: 1.0,
+            ao_map: AssetHandle::BUILTIN_AO,
         }
     }
     
@@ -201,6 +221,16 @@ impl DefaultMatBuilder {
         self.normal_map = handle;
         self
     }
+
+    pub fn ao(mut self, value: f32) -> Self {
+        self.ao = value;
+        self
+    }
+
+    pub fn ao_map(mut self, handle: AssetHandle<'T'>) -> Self {
+        self.ao_map = handle;
+        self
+    }
     
     pub fn build(self) -> DefaultMat {
         DefaultMat {
@@ -212,6 +242,8 @@ impl DefaultMatBuilder {
             roughness_map: self.roughness_map.into(),
             normal: self.normal,
             normal_map: self.normal_map.into(),
+            ao: self.ao,
+            ao_map: self.ao_map.into(),
         }
     }
 }

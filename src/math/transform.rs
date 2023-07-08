@@ -35,7 +35,7 @@ impl Transform {
         let new_matrix = 
             Matrix4::new_translation(&Vector3::new(
                 self.translation.x,
-                self.translation.y,
+                -self.translation.y,
                 self.translation.z,
             ))
             * Matrix4::from(self.rotation)

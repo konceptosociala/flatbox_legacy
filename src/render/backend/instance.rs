@@ -3,8 +3,11 @@
 use std::mem::ManuallyDrop;
 use std::ffi::CString;
 use ash::vk;
-use crate::render::{
-    debug::Debug,
+use crate::{
+    render::{
+        debug::Debug,
+    }, 
+    error::SonjaResult
 };
 
 /// Structure controlling Vulkan instance and physical device
@@ -19,7 +22,7 @@ pub struct Instance {
 
 impl Instance {
     /// Initialize main [`Instance`]
-    pub fn init() -> Result<Instance, vk::Result> {
+    pub fn init() -> SonjaResult<Instance> {
         let entry = unsafe { ash::Entry::load().expect("Cannot create entry") };        
         
         let layer_names_c: Vec<std::ffi::CString> = vec!["VK_LAYER_KHRONOS_validation"]

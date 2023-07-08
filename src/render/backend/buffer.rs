@@ -64,7 +64,7 @@ impl Buffer {
         data: &[T],
     ) -> Result<(), vk::Result> {
         let bytes_to_write = (data.len() * size_of::<T>()) as u64;
-        if bytes_to_write > self.size_in_bytes {            
+        if bytes_to_write > self.size_in_bytes {    
             let mut alloc: Option<Allocation> = None;
             std::mem::swap(&mut alloc, &mut self.allocation);
             let alloc = alloc.unwrap();

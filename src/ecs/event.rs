@@ -47,7 +47,11 @@ impl<E: Event> Default for EventHandler<E> {
 }
 
 pub trait GenericEventHandler: AsAny + Send + Sync + 'static {}
-impl<E: Event> GenericEventHandler for EventHandler<E> {}
+impl<E: Event> GenericEventHandler for EventHandler<E> {} 
+// TODO: Extend `GenericEventHandler` trait:
+// - fn send<E: Event>(&mut self, event: E)
+// - fn clear(&mut self)
+// - fn read(&self) -> Option<E>
 
 #[derive(Default)]
 pub struct Events {

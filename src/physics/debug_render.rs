@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 use ash::vk;
+use nalgebra as na;
 use rapier3d::prelude::*;
 use gpu_allocator::*;
 use gpu_allocator::vulkan::*;
@@ -34,13 +35,13 @@ impl DebugRenderer { // TODO: Fix physics debug renderer
     ) -> SonjaResult<Self> {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/vertex_debug.glsl", 
+                "./src/shaders/debug.vs", 
                 kind: vert,
             ));
         
         let fragment_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/fragment_debug.glsl",
+                "./src/shaders/debug.fs",
                 kind: frag,
             ));
             
@@ -130,11 +131,27 @@ impl DebugRenderer { // TODO: Fix physics debug renderer
 impl DebugRenderBackend for Renderer {
     fn draw_line(
         &mut self,
-        _object: DebugRenderObject<'_>,
+        object: DebugRenderObject<'_>,
         a: Point<f32>,
         b: Point<f32>,
         color: [f32; 4]
     ){        
+        let transform_matrix = {
+            match object {
+                DebugRenderObject::Collider(_, col) => {
+                    na::Matrix4::new_translation(&na::Vector3::new(
+                        col.translation().x,
+                        -col.translation().y,
+                        col.translation().z,
+                    ))
+                    * na::Matrix4::from(*col.rotation())
+                },
+                _ => return (),
+            }
+        };
+
+        let inverse_transform_matrix = transform_matrix.clone().try_inverse().unwrap();
+
         let vertexdata: [[f32; 3]; 2] = [a.into(), b.into()];
         
         self.debug_renderer.vertexbuffer.fill(
@@ -168,6 +185,18 @@ impl DebugRenderBackend for Renderer {
                 1,
                 &[self.debug_renderer.instancebuffer.buffer],
                 &[0],
+            );
+
+            let transform_matrices = [transform_matrix, inverse_transform_matrix];
+            let transform_ptr = &transform_matrices as *const _ as *const u8;
+            let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
+            
+            self.device.cmd_push_constants(
+                self.commandbuffer_pools.current_commandbuffer.unwrap(),
+                self.descriptor_pool.pipeline_layout,
+                vk::ShaderStageFlags::VERTEX,
+                0,
+                transform_slice,
             );
             
             self.device.cmd_draw(

@@ -1,6 +1,15 @@
-use std::path::PathBuf;
-
-use serde::{Serialize, Deserialize};
+use std::path::{Path, PathBuf};
+use std::fmt;
+use image::RgbaImage;
+use serde::{
+    Serialize, 
+    Deserialize,
+    Serializer, 
+    Deserializer, 
+    de::*,
+    de::Error as DeError,
+    ser::SerializeStruct,
+};
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use ash::vk;
@@ -8,9 +17,10 @@ use ash::vk;
 use crate::render::{
     backend::buffer::Buffer,
     renderer::Renderer,
+    pbr::color::Color,
 };
 
-use crate::error::*;
+use crate::error::SonjaResult;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum Filter {
@@ -30,50 +40,233 @@ impl From<Filter> for vk::Filter {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename = "RawImage")]
+pub struct SerializeRawImage {
+    pub width: u32,
+    pub height: u32,
+    pub buffer: Vec<u8>,
+}
+
+impl From<SerializeRawImage> for RgbaImage {
+    fn from(image: SerializeRawImage) -> Self {
+        RgbaImage::from_raw(image.width, image.height, image.buffer.into()).unwrap()
+    }
+}
+
+impl From<RgbaImage> for SerializeRawImage {
+    fn from(image: RgbaImage) -> Self {
+        SerializeRawImage {
+            width: image.width(),
+            height: image.height(),
+            buffer: image.into_raw(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TextureType {
+    Color(Color<u8>, u32, u32),
+    Loaded(PathBuf),
+    Generic,
+}
+
+#[readonly::make]
 pub struct Texture {
-    pub path: PathBuf,
+    /// Texture type type. It can be selected manually and is
+    /// readonly during future use
+    #[readonly]
+    pub texture_type: TextureType,
+    /// Image processing filter. In most cases you need `Linear` 
+    /// for smooth textures and `Nearest` for pixelized
     pub filter: Filter,
-    
     // Raw image data
-    #[serde(skip_serializing, skip_deserializing)]
-    pub(crate) image: Option<image::RgbaImage>,
-    
-    // Vulkan image data
-    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) image: Option<RgbaImage>,
+    /// Vulkan image data
     pub(crate) vk_image: Option<vk::Image>,
-    
-    // Data allocation
-    #[serde(skip_serializing, skip_deserializing)]
+    /// Image allocation
     pub(crate) image_allocation: Option<Allocation>,
-    
-    // Vulkan image view
-    #[serde(skip_serializing, skip_deserializing)]
-    pub(crate) imageview: Option<vk::ImageView>,
-    
-    // Vulkan sampler
-    #[serde(skip_serializing, skip_deserializing)]
+    /// Vulkan image view
+    pub(crate) imageview: Option<vk::ImageView>,    
+    /// Vulkan sampler
     pub(crate) sampler: Option<vk::Sampler>,
+}
+
+impl Default for Texture {
+    fn default() -> Self {
+        Texture::new_solid(Color::grayscale(255), 512, 512)
+    }
 }
 
 impl std::fmt::Debug for Texture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Texture")
-            .field("path", &self.path)
+            .field("texture_type", &self.texture_type)
             .field("filter", &self.filter)
             .finish()
     }
 }
 
+impl Serialize for Texture {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer,
+    {
+        let mut texture = serializer.serialize_struct("Texture", 3)?;
+        texture.serialize_field("texture_type", &self.texture_type)?;
+        texture.serialize_field("filter", &self.filter)?;
+
+        match self.texture_type {
+            TextureType::Generic => {
+                texture.serialize_field("raw_image", &Some(SerializeRawImage::from(self.image.clone().unwrap())))?;
+            },
+            _ => {
+                texture.serialize_field("raw_image", &Option::<SerializeRawImage>::None)?;
+            }
+        }
+
+        texture.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Texture {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "snake_case")]
+        enum TextureField { 
+            TextureType,
+            Filter,
+            RawImage,
+        }
+
+        struct TextureVisitor;
+
+        impl<'de> Visitor<'de> for TextureVisitor {
+            type Value = Texture;
+            
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Texture")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Texture, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let texture_type: TextureType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
+                let filter: Filter = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+
+                let raw_image = match texture_type {
+                    TextureType::Loaded(ref path) => {
+                        Texture::create_from_path(path)
+                    },
+                    TextureType::Color(color, width, height) => {
+                        Texture::create_from_color(width, height, color)
+                    },
+                    TextureType::Generic => {
+                        let raw_image: Option<SerializeRawImage> = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                        if let Some(image) = raw_image {
+                            RgbaImage::from(image)
+                        } else {
+                            log::error!("Error loading texture: generic texture is empty");
+                            Texture::no_image_internal()
+                        }
+                    },
+                };
+
+                Ok(Texture {
+                    texture_type,
+                    filter,
+                    image: Some(raw_image),
+                    vk_image: None,
+                    image_allocation: None,
+                    imageview: None,
+                    sampler: None,
+                })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Texture, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut texture_type: Option<TextureType> = None;
+                let mut filter: Option<Filter> = None;
+                let mut raw_image: Option<Option<SerializeRawImage>> = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        TextureField::TextureType => {
+                            if texture_type.is_some() {
+                                return Err(DeError::duplicate_field("texture_type"));
+                            }
+                            texture_type = Some(map.next_value()?);
+                        },
+                        TextureField::Filter => {
+                            if filter.is_some() {
+                                return Err(DeError::duplicate_field("filter"));
+                            }
+                            filter = Some(map.next_value()?);
+                        },
+                        TextureField::RawImage => {
+                            if raw_image.is_some() {
+                                return Err(DeError::duplicate_field("raw_image"));
+                            }
+                            raw_image = Some(map.next_value()?);
+                        },
+                    }
+                }
+
+                let texture_type = texture_type.ok_or_else(|| DeError::missing_field("texture_type"))?;
+                let filter = filter.ok_or_else(|| DeError::missing_field("filter"))?;
+
+                let raw_image = match texture_type {
+                    TextureType::Loaded(ref path) => {
+                        Texture::create_from_path(path)
+                    },
+                    TextureType::Color(color, width, height) => {
+                        Texture::create_from_color(width, height, color)
+                    },
+                    TextureType::Generic => {
+                        let raw_image: Option<SerializeRawImage> = raw_image.ok_or_else(|| DeError::missing_field("raw_image"))?;
+                        if let Some(image) = raw_image {
+                            RgbaImage::from(image)
+                        } else {
+                            log::error!("Error loading texture: generic texture is empty");
+                            Texture::no_image_internal()
+                        }
+                    },
+                };
+
+                Ok(Texture {
+                    texture_type,
+                    filter,
+                    image: Some(raw_image),
+                    vk_image: None,
+                    image_allocation: None,
+                    imageview: None,
+                    sampler: None,
+                })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &[
+            "texture_type",
+            "filter",
+            "raw_image"
+        ];
+        deserializer.deserialize_struct("Texture", FIELDS, TextureVisitor)
+    }
+}
+
 impl Texture {
     /// Create empty texture with given `filter` and `path`. Requires [`generate`](#method.generate) method applied to it to load the texture to memory
-    pub fn new_blank(
+    pub fn new_from_path(
         path: &'static str, 
         filter: Filter,
     ) -> Self {
         Texture {
-            path: path.into(),
+            texture_type: TextureType::Loaded(path.into()),
             filter,
             image: None,
             vk_image: None,
@@ -82,24 +275,100 @@ impl Texture {
             sampler: None,
         }
     }
+
+    pub fn new_from_raw(
+        raw_data: &[u8],
+        filter: Filter,
+        width: u32,
+        height: u32,
+    ) -> Self {
+        Texture { 
+            texture_type: TextureType::Generic,
+            filter, 
+            image: Some(RgbaImage::from_raw(width, height, raw_data.into())
+                .unwrap_or(Texture::no_image_internal())), 
+            vk_image: None, 
+            image_allocation: None, 
+            imageview: None, 
+            sampler: None
+        }
+    }
+
+    pub fn new_solid(
+        color: impl Into<Color<u8>>,
+        width: u32,
+        height: u32,
+    ) -> Self {
+        let color: Color<u8> = color.into();
+        let image = Some(Texture::create_from_color(width, height, color));
+
+        Texture { 
+            texture_type: TextureType::Color(color, width, height),
+            filter: Filter::Nearest, 
+            image, 
+            vk_image: None, 
+            image_allocation: None, 
+            imageview: None, 
+            sampler: None
+        }
+    }
     
     /// Create texture from file and load it to memory
-    pub fn new_from_file(
+    pub fn new_generated(
         path: &'static str, 
         filter: Filter,
         renderer: &mut Renderer
     ) -> SonjaResult<Self> {
-        let mut texture = Texture::new_blank(path, filter);
+        let mut texture = Texture::new_from_path(path, filter);
         texture.generate(renderer)?;
         
         Ok(texture)
     }
 
+    pub fn no_image() -> Self {
+        Texture {
+            texture_type: TextureType::Generic,
+            filter: Filter::Nearest,
+            image: Some(Texture::no_image_internal()),
+            vk_image: None,
+            image_allocation: None,
+            imageview: None,
+            sampler: None,
+        }
+    }
+
+    pub fn no_image_blurry() -> Self {
+        Texture {
+            texture_type: TextureType::Generic,
+            filter: Filter::Linear,
+            image: Some(Texture::no_image_internal()),
+            vk_image: None,
+            image_allocation: None,
+            imageview: None,
+            sampler: None,
+        }
+    }
+
     /// Generate texture rendering data for blank texture
     pub fn generate(&mut self, renderer: &mut Renderer) -> SonjaResult<()> {
-        let image = image::open(self.path.clone())
-            .map(|img| img.to_rgba8())
-            .expect("unable to open image");
+        let image = {
+            if let Some(ref image) = self.image {
+                image.clone()
+            } else {
+                match self.texture_type {
+                    TextureType::Color(color, width, height) => {
+                        Texture::create_from_color(width, height, color)
+                    },
+                    TextureType::Loaded(ref path) => {
+                        Texture::create_from_path(path)
+                    },
+                    TextureType::Generic => {
+                        log::error!("Error loading texture: generic texture is empty");
+                        Texture::no_image_internal()
+                    },
+                }
+            }
+        };
         
         self.generate_from(renderer, image)?;
         
@@ -117,7 +386,7 @@ impl Texture {
     pub(crate) fn generate_from(
         &mut self, 
         renderer: &mut Renderer,
-        image: image::RgbaImage,
+        image: RgbaImage,
     ) -> SonjaResult<()>{
         let raw_filter: vk::Filter = self.filter.clone().into();
             
@@ -331,6 +600,34 @@ impl Texture {
         self.sampler = Some(sampler);
 
         Ok(())
+    }
+
+    fn create_from_color(
+        width: u32, 
+        height: u32,
+        color: Color<u8>
+    ) -> RgbaImage {
+        RgbaImage::from_pixel(width, height, image::Rgba(color.into()))
+    }
+
+    fn create_from_path(
+        path: impl AsRef<Path>,
+    ) -> RgbaImage {
+        image::open(path.as_ref().clone())
+            .map(|img| img.to_rgba8())
+            .unwrap_or_else(|_|{
+                log::error!("Error loading texture: path '{}' not found", path.as_ref().display());
+                Texture::no_image_internal()
+            })
+    }
+
+    fn no_image_internal() -> RgbaImage {
+        RgbaImage::from_raw(2, 2, vec![
+            0, 0, 0, 255,
+            255, 0, 255, 255,
+            255, 0, 255, 255,
+            0, 0, 0, 255,
+        ]).unwrap()
     }
     
     pub fn cleanup(&mut self, renderer: &mut Renderer) {

@@ -43,6 +43,15 @@ impl<const TYPE: char> AssetHandle<TYPE> {
     }
 }
 
+#[cfg(feature = "render")]
+impl AssetHandle<'T'> {
+    pub const BUILTIN_ALBEDO: AssetHandle::<'T'> = AssetHandle(0);
+    pub const BUILTIN_ROUGHNESS: AssetHandle::<'T'> = AssetHandle(0);
+    pub const BUILTIN_METALLIC: AssetHandle::<'T'> = AssetHandle(0);
+    pub const BUILTIN_AO: AssetHandle::<'T'> = AssetHandle(0);
+    pub const BUILTIN_NORMAL: AssetHandle::<'T'> = AssetHandle(1);
+}
+
 impl<const TYPE: char> From<AssetHandle<TYPE>> for u32 {
     fn from(value: AssetHandle<TYPE>) -> Self {
         value.unwrap() as u32

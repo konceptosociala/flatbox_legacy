@@ -68,7 +68,7 @@ pub fn default_runner(sonja: &mut Sonja) {
                 &mut sonja.asset_manager,
             )).expect("Cannot execute loop schedule");
             
-            sonja.world.clear_trackers();
+            sonja.world.clear_trackers(); // TODO: Clear all events (krom GUI)
         }
         
         _ => {}
