@@ -9,11 +9,9 @@ use winit::{
         WindowBuilder as WinitWindowBuilder,
     },
 };
-use crate::render::{
-    backend::{
-        instance::Instance,
-        surface::Surface,
-    },
+use crate::render::backend::{
+    instance::Instance,
+    surface::Surface,
 };
 use crate::WindowBuilder;
 

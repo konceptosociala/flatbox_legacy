@@ -3,9 +3,7 @@ use nalgebra as na;
 use serde::{Serialize, Deserialize};
 use log::error;
 
-use crate::render::{
-    renderer::Renderer,
-};
+use crate::render::renderer::Renderer;
 
 use crate::ecs::*;
 use crate::math::transform::Transform;

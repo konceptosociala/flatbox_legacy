@@ -86,21 +86,21 @@ fn ui_system(
 
         if ctx.input().key_pressed(gui::Key::Num1) {
             for (_, handle) in &mut model_world.query::<With<&AssetHandle<'M'>, (&Model, &Transform)>>(){
-                let mut material = assets.get_material_downcast::<DefaultMat>(*handle).unwrap();
+                let mut material = assets.get_material_downcast_mut::<DefaultMat>(*handle).unwrap();
                 material.albedo = switcher.first.into();
             }
         }
 
         if ctx.input().key_pressed(gui::Key::Num2) {
             for (_, handle) in &mut model_world.query::<With<&AssetHandle<'M'>, (&Model, &Transform)>>(){
-                let mut material = assets.get_material_downcast::<DefaultMat>(*handle).unwrap();
+                let mut material = assets.get_material_downcast_mut::<DefaultMat>(*handle).unwrap();
                 material.albedo = switcher.second.into();
             }
         }
 
         if ctx.input().key_pressed(gui::Key::Num3) {
             for (_, handle) in &mut model_world.query::<With<&AssetHandle<'M'>, &Model>>(){
-                let mut material = assets.get_material_downcast::<DefaultMat>(*handle).unwrap();
+                let mut material = assets.get_material_downcast_mut::<DefaultMat>(*handle).unwrap();
                 material.albedo = switcher.third.into();
             }
         }

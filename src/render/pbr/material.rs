@@ -2,7 +2,7 @@ use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use as_any::AsAny;
 use ash::vk;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 
 use crate::assets::AssetHandle;
 use crate::render::{
@@ -249,5 +249,5 @@ impl DefaultMatBuilder {
 }
 
 pub struct CachedMaterials {
-    pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
+    pub materials: Vec<Arc<RwLock<Box<dyn Material>>>>,
 }

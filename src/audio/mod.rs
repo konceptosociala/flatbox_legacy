@@ -100,7 +100,7 @@ impl AudioManager {
         AudioListener { handle }
     }
 
-    pub fn play(&mut self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
+    pub fn play(&self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
         match self.get_sound(handle) {
             Some(sound) => {
                 self.inner()

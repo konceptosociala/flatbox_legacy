@@ -7,11 +7,8 @@ use ash::Device;
 use gpu_allocator::vulkan::*;
 use gpu_allocator::MemoryLocation;
 use nalgebra as na;
-use winit::{
-    window::{
-        Window as WinitWindow
-    },
-};
+use winit::window::Window as WinitWindow;
+
 #[cfg(feature = "egui")]
 use egui_winit_ash_integration::*;
 

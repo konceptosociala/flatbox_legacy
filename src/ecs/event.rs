@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::any::TypeId;
 use std::sync::Arc;
 
-use parking_lot::{Mutex, MutexGuard, MappedMutexGuard};
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard, MappedRwLockReadGuard, MappedRwLockWriteGuard};
 use as_any::AsAny;
 
 /// App exit event. When it's sent, application makes close request
@@ -55,7 +55,7 @@ impl<E: Event> GenericEventHandler for EventHandler<E> {}
 
 #[derive(Default)]
 pub struct Events {
-    storage: HashMap<TypeId, Arc<Mutex<dyn GenericEventHandler>>>,
+    storage: HashMap<TypeId, Arc<RwLock<dyn GenericEventHandler>>>,
 }
 
 impl Events {
@@ -63,10 +63,29 @@ impl Events {
         Events::default()
     }
 
-    pub fn get_handler<E: Event>(&self) -> Option<MappedMutexGuard<EventHandler<E>>> { 
+    pub fn get_handler<E: Event>(&self) -> Option<MappedRwLockReadGuard<EventHandler<E>>> { 
         if let Some(handler) = self.storage.get(&TypeId::of::<EventHandler<E>>()){
-            let data = handler.lock();
-            return MutexGuard::try_map(data, |data| {
+            let data = match handler.try_read() {
+                Some(data) => data,
+                None => return None,
+            };
+
+            return RwLockReadGuard::try_map(data, |data| {
+                data.as_any().downcast_ref::<EventHandler<E>>()
+            }).ok() 
+        }
+
+        None
+    }
+
+    pub fn get_handler_mut<E: Event>(&self) -> Option<MappedRwLockWriteGuard<EventHandler<E>>> { 
+        if let Some(handler) = self.storage.get(&TypeId::of::<EventHandler<E>>()){
+            let data = match handler.try_write() {
+                Some(data) => data,
+                None => return None,
+            };
+
+            return RwLockWriteGuard::try_map(data, |data| {
                 data.as_any_mut().downcast_mut::<EventHandler<E>>()
             }).ok() 
         }
@@ -81,7 +100,7 @@ impl Events {
         if self.storage.contains_key(&TypeId::of::<H>()) {
             log::error!("Event handler '{}' is already pushed!", std::any::type_name::<H>());
         } else {
-            self.storage.insert(TypeId::of::<H>(), Arc::new(Mutex::new(handler)));
+            self.storage.insert(TypeId::of::<H>(), Arc::new(RwLock::new(handler)));
         }
     }
 }

@@ -1,9 +1,10 @@
+use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 use serde::{Serialize, Deserialize};
 
 #[cfg(feature = "render")]
 use std::sync::Arc;
 #[cfg(feature = "render")]
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::{RwLock, MappedRwLockReadGuard, MappedRwLockWriteGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
@@ -20,7 +21,7 @@ pub struct AssetManager {
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
     #[cfg(feature = "render")]
-    pub materials: Vec<Arc<Mutex<Box<dyn Material>>>>,
+    pub materials: Vec<Arc<RwLock<Box<dyn Material>>>>,
 }
 
 impl Default for AssetManager {
@@ -108,7 +109,7 @@ impl AssetManager {
         material: M,
     ) -> AssetHandle<'M'> {
         let index = self.materials.len();
-        self.materials.push(Arc::new(Mutex::new(Box::new(material))));
+        self.materials.push(Arc::new(RwLock::new(Box::new(material))));
         AssetHandle(index)
     }
     
@@ -120,18 +121,45 @@ impl AssetManager {
         self.textures.get_mut(handle.0)
     }
 
-    pub fn get_material(&self, handle: AssetHandle<'M'>) -> Option<MutexGuard<Box<dyn Material>>> {
+    pub fn get_material(&self, handle: AssetHandle<'M'>) -> Option<RwLockReadGuard<Box<dyn Material>>> {
         if let Some(material) = self.materials.get(handle.0) {
-            return Some(material.lock());  
+            return material.try_read();  
+        }
+
+        None
+    }
+
+    pub fn get_material_mut(&self, handle: AssetHandle<'M'>) -> Option<RwLockWriteGuard<Box<dyn Material>>> {
+        if let Some(material) = self.materials.get(handle.0) {
+            return material.try_write();  
         }
 
         None
     }
     
-    pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle<'M'>) -> Option<MappedMutexGuard<M>> {
+    pub fn get_material_downcast<M: Material>(&self, handle: AssetHandle<'M'>) -> Option<MappedRwLockReadGuard<M>> {
         if let Some(material) = self.materials.get(handle.0) {
-            let data = material.lock();
-            return MutexGuard::try_map(data, |data| {
+            let data = match material.try_read() {
+                Some(data) => data,
+                None => return None,
+            };
+            
+            return RwLockReadGuard::try_map(data, |data| {
+                data.as_any().downcast_ref::<M>()
+            }).ok()            
+        }
+
+        None
+    }
+
+    pub fn get_material_downcast_mut<M: Material>(&self, handle: AssetHandle<'M'>) -> Option<MappedRwLockWriteGuard<M>> {
+        if let Some(material) = self.materials.get(handle.0) {
+            let data = match material.try_write() {
+                Some(data) => data,
+                None => return None,
+            };
+            
+            return RwLockWriteGuard::try_map(data, |data| {
                 data.as_any_mut().downcast_mut::<M>()
             }).ok()            
         }

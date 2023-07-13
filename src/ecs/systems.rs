@@ -37,18 +37,16 @@ use {
 };
 
 #[cfg(feature = "render")]
-use crate::{
-    render::{
-        renderer::Renderer,
-        pbr::{
-            camera::Camera,
-            model::*,
-            light::*,
-        },
-        backend::{
-            buffer::Buffer,
-            swapchain::Swapchain,
-        },
+use crate::render::{
+    renderer::Renderer,
+    pbr::{
+        camera::Camera,
+        model::*,
+        light::*,
+    },
+    backend::{
+        buffer::Buffer,
+        swapchain::Swapchain,
     },
 };
 
@@ -159,7 +157,7 @@ pub fn rendering_system(
     }    
 
     #[cfg(feature = "egui")]
-    let mut egui_ctx = events.get_handler::<GuiContext>().unwrap();
+    let mut egui_ctx = events.get_handler_mut::<GuiContext>().unwrap();
 
     renderer.update_commandbuffer(
         &mut model_world,
