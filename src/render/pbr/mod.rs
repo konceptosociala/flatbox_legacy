@@ -4,4 +4,4 @@ pub mod color;
 pub mod light;
 pub mod texture;
 pub mod material;
-pub mod cubemap;
+pub mod skybox;

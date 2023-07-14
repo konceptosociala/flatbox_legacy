@@ -30,8 +30,8 @@ impl Default for AssetManager {
             audio: AudioManager::default(),
             #[cfg(feature = "render")]
             textures: vec![
-                Texture::new_solid(Color::WHITE, 16, 16),
-                Texture::new_solid(Color::NORMAL, 16, 16),
+                Texture::new_solid(Color::WHITE, TextureType::Plain, 16, 16),
+                Texture::new_solid(Color::NORMAL, TextureType::Plain, 16, 16),
             ],
             #[cfg(feature = "render")]
             materials: vec![],
@@ -72,6 +72,7 @@ impl AssetManager {
         let new_texture = Texture::new_from_path(
             path,
             filter,
+            TextureType::Plain,
         );
         
         let new_id = self.textures.len();
@@ -85,7 +86,7 @@ impl AssetManager {
         width: u32,
         height: u32,
     ) -> AssetHandle<'T'> {
-        let new_texture = Texture::new_solid(color.into(), width, height);
+        let new_texture = Texture::new_solid(color.into(), TextureType::Plain, width, height);
         let new_id = self.textures.len();
         self.textures.push(new_texture);
         AssetHandle(new_id)
@@ -98,7 +99,7 @@ impl AssetManager {
         width: u32,
         height: u32,
     ) -> AssetHandle<'T'> {
-        let new_texture = Texture::new_from_raw(raw_data, filter, width, height);
+        let new_texture = Texture::new_from_raw(raw_data, filter, TextureType::Plain, width, height);
         let new_id = self.textures.len();
         self.textures.push(new_texture);
         AssetHandle(new_id)

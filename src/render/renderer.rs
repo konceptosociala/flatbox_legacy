@@ -65,6 +65,7 @@ pub struct Renderer {
     pub(crate) allocator: Arc<Mutex<Allocator>>,
     pub(crate) camera_buffer: Buffer,
     pub(crate) light_buffer: Buffer,
+    pub(crate) skybox_buffer: Buffer,
     pub(crate) descriptor_pool: DescriptorPool,
     #[cfg(feature = "egui")]
     pub(crate) egui: GuiHandler,
@@ -121,6 +122,16 @@ impl Renderer {
             "Light buffer",
         )?;
         light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
+
+        let mut skybox_buffer = Buffer::new(
+            &device, 
+            &mut allocator,
+            8, 
+            vk::BufferUsageFlags::UNIFORM_BUFFER, 
+            MemoryLocation::CpuToGpu, 
+            "Skybox buffer"
+        )?;
+        skybox_buffer.fill(&device, &mut allocator, &[0.,0.])?;
         
         let descriptor_pool = unsafe { DescriptorPool::init(
             &device, 
@@ -169,6 +180,7 @@ impl Renderer {
             allocator,
             camera_buffer,
             light_buffer,
+            skybox_buffer,
             descriptor_pool,
             #[cfg(feature = "egui")]
             egui,

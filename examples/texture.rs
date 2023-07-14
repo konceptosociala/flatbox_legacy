@@ -19,14 +19,14 @@ fn texture(
     mut assets: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
 ) -> SonjaResult<()> {
-    let loaded = Texture::new_from_path("assets/textures/uv.jpg", Filter::Nearest);
-    let solid = Texture::new_solid(Color::new(172, 0, 255), 16, 16);
+    let loaded = Texture::new_from_path("assets/textures/uv.jpg", Filter::Nearest, TextureType::Plain);
+    let solid = Texture::new_solid(Color::new(172, 0, 255), TextureType::Plain, 16, 16);
     let generic = Texture::new_from_raw(&[
         0, 200, 255, 255,
         0, 200, 255, 255,
         255, 200, 0, 255,
         255, 200, 0, 255,
-    ], Filter::Nearest, 2, 2);
+    ], Filter::Nearest, TextureType::Plain, 2, 2);
 
     let ser = ron::ser::to_string_pretty(&(loaded, solid, generic), PrettyConfig::default())?;
     debug!("Serialized: {ser}");
@@ -76,9 +76,9 @@ fn ui_system(
             for (_, handle) in &mut model_world.query::<With<&AssetHandle<'M'>, (&Model, &Transform)>>(){
                 let material = assets.get_material_downcast::<DefaultMat>(*handle).unwrap();
                 ui.label(format!("Current texture is {}", match material.albedo {
-                    0 => "loaded",
-                    1 => "solid",
-                    2 => "generic",
+                    2 => "loaded",
+                    3 => "solid",
+                    4 => "generic",
                     _ => "<Unknown>",
                 }));
             }

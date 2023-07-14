@@ -65,16 +65,24 @@ impl From<RgbaImage> for SerializeRawImage {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TextureType {
+pub enum TextureLoadType {
     Color(Color<u8>, u32, u32),
     Loaded(PathBuf),
     Generic,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TextureType {
+    Plain,
+    Cubemap
 }
 
 #[readonly::make]
 pub struct Texture {
     /// Texture type type. It can be selected manually and is
     /// readonly during future use
+    #[readonly]
+    pub texture_load_type: TextureLoadType,
     #[readonly]
     pub texture_type: TextureType,
     /// Image processing filter. In most cases you need `Linear` 
@@ -94,13 +102,14 @@ pub struct Texture {
 
 impl Default for Texture {
     fn default() -> Self {
-        Texture::new_solid(Color::grayscale(255), 512, 512)
+        Texture::new_solid(Color::grayscale(255), TextureType::Plain, 512, 512)
     }
 }
 
 impl std::fmt::Debug for Texture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Texture")
+            .field("texture_load_type", &self.texture_load_type)
             .field("texture_type", &self.texture_type)
             .field("filter", &self.filter)
             .finish()
@@ -111,12 +120,13 @@ impl Serialize for Texture {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
-        let mut texture = serializer.serialize_struct("Texture", 3)?;
+        let mut texture = serializer.serialize_struct("Texture", 4)?;
+        texture.serialize_field("texture_load_type", &self.texture_load_type)?;
         texture.serialize_field("texture_type", &self.texture_type)?;
         texture.serialize_field("filter", &self.filter)?;
 
-        match self.texture_type {
-            TextureType::Generic => {
+        match self.texture_load_type {
+            TextureLoadType::Generic => {
                 texture.serialize_field("raw_image", &Some(SerializeRawImage::from(self.image.clone().unwrap())))?;
             },
             _ => {
@@ -136,6 +146,7 @@ impl<'de> Deserialize<'de> for Texture {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "snake_case")]
         enum TextureField { 
+            TextureLoadType,
             TextureType,
             Filter,
             RawImage,
@@ -154,18 +165,19 @@ impl<'de> Deserialize<'de> for Texture {
             where
                 V: SeqAccess<'de>,
             {
-                let texture_type: TextureType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
-                let filter: Filter = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                let texture_load_type: TextureLoadType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(0, &self))?;
+                let texture_type: TextureType = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                let filter: Filter = seq.next_element()?.ok_or_else(|| DeError::invalid_length(2, &self))?;
 
-                let raw_image = match texture_type {
-                    TextureType::Loaded(ref path) => {
+                let raw_image = match texture_load_type {
+                    TextureLoadType::Loaded(ref path) => {
                         Texture::create_from_path(path)
                     },
-                    TextureType::Color(color, width, height) => {
+                    TextureLoadType::Color(color, width, height) => {
                         Texture::create_from_color(width, height, color)
                     },
-                    TextureType::Generic => {
-                        let raw_image: Option<SerializeRawImage> = seq.next_element()?.ok_or_else(|| DeError::invalid_length(1, &self))?;
+                    TextureLoadType::Generic => {
+                        let raw_image: Option<SerializeRawImage> = seq.next_element()?.ok_or_else(|| DeError::invalid_length(3, &self))?;
                         if let Some(image) = raw_image {
                             RgbaImage::from(image)
                         } else {
@@ -176,6 +188,7 @@ impl<'de> Deserialize<'de> for Texture {
                 };
 
                 Ok(Texture {
+                    texture_load_type,
                     texture_type,
                     filter,
                     image: Some(raw_image),
@@ -190,12 +203,19 @@ impl<'de> Deserialize<'de> for Texture {
             where
                 V: MapAccess<'de>,
             {
+                let mut texture_load_type: Option<TextureLoadType> = None;
                 let mut texture_type: Option<TextureType> = None;
                 let mut filter: Option<Filter> = None;
                 let mut raw_image: Option<Option<SerializeRawImage>> = None;
 
                 while let Some(key) = map.next_key()? {
                     match key {
+                        TextureField::TextureLoadType => {
+                            if texture_load_type.is_some() {
+                                return Err(DeError::duplicate_field("texture_load_type"));
+                            }
+                            texture_load_type = Some(map.next_value()?);
+                        },
                         TextureField::TextureType => {
                             if texture_type.is_some() {
                                 return Err(DeError::duplicate_field("texture_type"));
@@ -217,17 +237,18 @@ impl<'de> Deserialize<'de> for Texture {
                     }
                 }
 
+                let texture_load_type = texture_load_type.ok_or_else(|| DeError::missing_field("texture_load_type"))?;
                 let texture_type = texture_type.ok_or_else(|| DeError::missing_field("texture_type"))?;
                 let filter = filter.ok_or_else(|| DeError::missing_field("filter"))?;
 
-                let raw_image = match texture_type {
-                    TextureType::Loaded(ref path) => {
+                let raw_image = match texture_load_type {
+                    TextureLoadType::Loaded(ref path) => {
                         Texture::create_from_path(path)
                     },
-                    TextureType::Color(color, width, height) => {
+                    TextureLoadType::Color(color, width, height) => {
                         Texture::create_from_color(width, height, color)
                     },
-                    TextureType::Generic => {
+                    TextureLoadType::Generic => {
                         let raw_image: Option<SerializeRawImage> = raw_image.ok_or_else(|| DeError::missing_field("raw_image"))?;
                         if let Some(image) = raw_image {
                             RgbaImage::from(image)
@@ -239,6 +260,7 @@ impl<'de> Deserialize<'de> for Texture {
                 };
 
                 Ok(Texture {
+                    texture_load_type,
                     texture_type,
                     filter,
                     image: Some(raw_image),
@@ -251,6 +273,7 @@ impl<'de> Deserialize<'de> for Texture {
         }
 
         const FIELDS: &'static [&'static str] = &[
+            "texture_load_type",
             "texture_type",
             "filter",
             "raw_image"
@@ -264,9 +287,11 @@ impl Texture {
     pub fn new_from_path(
         path: &'static str, 
         filter: Filter,
+        texture_type: TextureType,
     ) -> Self {
         Texture {
-            texture_type: TextureType::Loaded(path.into()),
+            texture_load_type: TextureLoadType::Loaded(path.into()),
+            texture_type,
             filter,
             image: None,
             vk_image: None,
@@ -279,11 +304,13 @@ impl Texture {
     pub fn new_from_raw(
         raw_data: &[u8],
         filter: Filter,
+        texture_type: TextureType,
         width: u32,
         height: u32,
     ) -> Self {
         Texture { 
-            texture_type: TextureType::Generic,
+            texture_load_type: TextureLoadType::Generic,
+            texture_type,
             filter, 
             image: Some(RgbaImage::from_raw(width, height, raw_data.into())
                 .unwrap_or(Texture::no_image_internal())), 
@@ -296,6 +323,7 @@ impl Texture {
 
     pub fn new_solid(
         color: impl Into<Color<u8>>,
+        texture_type: TextureType,
         width: u32,
         height: u32,
     ) -> Self {
@@ -303,7 +331,8 @@ impl Texture {
         let image = Some(Texture::create_from_color(width, height, color));
 
         Texture { 
-            texture_type: TextureType::Color(color, width, height),
+            texture_load_type: TextureLoadType::Color(color, width, height),
+            texture_type,
             filter: Filter::Nearest, 
             image, 
             vk_image: None, 
@@ -317,9 +346,10 @@ impl Texture {
     pub fn new_generated(
         path: &'static str, 
         filter: Filter,
+        texture_type: TextureType,
         renderer: &mut Renderer
     ) -> SonjaResult<Self> {
-        let mut texture = Texture::new_from_path(path, filter);
+        let mut texture = Texture::new_from_path(path, filter, texture_type);
         texture.generate(renderer)?;
         
         Ok(texture)
@@ -327,7 +357,8 @@ impl Texture {
 
     pub fn no_image() -> Self {
         Texture {
-            texture_type: TextureType::Generic,
+            texture_load_type: TextureLoadType::Generic,
+            texture_type: TextureType::Plain,
             filter: Filter::Nearest,
             image: Some(Texture::no_image_internal()),
             vk_image: None,
@@ -339,7 +370,8 @@ impl Texture {
 
     pub fn no_image_blurry() -> Self {
         Texture {
-            texture_type: TextureType::Generic,
+            texture_load_type: TextureLoadType::Generic,
+            texture_type: TextureType::Plain,
             filter: Filter::Linear,
             image: Some(Texture::no_image_internal()),
             vk_image: None,
@@ -355,14 +387,14 @@ impl Texture {
             if let Some(ref image) = self.image {
                 image.clone()
             } else {
-                match self.texture_type {
-                    TextureType::Color(color, width, height) => {
+                match self.texture_load_type {
+                    TextureLoadType::Color(color, width, height) => {
                         Texture::create_from_color(width, height, color)
                     },
-                    TextureType::Loaded(ref path) => {
+                    TextureLoadType::Loaded(ref path) => {
                         Texture::create_from_path(path)
                     },
-                    TextureType::Generic => {
+                    TextureLoadType::Generic => {
                         log::error!("Error loading texture: generic texture is empty");
                         Texture::no_image_internal()
                     },
@@ -388,13 +420,14 @@ impl Texture {
         renderer: &mut Renderer,
         image: RgbaImage,
     ) -> SonjaResult<()>{
+        let is_cubemap = self.texture_type == TextureType::Cubemap;
         let raw_filter: vk::Filter = self.filter.clone().into();
             
         let (width, height) = image.dimensions();
 
         unsafe { renderer.device.device_wait_idle()?; }
         
-        let img_create_info = vk::ImageCreateInfo::builder()
+        let mut img_create_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .extent(vk::Extent3D {
                 width,
@@ -402,14 +435,21 @@ impl Texture {
                 depth: 1,
             })
             .mip_levels(1)
-            .array_layers(1)
             .format(vk::Format::R8G8B8A8_SRGB)
             .samples(vk::SampleCountFlags::TYPE_1)
+            .array_layers(1)
             .usage(
                 vk::ImageUsageFlags::TRANSFER_DST |
                 vk::ImageUsageFlags::SAMPLED
             );
+
+        if is_cubemap {
+            img_create_info.array_layers = 6;
+            img_create_info.flags = vk::ImageCreateFlags::CUBE_COMPATIBLE;
+        }
+        
         let vk_image = unsafe { renderer.device.create_image(&img_create_info, None)? };
+
         // Allocation info
         let allocation_info = &AllocationCreateDesc {
             name: "Texture allocation",
@@ -427,7 +467,7 @@ impl Texture {
         };
         
         // Create ImageView
-        let view_create_info = vk::ImageViewCreateInfo::builder()
+        let mut view_create_info = vk::ImageViewCreateInfo::builder()
             .image(vk_image)
             .view_type(vk::ImageViewType::TYPE_2D)
             .format(vk::Format::R8G8B8A8_SRGB)
@@ -437,6 +477,12 @@ impl Texture {
                 layer_count: 1,
                 ..Default::default()
             });
+
+        if is_cubemap {
+            view_create_info.view_type = vk::ImageViewType::CUBE;
+            view_create_info.subresource_range.layer_count = 6;
+        }
+
         let imageview = unsafe { renderer.device.create_image_view(&view_create_info, None)? };
         
         // Create Sampler
@@ -501,28 +547,39 @@ impl Texture {
                 &[barrier],
             )
         };
-        
-        // Copy data from the buffer to the image
-        let image_subresource = vk::ImageSubresourceLayers {
-            aspect_mask: vk::ImageAspectFlags::COLOR,
-            mip_level: 0,
-            base_array_layer: 0,
-            layer_count: 1,
+
+        let mut regions = vec![];
+        let offset: u64 = height as u64 * height as u64;
+        let faces: u32 = match is_cubemap {
+            true => 6,
+            false => 1,
         };
-        
-        let region = vk::BufferImageCopy {
-            buffer_offset: 0,
-            buffer_row_length: 0,
-            buffer_image_height: 0,
-            image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
-            image_extent: vk::Extent3D {
-                width,
-                height,
-                depth: 1,
-            },
-            image_subresource,
-            ..Default::default()
-        };
+
+        for face in 0..faces {
+            let offset = offset * face as u64;
+
+            let image_subresource = vk::ImageSubresourceLayers {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                mip_level: 0,
+                base_array_layer: face,
+                layer_count: 1,
+            };
+
+            let region = vk::BufferImageCopy {
+                buffer_offset: offset,
+                buffer_row_length: 0,
+                buffer_image_height: 0,
+                image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
+                image_extent: vk::Extent3D {
+                    width,
+                    height,
+                    depth: 1,
+                },
+                image_subresource,
+            };
+
+            regions.push(region);
+        }
         
         unsafe {
             renderer.device.cmd_copy_buffer_to_image(
@@ -530,11 +587,23 @@ impl Texture {
                 buffer.buffer,
                 vk_image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &[region],
+                &regions,
             );
         }
         
         // Change image layout for fragment shader
+
+        let mut subresource_range = vk::ImageSubresourceRange {
+            aspect_mask: vk::ImageAspectFlags::COLOR,
+            base_mip_level: 0,
+            level_count: 1,
+            base_array_layer: 0,
+            layer_count: 1,
+        };
+
+        if is_cubemap {
+            subresource_range.layer_count = 6;
+        }
         
         let barrier = vk::ImageMemoryBarrier::builder()
             .image(vk_image)
@@ -542,13 +611,7 @@ impl Texture {
             .dst_access_mask(vk::AccessFlags::SHADER_READ)
             .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
             .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .subresource_range(vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                base_mip_level: 0,
-                level_count: 1,
-                base_array_layer: 0,
-                layer_count: 1,
-            })
+            .subresource_range(subresource_range)
             .build();
             
         unsafe {
