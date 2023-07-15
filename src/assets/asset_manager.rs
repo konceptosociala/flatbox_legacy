@@ -8,7 +8,10 @@ use parking_lot::{RwLock, MappedRwLockReadGuard, MappedRwLockWriteGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
-use crate::audio::AudioManager;
+use crate::{
+    audio::AudioManager, 
+    render::pbr::skybox::SkyBox,
+};
 
 #[cfg(feature = "render")]
 use super::AssetHandle;
@@ -20,6 +23,8 @@ pub struct AssetManager {
     pub audio: AudioManager,
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
+    #[cfg(feature = "render")]
+    pub skybox: Option<SkyBox>,
     #[cfg(feature = "render")]
     pub materials: Vec<Arc<RwLock<Box<dyn Material>>>>,
 }
@@ -33,6 +38,7 @@ impl Default for AssetManager {
                 Texture::new_solid(Color::WHITE, TextureType::Plain, 16, 16),
                 Texture::new_solid(Color::NORMAL, TextureType::Plain, 16, 16),
             ],
+            skybox: None,
             #[cfg(feature = "render")]
             materials: vec![],
         }

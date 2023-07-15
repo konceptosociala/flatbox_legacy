@@ -87,7 +87,7 @@ impl Camera {
             self.projectionmatrix.into()
         ];
         
-        renderer.camera_buffer.fill(
+        renderer.buffers.camera_buffer.fill(
             &renderer.device, 
             &mut *renderer.allocator.lock().unwrap(), 
             &buffer_data

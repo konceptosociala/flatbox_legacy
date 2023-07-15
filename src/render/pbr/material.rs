@@ -1,23 +1,25 @@
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use as_any::AsAny;
-use ash::vk;
 use parking_lot::RwLock;
+use vk_shader_macros::include_glsl;
 
 use crate::assets::AssetHandle;
-use crate::render::{
-    renderer::*,
-    backend::{
-        pipeline::*,
-        shader::*,
-    },
-};
+use crate::render::backend::shader::*;
 
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]
 pub trait Material: AsAny + std::fmt::Debug + Send + Sync {
-    fn pipeline(renderer: &Renderer) -> Pipeline
-    where
+    fn vertex() -> &'static [u32]
+    where 
+        Self: Sized;
+
+    fn fragment() -> &'static [u32]
+    where 
+        Self: Sized;
+
+    fn input() -> ShaderInput
+    where 
         Self: Sized;
 }
 
@@ -66,90 +68,87 @@ impl Default for DefaultMat {
 
 #[typetag::serde]
 impl Material for DefaultMat {
-    fn pipeline(renderer: &Renderer) -> Pipeline {            
-        let instance_attributes = vec![
-            ShaderInputAttribute{
-                binding: 1,
-                location: 3,
-                offset: 0,
-                format: vk::Format::R32G32B32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 4,
-                offset: 12,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 5,
-                offset: 16,
-                format: vk::Format::R32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 6,
-                offset: 20,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 7,
-                offset: 24,
-                format: vk::Format::R32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 8,
-                offset: 28,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 9,
-                offset: 32,
-                format: vk::Format::R32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 10,
-                offset: 36,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 11,
-                offset: 40,
-                format: vk::Format::R32_SFLOAT,
-            },
-            ShaderInputAttribute{
-                binding: 1,
-                location: 12,
-                offset: 44,
-                format: vk::Format::R8G8B8A8_UINT,
-            },
-        ];
-        
-        let vertex_shader = vk::ShaderModuleCreateInfo::builder()
-            .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/defaultmat.vs", 
-                kind: vert,
-            ));
-        
-        let fragment_shader = vk::ShaderModuleCreateInfo::builder()
-            .code(vk_shader_macros::include_glsl!(
-                "./src/shaders/defaultmat.fs",
-                kind: frag,
-            ));
-        
-        Pipeline::init(
-            &renderer,
-            &vertex_shader,
-            &fragment_shader,
-            &instance_attributes,
-            48,
-            vk::PrimitiveTopology::TRIANGLE_LIST,
-        ).expect("Cannot create pipeline")
+    fn vertex() -> &'static [u32] {
+        include_glsl!(
+            "./src/shaders/defaultmat.vs", 
+            kind: vert,
+        )
+    }
+
+    fn fragment() -> &'static [u32] {
+        include_glsl!(
+            "./src/shaders/defaultmat.fs", 
+            kind: frag,
+        )
+    }
+
+    fn input() -> ShaderInput {
+        ShaderInput { 
+            attributes: vec![
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 3,
+                    offset: 0,
+                    format: ShaderInputFormat::R32G32B32_SFLOAT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 4,
+                    offset: 12,
+                    format: ShaderInputFormat::R8G8B8A8_UINT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 5,
+                    offset: 16,
+                    format: ShaderInputFormat::R32_SFLOAT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 6,
+                    offset: 20,
+                    format: ShaderInputFormat::R8G8B8A8_UINT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 7,
+                    offset: 24,
+                    format: ShaderInputFormat::R32_SFLOAT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 8,
+                    offset: 28,
+                    format: ShaderInputFormat::R8G8B8A8_UINT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 9,
+                    offset: 32,
+                    format: ShaderInputFormat::R32_SFLOAT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 10,
+                    offset: 36,
+                    format: ShaderInputFormat::R8G8B8A8_UINT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 11,
+                    offset: 40,
+                    format: ShaderInputFormat::R32_SFLOAT,
+                },
+                ShaderInputAttribute{
+                    binding: 1,
+                    location: 12,
+                    offset: 44,
+                    format: ShaderInputFormat::R8G8B8A8_UINT,
+                },
+            ], 
+            instance_size: 48,
+            topology: ShaderTopology::TRIANGLE_LIST,
+        }
     }
 }
 

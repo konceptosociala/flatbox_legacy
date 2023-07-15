@@ -13,11 +13,7 @@ use serde::{
 use nalgebra as na;
 
 use crate::{
-    render::{
-        backend::{
-            buffer::Buffer,
-        },
-    }, 
+    render::backend::buffer::Buffer,
     error::SonjaResult,
 };
 

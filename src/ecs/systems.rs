@@ -132,6 +132,12 @@ pub fn generate_textures(
             texture.generate(&mut renderer)?;
         }
     }
+
+    if let Some(skybox) = &mut asset_manager.skybox {
+        if skybox.0.vk_image.is_none() {
+            skybox.0.generate(&mut renderer)?;
+        }
+    }
     
     Ok(())
 }
@@ -382,7 +388,7 @@ pub fn update_lights(
 
     for descset in &renderer.descriptor_pool.light_sets {
         let buffer_infos = [vk::DescriptorBufferInfo {
-            buffer: renderer.light_buffer.buffer,
+            buffer: renderer.buffers.light_buffer.buffer,
             offset: 0,
             range: 4 * data.len() as u64,
         }];

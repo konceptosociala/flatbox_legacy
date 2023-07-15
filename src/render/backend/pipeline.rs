@@ -201,12 +201,12 @@ impl Pipeline {
         topology: vk::PrimitiveTopology,
     ) -> SonjaResult<vk::Pipeline> {        
         let vertex_bindings = vec![
-            ShaderInputBinding {
+            vk::VertexInputBindingDescription {
                 binding: 0,
                 stride: vertex_bytes as u32,
                 input_rate: vk::VertexInputRate::VERTEX,
             },
-            ShaderInputBinding {
+            vk::VertexInputBindingDescription {
                 binding: 1,
                 stride: instance_bytes as u32,
                 input_rate: vk::VertexInputRate::INSTANCE,

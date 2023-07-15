@@ -79,7 +79,7 @@ pub enum TextureType {
 
 #[readonly::make]
 pub struct Texture {
-    /// Texture type type. It can be selected manually and is
+    /// Texture load type type. It can be selected manually and is
     /// readonly during future use
     #[readonly]
     pub texture_load_type: TextureLoadType,
@@ -98,6 +98,21 @@ pub struct Texture {
     pub(crate) imageview: Option<vk::ImageView>,    
     /// Vulkan sampler
     pub(crate) sampler: Option<vk::Sampler>,
+}
+
+impl Clone for Texture {
+    fn clone(&self) -> Self {
+        Texture { 
+            texture_load_type: self.texture_load_type.clone(), 
+            texture_type: self.texture_type.clone(), 
+            filter: self.filter.clone(), 
+            image: self.image.clone(), 
+            vk_image: None, 
+            image_allocation: None, 
+            imageview: None, 
+            sampler: None,
+        }
+    }
 }
 
 impl Default for Texture {
@@ -355,6 +370,10 @@ impl Texture {
         Ok(texture)
     }
 
+    pub fn default_skybox() -> Self {
+        todo!("Texture::default_skybox()");
+    }
+
     pub fn no_image() -> Self {
         Texture {
             texture_load_type: TextureLoadType::Generic,
@@ -521,7 +540,7 @@ impl Texture {
         }?;
         
         // Change image layout for transfering
-        let barrier = vk::ImageMemoryBarrier::builder()
+        let mut barrier = vk::ImageMemoryBarrier::builder()
             .image(vk_image)
             .src_access_mask(vk::AccessFlags::empty())
             .dst_access_mask(vk::AccessFlags::TRANSFER_WRITE)
@@ -535,6 +554,10 @@ impl Texture {
                 layer_count: 1,
             })
             .build();
+        
+        if is_cubemap {
+            barrier.subresource_range.layer_count = 6;
+        }
             
         unsafe {
             renderer.device.cmd_pipeline_barrier(
@@ -549,7 +572,7 @@ impl Texture {
         };
 
         let mut regions = vec![];
-        let offset: u64 = height as u64 * height as u64;
+        let offset: u64 = width as u64 * width as u64;
         let faces: u32 = match is_cubemap {
             true => 6,
             false => 1,

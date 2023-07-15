@@ -42,6 +42,8 @@ use crate::ecs::event::EventHandler;
 use crate::error::SonjaResult;
 use crate::WindowBuilder;
 
+use super::pbr::skybox::SkyBoxMat;
+
 #[derive(Debug, Clone, Default, PartialEq, Hash)]
 pub enum RenderType {
     #[default]
@@ -50,6 +52,11 @@ pub enum RenderType {
 }
 
 pub type PipelineCollection = HashMap<TypeId, Pipeline>;
+
+pub struct UniformBuffersCollection {
+    pub camera_buffer: Buffer,
+    pub light_buffer: Buffer,
+}
 
 /// Main rendering collection, including Vulkan components
 pub struct Renderer {
@@ -63,9 +70,7 @@ pub struct Renderer {
     pub(crate) debug_renderer: DebugRenderer,
     pub(crate) commandbuffer_pools: CommandBufferPools,
     pub(crate) allocator: Arc<Mutex<Allocator>>,
-    pub(crate) camera_buffer: Buffer,
-    pub(crate) light_buffer: Buffer,
-    pub(crate) skybox_buffer: Buffer,
+    pub(crate) buffers: UniformBuffersCollection,
     pub(crate) descriptor_pool: DescriptorPool,
     #[cfg(feature = "egui")]
     pub(crate) egui: GuiHandler,
@@ -122,16 +127,6 @@ impl Renderer {
             "Light buffer",
         )?;
         light_buffer.fill(&device, &mut allocator, &[0.,0.])?;
-
-        let mut skybox_buffer = Buffer::new(
-            &device, 
-            &mut allocator,
-            8, 
-            vk::BufferUsageFlags::UNIFORM_BUFFER, 
-            MemoryLocation::CpuToGpu, 
-            "Skybox buffer"
-        )?;
-        skybox_buffer.fill(&device, &mut allocator, &[0.,0.])?;
         
         let descriptor_pool = unsafe { DescriptorPool::init(
             &device, 
@@ -147,6 +142,11 @@ impl Renderer {
             &renderpass,
             &mut allocator,
         )?;
+
+        let buffers = UniformBuffersCollection {
+            camera_buffer,
+            light_buffer,
+        };
         
         let allocator = Arc::new(Mutex::new(allocator));
         
@@ -178,14 +178,13 @@ impl Renderer {
             debug_renderer,
             commandbuffer_pools,
             allocator,
-            camera_buffer,
-            light_buffer,
-            skybox_buffer,
+            buffers,
             descriptor_pool,
             #[cfg(feature = "egui")]
             egui,
         };
         renderer.bind_material::<DefaultMat>();
+        renderer.bind_material::<SkyBoxMat>();
 
         Ok(renderer)
     }
@@ -197,8 +196,21 @@ impl Renderer {
     pub fn bind_material<M: Material + Sync + Send>(&mut self){
         if self.material_pipelines.contains_key(&TypeId::of::<M>()) {
             log::error!("Material type '{}' is already bound!", std::any::type_name::<M>());
-        } else {
-            self.material_pipelines.insert(TypeId::of::<M>(), M::pipeline(&self));
+        } else {                
+                let vertex_shader = vk::ShaderModuleCreateInfo::builder().code(M::vertex());
+                let fragment_shader = vk::ShaderModuleCreateInfo::builder().code(M::fragment());
+                let shader_input = M::input();
+                
+                let pipeline = Pipeline::init(
+                    &self,
+                    &vertex_shader,
+                    &fragment_shader,
+                    &shader_input.attributes,
+                    shader_input.instance_size,
+                    shader_input.topology
+                ).expect("Cannot create pipeline");
+
+            self.material_pipelines.insert(TypeId::of::<M>(), pipeline);
         }
     }
     
@@ -310,7 +322,7 @@ impl Renderer {
         &mut self,
         data: &[T],
     ) -> SonjaResult<()>{
-        self.light_buffer.fill(&self.device, &mut *self.allocator.lock().unwrap(), data)?;
+        self.buffers.light_buffer.fill(&self.device, &mut *self.allocator.lock().unwrap(), data)?;
         Ok(())
     }
     
@@ -322,9 +334,9 @@ impl Renderer {
             #[cfg(feature = "egui")] 
             self.egui.destroy();
             self.descriptor_pool.cleanup(&self.device);
-            self.device.destroy_buffer(self.camera_buffer.buffer, None);
-            self.device.free_memory(self.camera_buffer.allocation.as_ref().unwrap().memory(), None);
-            self.device.destroy_buffer(self.light_buffer.buffer, None);
+            self.device.destroy_buffer(self.buffers.camera_buffer.buffer, None);
+            self.device.free_memory(self.buffers.camera_buffer.allocation.as_ref().unwrap().memory(), None);
+            self.device.destroy_buffer(self.buffers.light_buffer.buffer, None);
 
             for (_, mut m) in &mut world.query::<&mut Mesh>(){    
                 clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
@@ -381,16 +393,31 @@ fn update_texture_sets(
     swapchain: &Swapchain,
     device: &ash::Device,
 ){
-    let imageinfos = asset_manager.descriptor_image_info();
-    let descriptorwrite_image = vk::WriteDescriptorSet::builder()
+    let textures_image_infos = asset_manager.descriptor_image_info();
+    let textures_descriptor_write_image = vk::WriteDescriptorSet::builder()
         .dst_set(descriptor_pool.texture_sets[swapchain.current_image])
         .dst_binding(0)
         .dst_array_element(0)
         .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-        .image_info(&imageinfos)
+        .image_info(&textures_image_infos)
         .build();
 
-    unsafe { device.update_descriptor_sets(&[descriptorwrite_image], &[]); }
+    unsafe { device.update_descriptor_sets(&[textures_descriptor_write_image], &[]); }
+
+    // if let Some(skybox) = &asset_manager.skybox {
+    //     if let Some(skybox_image_info) = skybox.descriptor_image_info() {
+    //         let skybox_image_info = skybox_image_info.clone();
+    //         let skybox_descriptor_write_image = vk::WriteDescriptorSet::builder()
+    //             .dst_set(descriptor_pool.skybox_sets[swapchain.current_image])
+    //             .dst_binding(0)
+    //             .dst_array_element(0)
+    //             .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+    //             .image_info(&[skybox_image_info])
+    //             .build();
+
+    //         unsafe { device.update_descriptor_sets(&[skybox_descriptor_write_image], &[]); }
+    //     }
+    // }
 }
 
 fn begin_renderpass(
@@ -436,6 +463,7 @@ fn bind_descriptor_sets(
                 descriptor_pool.camera_sets[index],
                 descriptor_pool.texture_sets[index],
                 descriptor_pool.light_sets[index],
+                // descriptor_pool.skybox_sets[index],
             ],
             &[],
         );

@@ -18,6 +18,7 @@ pub use pbr::texture::*;
 pub use pbr::light::*;
 pub use pbr::material::*;
 pub use pbr::color::*;
+pub use pbr::skybox::*;
 
 pub use backend::shader::*;
 pub use backend::pipeline::*;
@@ -25,3 +26,5 @@ pub use backend::window::*;
 
 pub use winit::event::VirtualKeyCode as KeyCode;
 pub use winit::window::Icon;
+
+pub use vk_shader_macros::include_glsl;

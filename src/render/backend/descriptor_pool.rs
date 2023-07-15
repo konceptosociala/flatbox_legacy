@@ -51,7 +51,7 @@ impl DescriptorPool {
         //     &logical_device, 
         //     vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
         //     vk::ShaderStageFlags::FRAGMENT, 
-        //     1, 
+        //     0, 
         //     1,
         // )?;
         
@@ -80,10 +80,15 @@ impl DescriptorPool {
         //     &logical_device, 
         //     &swapchain, 
         //     descriptor_pool, 
-        //     skybox_set_layout
+        //     skybox_set_layout,
         // )?;
         
-        let set_layouts = vec![camera_set_layout, texture_set_layout, light_set_layout, /*skybox_set_layout*/];
+        let set_layouts = vec![
+            camera_set_layout, 
+            texture_set_layout, 
+            light_set_layout, 
+            // skybox_set_layout
+        ];
         
         let push_constants = [
             vk::PushConstantRange::builder()
@@ -147,10 +152,6 @@ impl DescriptorPool {
             ];
             logical_device.update_descriptor_sets(&desc_sets_write, &[]);
         }
-
-        // for descset in &self.skybox_sets {
-            
-        // }
     }
     
     pub unsafe fn cleanup(&self, logical_device: &ash::Device){
@@ -179,7 +180,7 @@ impl DescriptorPool {
         
         let create_info = vk::DescriptorSetLayoutCreateInfo::builder()
             .bindings(&description);
-            
+
         logical_device.create_descriptor_set_layout(&create_info, None)
     }
     
@@ -201,10 +202,14 @@ impl DescriptorPool {
                 ty: vk::DescriptorType::STORAGE_BUFFER,
                 descriptor_count: swapchain.amount_of_images,
             },
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: swapchain.amount_of_images,
+            },
         ];
         
         let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
-            .max_sets(3 * swapchain.amount_of_images)
+            .max_sets(4 * swapchain.amount_of_images)
             .pool_sizes(&pool_sizes); 
             
         logical_device.create_descriptor_pool(&descriptor_pool_info, None)
@@ -217,9 +222,9 @@ impl DescriptorPool {
         descriptor_set_layout: vk::DescriptorSetLayout,
     ) -> Result<Vec<vk::DescriptorSet>, vk::Result> {
         let desc_layouts = vec![descriptor_set_layout; swapchain.amount_of_images as usize];
-        let descriptor_set_allocate_info_camera = vk::DescriptorSetAllocateInfo::builder()
+        let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
             .descriptor_pool(descriptor_pool)
             .set_layouts(&desc_layouts);
-        logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info_camera)
+        logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info)
     }
 }

@@ -85,10 +85,16 @@ fn create_scene(
         },
     ));
         
+    // asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
+    //     "assets/textures/cubemap.jpg", 
+    //     Filter::Nearest, 
+    //     TextureType::Cubemap,
+    // )));
+
     // cmd.spawn(
     //     ModelBundle::builder()
     //         .model(Model::new("assets/models/skybox.obj")?)
-    //         .material(material)
+    //         .material(asset_manager.create_material(SkyBoxMat))
     //         .transform(Transform::default())
     //         .build()
     // );
