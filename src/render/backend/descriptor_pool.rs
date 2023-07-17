@@ -10,7 +10,7 @@ pub struct DescriptorPool {
     pub camera_sets: Vec<vk::DescriptorSet>, 
     pub texture_sets: Vec<vk::DescriptorSet>,
     pub light_sets: Vec<vk::DescriptorSet>,
-    // pub skybox_sets: Vec<vk::DescriptorSet>,
+    pub skybox_sets: Vec<vk::DescriptorSet>,
     pub set_layouts: Vec<vk::DescriptorSetLayout>,
     pub pipeline_layout: vk::PipelineLayout,
 }
@@ -47,13 +47,13 @@ impl DescriptorPool {
             1,
         )?;
 
-        // let skybox_set_layout = Self::create_descriptor_set_layout(
-        //     &logical_device, 
-        //     vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-        //     vk::ShaderStageFlags::FRAGMENT, 
-        //     0, 
-        //     1,
-        // )?;
+        let skybox_set_layout = Self::create_descriptor_set_layout(
+            &logical_device, 
+            vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            vk::ShaderStageFlags::FRAGMENT, 
+            0, 
+            1,
+        )?;
         
         let camera_sets = Self::allocate_descriptor_sets(
             &logical_device,
@@ -76,18 +76,18 @@ impl DescriptorPool {
             light_set_layout,
         )?;
 
-        // let skybox_sets = Self::allocate_descriptor_sets(
-        //     &logical_device, 
-        //     &swapchain, 
-        //     descriptor_pool, 
-        //     skybox_set_layout,
-        // )?;
+        let skybox_sets = Self::allocate_descriptor_sets(
+            &logical_device, 
+            &swapchain, 
+            descriptor_pool, 
+            skybox_set_layout,
+        )?;
         
         let set_layouts = vec![
             camera_set_layout, 
             texture_set_layout, 
             light_set_layout, 
-            // skybox_set_layout
+            skybox_set_layout
         ];
         
         let push_constants = [
@@ -109,7 +109,7 @@ impl DescriptorPool {
             camera_sets, 
             texture_sets,
             light_sets,
-            // skybox_sets,
+            skybox_sets,
             set_layouts,
             pipeline_layout,
         })

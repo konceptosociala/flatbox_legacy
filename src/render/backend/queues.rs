@@ -1,11 +1,9 @@
 #![allow(dead_code)]
 use ash::vk;
 
-use crate::render::{
-    backend::{
-        window::Window,
-        instance::Instance,
-    },
+use crate::render::backend::{
+    window::Window,
+    instance::Instance,
 };
 
 /// Conserves transfer and graphics queues for current instance

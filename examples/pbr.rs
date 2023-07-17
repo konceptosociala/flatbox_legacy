@@ -8,6 +8,8 @@ struct CameraConfiguration {
     latest_pos: Point2<f32>,
 }
 
+struct SkyBoxComp;
+
 fn main() {
     Sonja::init(WindowBuilder {
         title: Some("PBR Test"),
@@ -85,30 +87,33 @@ fn create_scene(
         },
     ));
         
-    // asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
-    //     "assets/textures/cubemap.jpg", 
-    //     Filter::Nearest, 
-    //     TextureType::Cubemap,
-    // )));
+    asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
+        "assets/textures/cubemap2.jpg", 
+        Filter::Nearest, 
+        TextureType::Cubemap,
+    )));
 
-    // cmd.spawn(
-    //     ModelBundle::builder()
-    //         .model(Model::new("assets/models/skybox.obj")?)
-    //         .material(asset_manager.create_material(SkyBoxMat))
-    //         .transform(Transform::default())
-    //         .build()
-    // );
+    cmd.spawn((
+        Model::new("assets/models/skybox.obj")?,
+        asset_manager.create_material(SkyBoxMat),
+        Transform::default(),
+        SkyBoxComp,
+    ));
 
     Ok(())
 }
 
 fn process_scene(
     camera_world: SubWorld<(&Camera, &mut CameraConfiguration, &mut Transform)>,
+    skybox_world: SubWorld<(&mut Transform, &SkyBoxComp)>,
     light_world: SubWorld<&mut PointLight>,
     events: Read<Events>,
     time: Read<Time>,
 ){
     let gui_events = events.get_handler::<GuiContext>().unwrap();
+    
+    let mut skybox = skybox_world.query::<(&mut Transform, &SkyBoxComp)>();
+    let (_, (mut skybox_transform, _)) = skybox.iter().next().unwrap();
 
     if let Some(ctx) = gui_events.read() {
         egui::SidePanel::left("my_left_panel").show(&ctx, |ui| {
@@ -121,8 +126,8 @@ fn process_scene(
             }
         });
 
-        // if let Some(current) = ctx.pointer_hover_pos() {
-        if let Some(current) = Option::<gui::Pos2>::None {
+        if let Some(current) = ctx.pointer_hover_pos() {
+        // if let Some(current) = Option::<gui::Pos2>::None {
             for (_, (_, mut conf, mut t)) in &mut camera_world.query::<(&Camera, &mut CameraConfiguration, &mut Transform)>(){       
                 let (delta_x, delta_y) = {
                     if conf.latest_pos == Point2::origin() {
@@ -146,6 +151,10 @@ fn process_scene(
                 t.rotation *= 
                     UnitQuaternion::from_axis_angle(&local_x, conf.target_x - tx) * 
                     UnitQuaternion::from_axis_angle(&Vector3::y_axis(), conf.target_y - ty);
+
+                skybox_transform.translation.x = t.translation.x;
+                skybox_transform.translation.y = t.translation.y;
+                skybox_transform.translation.z = -t.translation.z;
             }
         }
     }

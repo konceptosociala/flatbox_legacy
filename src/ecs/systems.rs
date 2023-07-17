@@ -343,14 +343,12 @@ pub fn update_lights(
 ) -> SonjaResult<()> {
     let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
         .into_iter()
-        // .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
-        .map(|(_, (l, _))| l.clone())
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
         .collect::<Vec<DirectionalLight>>();
     
     let point_lights = plight_world.query::<(&PointLight, Changed<PointLight>)>()
         .into_iter()
-        // .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
-        .map(|(_, (l, _))| l.clone())
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
         .collect::<Vec<PointLight>>();
         
     if directional_lights.is_empty() && point_lights.is_empty() {
@@ -386,20 +384,28 @@ pub fn update_lights(
     }
     renderer.fill_lightbuffer(&data)?;
 
-    for descset in &renderer.descriptor_pool.light_sets {
-        let buffer_infos = [vk::DescriptorBufferInfo {
+    let mut writes = vec![];
+    let mut buffer_infos = vec![];
+
+    for (i, descset) in renderer.descriptor_pool.light_sets.iter().enumerate() {
+        let buffer_info = vk::DescriptorBufferInfo {
             buffer: renderer.buffers.light_buffer.buffer,
             offset: 0,
             range: 4 * data.len() as u64,
-        }];
-        let desc_sets_write = [vk::WriteDescriptorSet::builder()
+        };
+        buffer_infos.push(buffer_info);
+
+        let write = vk::WriteDescriptorSet::builder()
             .dst_set(*descset)
             .dst_binding(0)
             .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-            .buffer_info(&buffer_infos)
-            .build()];
-        unsafe { renderer.device.update_descriptor_sets(&desc_sets_write, &[]) };
+            .buffer_info(&[buffer_infos[i]])
+            .build();
+
+        writes.push(write);
     }
+    // unsafe { renderer.device.update_descriptor_sets(&writes, &[]) };
+
     Ok(())
 }
 

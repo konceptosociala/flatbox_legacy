@@ -4,9 +4,7 @@ use std::mem::ManuallyDrop;
 use std::ffi::CString;
 use ash::vk;
 use crate::{
-    render::{
-        debug::Debug,
-    }, 
+    render::debug::Debug,
     error::SonjaResult
 };
 

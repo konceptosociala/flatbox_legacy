@@ -404,20 +404,20 @@ fn update_texture_sets(
 
     unsafe { device.update_descriptor_sets(&[textures_descriptor_write_image], &[]); }
 
-    // if let Some(skybox) = &asset_manager.skybox {
-    //     if let Some(skybox_image_info) = skybox.descriptor_image_info() {
-    //         let skybox_image_info = skybox_image_info.clone();
-    //         let skybox_descriptor_write_image = vk::WriteDescriptorSet::builder()
-    //             .dst_set(descriptor_pool.skybox_sets[swapchain.current_image])
-    //             .dst_binding(0)
-    //             .dst_array_element(0)
-    //             .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-    //             .image_info(&[skybox_image_info])
-    //             .build();
+    if let Some(skybox) = &asset_manager.skybox {
+        if let Some(skybox_image_info) = skybox.descriptor_image_info() {
+            let skybox_image_info = [skybox_image_info.clone()];
+            let skybox_descriptor_write_image = vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_pool.skybox_sets[swapchain.current_image])
+                .dst_binding(0)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .image_info(&skybox_image_info)
+                .build();
 
-    //         unsafe { device.update_descriptor_sets(&[skybox_descriptor_write_image], &[]); }
-    //     }
-    // }
+            unsafe { device.update_descriptor_sets(&[skybox_descriptor_write_image], &[]); }
+        }
+    }
 }
 
 fn begin_renderpass(
@@ -463,7 +463,7 @@ fn bind_descriptor_sets(
                 descriptor_pool.camera_sets[index],
                 descriptor_pool.texture_sets[index],
                 descriptor_pool.light_sets[index],
-                // descriptor_pool.skybox_sets[index],
+                descriptor_pool.skybox_sets[index],
             ],
             &[],
         );

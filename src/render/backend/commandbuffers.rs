@@ -1,10 +1,8 @@
 use ash::vk;
 
-use crate::render::{
-    backend::{
-        queues::QueueFamilies,
-        swapchain::Swapchain,
-    },
+use crate::render::backend::{
+    queues::QueueFamilies,
+    swapchain::Swapchain,
 };
 
 /// Contains commandbuffer pools and graphics commandbuffer

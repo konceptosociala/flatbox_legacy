@@ -1,13 +1,6 @@
 use std::fmt::Debug;
 use nalgebra::Vector3;
 use serde::{Serialize, Deserialize};
-use thiserror::Error;
-
-#[non_exhaustive]
-#[derive(Debug, Error)]
-pub enum ColorParseError {
-
-}
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Hash)]
 pub struct Color<V> {

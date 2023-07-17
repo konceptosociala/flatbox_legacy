@@ -79,16 +79,18 @@ pub enum TextureType {
 
 #[readonly::make]
 pub struct Texture {
-    /// Texture load type type. It can be selected manually and is
+    /// Texture load type. It can be selected manually and is
     /// readonly during future use
     #[readonly]
     pub texture_load_type: TextureLoadType,
+    /// Texture type. It can be selected manually and is
+    /// readonly during future use
     #[readonly]
     pub texture_type: TextureType,
     /// Image processing filter. In most cases you need `Linear` 
     /// for smooth textures and `Nearest` for pixelized
     pub filter: Filter,
-    // Raw image data
+    /// Raw image data
     pub(crate) image: Option<RgbaImage>,
     /// Vulkan image data
     pub(crate) vk_image: Option<vk::Image>,
@@ -442,7 +444,11 @@ impl Texture {
         let is_cubemap = self.texture_type == TextureType::Cubemap;
         let raw_filter: vk::Filter = self.filter.clone().into();
             
-        let (width, height) = image.dimensions();
+        let (width, height) = if !is_cubemap {
+            image.dimensions()
+        } else {
+            (image.width(), image.width())
+        };
 
         unsafe { renderer.device.device_wait_idle()?; }
         
@@ -572,7 +578,7 @@ impl Texture {
         };
 
         let mut regions = vec![];
-        let offset: u64 = width as u64 * width as u64;
+        let offset: u64 = (width as u64) * (width as u64) * 4;
         let faces: u32 = match is_cubemap {
             true => 6,
             false => 1,
