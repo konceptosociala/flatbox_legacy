@@ -10,6 +10,7 @@ layout (location=3) in vec3 camera_coordinates;
 
 layout (location=4) in vec3 color;
 layout (location=5) in flat uint albedo_map;
+layout (location=6) in flat int blank;
 
 layout (set=1, binding=0) uniform sampler2D texturesamplers[];
 

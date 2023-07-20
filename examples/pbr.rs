@@ -14,14 +14,14 @@ struct CameraConfiguration {
 #[material(
     vertex = "examples/shaders/my_material.vs",
     fragment = "examples/shaders/my_material.fs",
+    topology = "line_list"
 )]
 pub struct MyMaterial {
     #[color]
-    color: [f32; 3],
+    pub color: [f32; 3],
     #[texture]
-    albedo: u32,
-    metallic: f32,
-    roughness: f32,
+    pub albedo: u32,
+    pub blank: i32,
 }
 
 struct SkyBoxComp;
@@ -46,19 +46,18 @@ fn main() {
 fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
+    mut renderer: Write<Renderer>,
 ) -> SonjaResult<()> {    
+    renderer.bind_material::<MyMaterial>();
+
     create_plane(&mut cmd, &mut asset_manager);
+    create_box(&mut cmd, &mut asset_manager);
     create_camera(&mut cmd);
     create_lights(&mut cmd);
     create_skybox(&mut cmd, &mut asset_manager)?;
     enable_mouse(&mut cmd, true);
 
-    let my_material = MyMaterial::builder()
-        .albedo(AssetHandle::default())
-        .color(Color::new(1.0, 1.0, 0.0))
-        .build();
-
-    panic!("Input: {:#?}\nBuilder: {:#?}", MyMaterial::input(), my_material);
+    Ok(())
 }
 
 fn process_scene(
@@ -134,7 +133,7 @@ fn create_textures(
     )
 }
 
-fn create_material(
+fn create_plane_material(
     asset_manager: &mut AssetManager,
 ) -> AssetHandle<'M'> {
     let (albedo, roughness, normal, ao) = create_textures(asset_manager);
@@ -151,11 +150,22 @@ fn create_material(
     )
 }
 
+fn create_box_material(
+    asset_manager: &mut AssetManager,
+) -> AssetHandle<'M'> {
+    asset_manager.create_material(
+        MyMaterial::builder()
+            .albedo(AssetHandle::BUILTIN_ALBEDO)
+            .color(Color::new(1.0, 0.5, 0.0))
+            .build()
+    )
+}
+
 fn create_plane(
     cmd: &mut CommandBuffer,
     asset_manager: &mut AssetManager,
 ){
-    let material = create_material(asset_manager);
+    let material = create_plane_material(asset_manager);
 
     cmd.spawn(
         ModelBundle::builder()
@@ -165,6 +175,22 @@ fn create_plane(
             .build()
     );
 }
+
+fn create_box(
+    cmd: &mut CommandBuffer,
+    asset_manager: &mut AssetManager
+){
+    let material = create_box_material(asset_manager);
+
+    cmd.spawn(
+        ModelBundle::builder()
+            .model(Model::cube())
+            .material(material)
+            .transform(Transform::from_translation(Vector3::new(0.0, 1.5, 0.0)))
+            .build()
+    );
+}
+
 
 fn create_skybox(
     cmd: &mut CommandBuffer,
@@ -179,7 +205,7 @@ fn create_skybox(
     cmd.spawn((
         Model::new("assets/models/skybox.obj")?,
         asset_manager.create_material(SkyBoxMat),
-        Transform::default(),
+        Transform::from_scale(2.0),
         SkyBoxComp,
     ));
 

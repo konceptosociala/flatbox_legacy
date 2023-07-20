@@ -7,6 +7,7 @@ layout (location=2) in vec2 texcoord;
 // INSTANCE
 layout (location=3) in vec3 color;
 layout (location=4) in uint albedo_map;
+layout (location=5) in int blank;
 
 layout (set=0, binding=0) uniform UniformBufferObject {
     mat4 view_matrix;
@@ -25,6 +26,7 @@ layout (location=3) out vec3 out_camera_coordinates;
 
 layout (location=4) out vec3 out_color;
 layout (location=5) out uint out_albedo_map;
+layout (location=6) out int out_blank;
 
 void main() {
     vec4 worldpos = pc.model_matrix * vec4(position, 1.0);
@@ -40,4 +42,5 @@ void main() {
 
     out_color = color;
     out_albedo_map = albedo_map;
+    out_blank = blank;
 }

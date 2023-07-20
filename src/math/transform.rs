@@ -48,6 +48,14 @@ impl Transform {
         
         (new_matrix, new_matrix.try_inverse().unwrap())
     }
+
+    pub fn from_scale(scale: f32) -> Self {
+        Transform { 
+            translation: Vector3::identity(), 
+            rotation: UnitQuaternion::identity(), 
+            scale,
+        }
+    }
     
     pub fn from_translation(translation: Vector3<f32>) -> Self {
         Transform {
