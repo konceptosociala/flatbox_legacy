@@ -342,13 +342,13 @@ pub fn update_lights(
     mut renderer: Write<Renderer>,
 ) -> SonjaResult<()> {
     let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
-        .into_iter()
-        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        .into_iter()// FIXME: Light change tracking
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { Some(light.clone()) })
         .collect::<Vec<DirectionalLight>>();
     
     let point_lights = plight_world.query::<(&PointLight, Changed<PointLight>)>()
         .into_iter()
-        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { None })
+        .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { Some(light.clone()) })
         .collect::<Vec<PointLight>>();
         
     if directional_lights.is_empty() && point_lights.is_empty() {
@@ -404,7 +404,9 @@ pub fn update_lights(
 
         writes.push(write);
     }
-    // unsafe { renderer.device.update_descriptor_sets(&writes, &[]) };
+    // FIXME: Fences instead of wait idle
+    unsafe { renderer.device.device_wait_idle()?; } 
+    unsafe { renderer.device.update_descriptor_sets(&writes, &[]) };
 
     Ok(())
 }

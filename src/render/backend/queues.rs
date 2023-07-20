@@ -70,14 +70,20 @@ impl QueueFamilies {
         transfer_index: &Option<u32>,
     ) -> Result<(ash::Device, vk::Queue, vk::Queue), vk::Result> {    
         let queues_info = Self::get_queues_info(graphics_index, transfer_index);
-        let physical_device_features = vk::PhysicalDeviceFeatures::builder().fill_mode_non_solid(true);
-        let mut indexing_features = Self::get_indexing_features();    
         let device_extensions = Self::get_device_extensions();
+        let mut indexing_features = Self::get_indexing_features();    
+
+        let mut buffer_adress_features = vk::PhysicalDeviceBufferAddressFeaturesEXT::builder()
+            .buffer_device_address(true);
+
+        let mut physical_device_features = vk::PhysicalDeviceFeatures2::builder()
+            .features(instance.physical_device_features.features)
+            .push_next(&mut buffer_adress_features);
         
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queues_info)
             .enabled_extension_names(&device_extensions)
-            .enabled_features(&physical_device_features)
+            .push_next(&mut physical_device_features)
             .push_next(&mut indexing_features);
             
         let logical_device = unsafe { instance.instance.create_device(instance.physical_device, &device_create_info, None)? };
@@ -113,7 +119,11 @@ impl QueueFamilies {
     fn get_device_extensions() -> Vec<*const i8> {
         vec![
             ash::extensions::khr::Swapchain::name().as_ptr(),
+            ash::extensions::khr::Maintenance3::name().as_ptr(),
+            ash::extensions::khr::DeviceGroup::name().as_ptr(),
             ash::vk::KhrShaderNonSemanticInfoFn::name().as_ptr(),
+            ash::vk::ExtDescriptorIndexingFn::name().as_ptr(),
+            ash::extensions::khr::BufferDeviceAddress::name().as_ptr(),
         ]
     }
     

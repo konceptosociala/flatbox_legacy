@@ -7,6 +7,8 @@ use vk_shader_macros::include_glsl;
 use crate::assets::AssetHandle;
 use crate::render::backend::shader::*;
 
+pub use sonja_macros::Material;
+
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]
 pub trait Material: AsAny + std::fmt::Debug + Send + Sync {
@@ -70,14 +72,14 @@ impl Default for DefaultMat {
 impl Material for DefaultMat {
     fn vertex() -> &'static [u32] {
         include_glsl!(
-            "./src/shaders/defaultmat.vs", 
+            "src/shaders/defaultmat.vs", 
             kind: vert,
         )
     }
 
     fn fragment() -> &'static [u32] {
         include_glsl!(
-            "./src/shaders/defaultmat.fs", 
+            "src/shaders/defaultmat.fs", 
             kind: frag,
         )
     }

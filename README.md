@@ -22,12 +22,12 @@ The crate is in a very early stage of development. Use it at your own risk
 - [x] Screenshots
 - [x] Egui
 - [x] Custom materials
-- [ ] PBR Material `(WIP)`
+- [x] PBR Material
+- [ ] Shadows `(WIP)`
 - [ ] Animation `(WIP)`
 - [ ] Model loading `(WIP)`
   - [x] Wavefront (`.obj`)
-  - [ ] COLLADA (`.dae`)
-  - [ ] Extensible (`.x3d`)
+  - [ ] glTF (`.gltf/.glb`)
 
 ### Physics
 - [x] Rigid bodies, colliders

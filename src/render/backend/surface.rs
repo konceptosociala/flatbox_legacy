@@ -1,9 +1,5 @@
 use ash::vk;
-use crate::render::{
-    backend::{
-        instance::Instance,
-    },
-};
+use crate::render::backend::instance::Instance;
 
 pub struct Surface {
     pub surface: vk::SurfaceKHR,

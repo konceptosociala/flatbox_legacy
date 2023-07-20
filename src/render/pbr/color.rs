@@ -24,6 +24,15 @@ impl Color<u8> {
     pub const NORMAL: Color<u8> = Color::new(128, 128, 255);
 }
 
+impl Color<f32> {
+    pub const WHITE: Color<f32> = Color::new(1.0, 1.0, 1.0);
+    pub const BLACK: Color<f32> = Color::new(0.0, 0.0, 0.0);
+    pub const RED: Color<f32> = Color::new(0.8, 0.0, 0.0);
+    pub const GREEN: Color<f32> = Color::new(0.0, 0.8, 0.0);
+    pub const BLUE: Color<f32> = Color::new(0.0, 0.0, 0.8);
+    pub const NORMAL: Color<f32> = Color::new(0.5, 0.5, 0.5);
+}
+
 impl<V: Clone> Color<V> {
     pub fn grayscale(value: V) -> Self {
         Color {
@@ -77,6 +86,12 @@ impl From<Vector3<u8>> for Color<u8> {
 impl From<Color<u8>> for [u8; 4] {
     fn from(color: Color<u8>) -> Self {
         [color.r, color.g, color.b, 255]
+    }
+}
+
+impl From<Color<f32>> for [f32; 3] {
+    fn from(color: Color<f32>) -> Self {
+        [color.r, color.g, color.b]
     }
 }
 

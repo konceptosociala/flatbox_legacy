@@ -133,6 +133,7 @@ pub mod prelude;
 /// Error handler from `error` module
 pub use crate::error::Result;
 pub use log::{error, warn, info, debug, trace, log};
+pub use typetag;
 
 /// Main struct representing a game engine instance with various fields and functionality
 pub struct Sonja {

@@ -35,8 +35,8 @@ impl Default for AssetManager {
             audio: AudioManager::default(),
             #[cfg(feature = "render")]
             textures: vec![
-                Texture::new_solid(Color::WHITE, TextureType::Plain, 16, 16),
-                Texture::new_solid(Color::NORMAL, TextureType::Plain, 16, 16),
+                Texture::new_solid(Color::<u8>::WHITE, TextureType::Plain, 16, 16),
+                Texture::new_solid(Color::<u8>::NORMAL, TextureType::Plain, 16, 16),
             ],
             skybox: None,
             #[cfg(feature = "render")]
@@ -62,6 +62,10 @@ impl AssetManager {
                 texture.cleanup(renderer);
             }
             
+            if let Some(skybox) = &mut self.skybox {
+                skybox.0.cleanup(renderer);
+                self.skybox = None;
+            }
             self.textures.clear();
             self.materials.clear();
         }

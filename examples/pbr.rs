@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use sonja::prelude::*;
 
 #[derive(Clone, Default, Debug)]
@@ -8,7 +9,23 @@ struct CameraConfiguration {
     latest_pos: Point2<f32>,
 }
 
+#[repr(C)]
+#[derive(Material, Clone, Default, Debug, Serialize, Deserialize)]
+#[material(
+    vertex = "examples/shaders/my_material.vs",
+    fragment = "examples/shaders/my_material.fs",
+)]
+pub struct MyMaterial {
+    #[color]
+    color: [f32; 3],
+    #[texture]
+    albedo: u32,
+    metallic: f32,
+    roughness: f32,
+}
+
 struct SkyBoxComp;
+struct EnableMouse(bool);
 
 fn main() {
     Sonja::init(WindowBuilder {
@@ -30,83 +47,25 @@ fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
 ) -> SonjaResult<()> {    
-    let albedo = asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear);
-    let roughness = asset_manager.create_texture("assets/textures/pbr_test/rgh.jpg", Filter::Linear);
-    let normal = asset_manager.create_texture("assets/textures/pbr_test/nrm.jpg", Filter::Linear);
-    let ao = asset_manager.create_texture("assets/textures/pbr_test/ao.jpg", Filter::Linear);
+    create_plane(&mut cmd, &mut asset_manager);
+    create_camera(&mut cmd);
+    create_lights(&mut cmd);
+    create_skybox(&mut cmd, &mut asset_manager)?;
+    enable_mouse(&mut cmd, true);
 
-    let material = asset_manager.create_material(
-        DefaultMat::builder()
-            .albedo(albedo)
-            .roughness_map(roughness)
-            .normal_map(normal)
-            .ao_map(ao)
-            .metallic(0.0)
-            .roughness(1.0)
-            .build()
-    );
+    let my_material = MyMaterial::builder()
+        .albedo(AssetHandle::default())
+        .color(Color::new(1.0, 1.0, 0.0))
+        .build();
 
-    cmd.spawn(
-        ModelBundle::builder()
-            .model(Model::plane())
-            .material(material)
-            .transform(Transform::from_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(-45.0))))
-            .build()
-    );
-    
-    cmd.spawn((
-        Camera::builder()
-            .is_active(true)
-            .camera_type(CameraType::FirstPerson)
-            .build(),
-        Transform::from_translation(Vector3::new(0.0, 0.0, 3.0)),
-        CameraConfiguration {
-            limit: (-85.0, 85.0),
-            ..Default::default()
-        },
-    ));
-    
-    cmd.spawn((
-        DirectionalLight {
-            direction: Vector3::new(-1., -1., 0.),
-            illuminance: [0.5, 0.5, 0.5],
-        },
-    ));
-
-    cmd.spawn((
-        PointLight {
-            position: Point3::new(-1.0, 0.0, 1.0),
-            luminous_flux: [23.47, 21.31, 20.79],
-        },
-    ));
-
-    cmd.spawn((
-        PointLight {
-            position: Point3::new(1.0, 0.0, 1.0),
-            luminous_flux: [23.47, 21.31, 20.79],
-        },
-    ));
-        
-    asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
-        "assets/textures/cubemap2.jpg", 
-        Filter::Nearest, 
-        TextureType::Cubemap,
-    )));
-
-    cmd.spawn((
-        Model::new("assets/models/skybox.obj")?,
-        asset_manager.create_material(SkyBoxMat),
-        Transform::default(),
-        SkyBoxComp,
-    ));
-
-    Ok(())
+    panic!("Input: {:#?}\nBuilder: {:#?}", MyMaterial::input(), my_material);
 }
 
 fn process_scene(
     camera_world: SubWorld<(&Camera, &mut CameraConfiguration, &mut Transform)>,
     skybox_world: SubWorld<(&mut Transform, &SkyBoxComp)>,
     light_world: SubWorld<&mut PointLight>,
+    enable_mouse_world: SubWorld<&EnableMouse>,
     events: Read<Events>,
     time: Read<Time>,
 ){
@@ -114,6 +73,9 @@ fn process_scene(
     
     let mut skybox = skybox_world.query::<(&mut Transform, &SkyBoxComp)>();
     let (_, (mut skybox_transform, _)) = skybox.iter().next().unwrap();
+
+    let mut enable_mouse = enable_mouse_world.query::<&EnableMouse>();
+    let (_, enable_mouse) = enable_mouse.iter().next().unwrap();
 
     if let Some(ctx) = gui_events.read() {
         egui::SidePanel::left("my_left_panel").show(&ctx, |ui| {
@@ -127,7 +89,8 @@ fn process_scene(
         });
 
         if let Some(current) = ctx.pointer_hover_pos() {
-        // if let Some(current) = Option::<gui::Pos2>::None {
+            if !enable_mouse.0 { return; }
+
             for (_, (_, mut conf, mut t)) in &mut camera_world.query::<(&Camera, &mut CameraConfiguration, &mut Transform)>(){       
                 let (delta_x, delta_y) = {
                     if conf.latest_pos == Point2::origin() {
@@ -158,4 +121,108 @@ fn process_scene(
             }
         }
     }
+}
+
+fn create_textures(
+    asset_manager: &mut AssetManager
+) -> (AssetHandle<'T'>, AssetHandle<'T'>, AssetHandle<'T'>, AssetHandle<'T'>) {
+    (
+        asset_manager.create_texture("assets/textures/pbr_test/diffuse.jpg", Filter::Linear), 
+        asset_manager.create_texture("assets/textures/pbr_test/rgh.jpg", Filter::Linear),
+        asset_manager.create_texture("assets/textures/pbr_test/nrm.jpg", Filter::Linear), 
+        asset_manager.create_texture("assets/textures/pbr_test/ao.jpg", Filter::Linear),
+    )
+}
+
+fn create_material(
+    asset_manager: &mut AssetManager,
+) -> AssetHandle<'M'> {
+    let (albedo, roughness, normal, ao) = create_textures(asset_manager);
+
+    asset_manager.create_material(
+        DefaultMat::builder()
+            .albedo(albedo)
+            .roughness_map(roughness)
+            .normal_map(normal)
+            .ao_map(ao)
+            .metallic(0.0)
+            .roughness(1.0)
+            .build()
+    )
+}
+
+fn create_plane(
+    cmd: &mut CommandBuffer,
+    asset_manager: &mut AssetManager,
+){
+    let material = create_material(asset_manager);
+
+    cmd.spawn(
+        ModelBundle::builder()
+            .model(Model::plane())
+            .material(material)
+            .transform(Transform::from_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(-45.0))))
+            .build()
+    );
+}
+
+fn create_skybox(
+    cmd: &mut CommandBuffer,
+    asset_manager: &mut AssetManager,
+) -> SonjaResult<()> {
+    asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
+        "assets/textures/cubemap2.jpg", 
+        Filter::Nearest, 
+        TextureType::Cubemap,
+    )));
+
+    cmd.spawn((
+        Model::new("assets/models/skybox.obj")?,
+        asset_manager.create_material(SkyBoxMat),
+        Transform::default(),
+        SkyBoxComp,
+    ));
+
+    Ok(())
+}
+
+fn create_camera(cmd: &mut CommandBuffer){
+    cmd.spawn((
+        Camera::builder()
+            .is_active(true)
+            .camera_type(CameraType::FirstPerson)
+            .build(),
+        Transform::from_translation(Vector3::new(0.0, 0.0, 3.0)),
+        CameraConfiguration {
+            limit: (-85.0, 85.0),
+            ..Default::default()
+        },
+    ));
+}
+
+fn create_lights(cmd: &mut CommandBuffer){
+    cmd.spawn((
+        DirectionalLight {
+            direction: Vector3::new(-1., -1., 0.),
+            illuminance: [0.5, 0.5, 0.5],
+        },
+    ));
+
+    cmd.spawn((
+        PointLight {
+            position: Point3::new(-1.0, 0.0, 1.0),
+            luminous_flux: [23.47, 21.31, 20.79],
+        },
+    ));
+
+    cmd.spawn((
+        PointLight {
+            position: Point3::new(1.0, 0.0, 1.0),
+            luminous_flux: [23.47, 21.31, 20.79],
+        },
+    ));
+}
+
+fn enable_mouse(cmd: &mut CommandBuffer, enabled: bool){
+    cmd.spawn((EnableMouse(enabled),));
 }

@@ -15,7 +15,7 @@ pub struct Instance {
     pub debugger: ManuallyDrop<Debug>,
     pub physical_device: vk::PhysicalDevice,
     pub physical_device_properties: vk::PhysicalDeviceProperties,
-    pub physical_device_features: vk::PhysicalDeviceFeatures,
+    pub physical_device_features: vk::PhysicalDeviceFeatures2,
 }
 
 impl Instance {
@@ -80,8 +80,10 @@ impl Instance {
     /// Init [`Instance`] extensions
     fn init_extensions() -> Vec<*const i8> {
         vec![
+            ash::extensions::khr::DeviceGroupCreation::name().as_ptr(),
             ash::extensions::ext::DebugUtils::name().as_ptr(),
             ash::extensions::khr::Surface::name().as_ptr(),
+            ash::vk::KhrGetPhysicalDeviceProperties2Fn::name().as_ptr(),
             
             #[cfg(target_os = "linux")]
             ash::extensions::khr::XlibSurface::name().as_ptr(),
@@ -94,7 +96,7 @@ impl Instance {
     /// Init physical device
     fn init_physical_device(
         instance: &ash::Instance,
-    ) -> Result<(vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures), vk::Result> {
+    ) -> Result<(vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures2), vk::Result> {
         let physical_devices = unsafe { instance.enumerate_physical_devices()? };
         return match [
             vk::PhysicalDeviceType::DISCRETE_GPU,
@@ -106,7 +108,9 @@ impl Instance {
         .copied()
         .find_map(|device_type| Self::select_device_of_type(&instance, &physical_devices, device_type))
         {
-            Some((device, properties, features)) => Ok((*device, properties, features)),
+            Some((device, properties, features)) => {
+                Ok((*device, properties, features))
+            },
             _ => Err(vk::Result::ERROR_UNKNOWN),
         }
     }
@@ -116,10 +120,12 @@ impl Instance {
         instance: &'a ash::Instance,
         physical_devices: &'a Vec<vk::PhysicalDevice>,
         d_type: vk::PhysicalDeviceType,
-    ) -> Option<(&'a vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures)> {
+    ) -> Option<(&'a vk::PhysicalDevice, vk::PhysicalDeviceProperties, vk::PhysicalDeviceFeatures2)> {
+        let mut features = vk::PhysicalDeviceFeatures2::builder().build();
+
         for p in physical_devices {
             let properties = unsafe { instance.get_physical_device_properties(*p) };
-            let features = unsafe { instance.get_physical_device_features(*p) };
+            unsafe { instance.get_physical_device_features2(*p, &mut features) };
             if properties.device_type == d_type {
                 return Some((p, properties, features));
             }

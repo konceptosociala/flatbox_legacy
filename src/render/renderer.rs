@@ -225,8 +225,6 @@ impl Renderer {
     ) -> SonjaResult<()> {     
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         
-        update_texture_sets(&asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
-        
         begin_commandbuffer(&commandbuffer, &mut self.commandbuffer_pools, &self.device)?;
         begin_renderpass(&self.renderpass, &self.swapchain, &self.device, &commandbuffer, index);
         
@@ -272,7 +270,12 @@ impl Renderer {
         
         end_commandbuffer(&self.device, &commandbuffer);
         self.commandbuffer_pools.current_commandbuffer = None;
+
+        // FIXME: Fences instead of wait idle
+        unsafe { self.device.device_wait_idle()?; } 
             
+        update_texture_sets(&asset_manager, &self.descriptor_pool, &self.swapchain, &self.device);
+
         Ok(())
     }
     
@@ -338,10 +341,12 @@ impl Renderer {
             self.device.free_memory(self.buffers.camera_buffer.allocation.as_ref().unwrap().memory(), None);
             self.device.destroy_buffer(self.buffers.light_buffer.buffer, None);
 
-            for (_, mut m) in &mut world.query::<&mut Mesh>(){    
-                clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
-                clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
-                clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);
+            for (_, mut m) in &mut world.query::<&mut Model>(){  
+                if let Some(m) = &mut m.mesh {
+                    clear_model_buffer(&mut m.vertexbuffer, &self.device, &mut self.allocator);
+                    clear_model_buffer(&mut m.indexbuffer, &self.device, &mut self.allocator);
+                    clear_model_buffer(&mut m.instancebuffer, &self.device, &mut self.allocator);
+                }  
             }
             
             self.commandbuffer_pools.cleanup(&self.device);

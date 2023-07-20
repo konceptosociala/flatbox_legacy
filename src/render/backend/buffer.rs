@@ -16,7 +16,7 @@ pub struct Buffer {
 impl Buffer {
     pub fn new(
         logical_device: &ash::Device,
-        allocator: &mut gpu_allocator::vulkan::Allocator,
+        allocator: &mut Allocator,
         size_in_bytes: u64,
         buffer_usage: vk::BufferUsageFlags,
         memory_location: MemoryLocation,

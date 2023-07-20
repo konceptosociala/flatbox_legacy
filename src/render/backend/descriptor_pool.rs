@@ -134,6 +134,8 @@ impl DescriptorPool {
                 .buffer_info(&buffer_infos)
                 .build()
             ];
+            // FIXME: Fences instead of wait idle
+            unsafe { logical_device.device_wait_idle().unwrap(); } 
             logical_device.update_descriptor_sets(&desc_sets_write, &[]);
         }
         
@@ -150,6 +152,8 @@ impl DescriptorPool {
                 .buffer_info(&buffer_infos)
                 .build()
             ];
+            // FIXME: Fences instead of wait idle
+            unsafe { logical_device.device_wait_idle().unwrap(); } 
             logical_device.update_descriptor_sets(&desc_sets_write, &[]);
         }
     }
@@ -227,4 +231,9 @@ impl DescriptorPool {
             .set_layouts(&desc_layouts);
         logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info)
     }
+}
+
+#[derive(Clone)]
+pub struct DescriptorUpdateEvent {
+    pub writes: Vec<vk::WriteDescriptorSet>,
 }
