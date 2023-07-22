@@ -54,20 +54,20 @@ impl Window {
 impl From<WindowBuilder> for WinitWindowBuilder {
     fn from(v: WindowBuilder) -> Self {
         WinitWindowBuilder::new()
-            .with_title(v.title.unwrap_or("My Game").to_owned())
+            .with_title(v.title)
             .with_window_icon(v.icon)
             
             .with_inner_size(
                 LogicalSize {
-                    width: v.width.unwrap_or(800.0),
-                    height: v.height.unwrap_or(600.0),
+                    width: v.width,
+                    height: v.height,
                 }
             )
             
-            .with_maximized(v.maximized.unwrap_or(false))
-            .with_resizable(v.resizable.unwrap_or(true))
+            .with_maximized(v.maximized)
+            .with_resizable(v.resizable)
             .with_fullscreen(
-                match v.fullscreen.unwrap_or(false) {
+                match v.fullscreen {
                     true => Some(Fullscreen::Borderless(None)),
                     false => None,
                 }

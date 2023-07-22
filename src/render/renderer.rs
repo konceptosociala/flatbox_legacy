@@ -90,12 +90,12 @@ impl Renderer {
             buffer_device_address: true,
         }).expect("Cannot create allocator");
         
-        let render_type = window_builder.renderer.unwrap_or(RenderType::Forward);
+        let render_type = window_builder.renderer;
         if render_type == RenderType::Deferred {
             log::error!("Deferred rendering is not supported yet");
         }
         
-        let clear_color = window_builder.clear_color.unwrap_or(na::Vector3::new(0.0, 0.0, 0.0));
+        let clear_color = window_builder.clear_color;
         let mut swapchain = Swapchain::init(&instance, &device, &window.surface, &queue_families, &mut allocator, clear_color)?;
         
         let renderpass = Pipeline::init_renderpass(&device, instance.physical_device.clone(), &window.surface)?;
@@ -131,7 +131,7 @@ impl Renderer {
         let descriptor_pool = unsafe { DescriptorPool::init(
             &device, 
             &swapchain,
-            window_builder.textures_count.unwrap_or(4096),
+            window_builder.textures_count,
         )? };
         unsafe { descriptor_pool.bind_buffers(&device, &camera_buffer, &light_buffer) };
         
@@ -197,18 +197,18 @@ impl Renderer {
         if self.material_pipelines.contains_key(&TypeId::of::<M>()) {
             log::error!("Material type '{}' is already bound!", std::any::type_name::<M>());
         } else {                
-                let vertex_shader = vk::ShaderModuleCreateInfo::builder().code(M::vertex());
-                let fragment_shader = vk::ShaderModuleCreateInfo::builder().code(M::fragment());
-                let shader_input = M::input();
-                
-                let pipeline = Pipeline::init(
-                    &self,
-                    &vertex_shader,
-                    &fragment_shader,
-                    &shader_input.attributes,
-                    shader_input.instance_size,
-                    shader_input.topology
-                ).expect("Cannot create pipeline");
+            let vertex_shader = vk::ShaderModuleCreateInfo::builder().code(M::vertex());
+            let fragment_shader = vk::ShaderModuleCreateInfo::builder().code(M::fragment());
+            let shader_input = M::input();
+            
+            let pipeline = Pipeline::init(
+                &self,
+                &vertex_shader,
+                &fragment_shader,
+                &shader_input.attributes,
+                shader_input.instance_size,
+                shader_input.topology
+            ).expect("Cannot create pipeline");
 
             self.material_pipelines.insert(TypeId::of::<M>(), pipeline);
         }

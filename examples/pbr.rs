@@ -29,9 +29,9 @@ struct EnableMouse(bool);
 
 fn main() {
     Sonja::init(WindowBuilder {
-        title: Some("PBR Test"),
-        fullscreen: Some(true),
-        renderer: Some(RenderType::Forward),
+        title: "PBR Test",
+        fullscreen: true,
+        renderer: RenderType::Forward,
         ..Default::default()
     })
     

@@ -16,6 +16,8 @@ pub mod lz4 {
     pub use lz4::*;
 }
 
+pub use typetag;
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]

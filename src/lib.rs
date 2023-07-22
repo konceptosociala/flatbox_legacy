@@ -133,7 +133,6 @@ pub mod prelude;
 /// Error handler from `error` module
 pub use crate::error::Result;
 pub use log::{error, warn, info, debug, trace, log};
-pub use typetag;
 
 /// Main struct representing a game engine instance with various fields and functionality
 pub struct Sonja {
@@ -171,7 +170,7 @@ impl Default for Sonja {
 impl Sonja {
     /// Initialize Sonja application
     pub fn init(window_builder: WindowBuilder) -> Sonja {
-        if window_builder.init_logger.unwrap_or(true) {
+        if window_builder.init_logger {
             init_logger();
         }
         
@@ -183,7 +182,7 @@ impl Sonja {
             events: Events::new(),
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
-            asset_manager: AssetManager::new(),
+            asset_manager: AssetManager::new(&window_builder),
             extensions: vec![],
             window_builder: window_builder.clone(),
             #[cfg(feature = "render")]
@@ -304,42 +303,63 @@ fn init_logger() {
 }
 
 /// Builder struct for creating window configurations. It's taken as an argument during [`Sonja`] initializing
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct WindowBuilder {
     // === WINDOW SETTINGS ===
     /// Title of the window
-    pub title: Option<&'static str>, 
+    pub title: &'static str, 
     /// Width of the window
-    pub width: Option<f32>,
+    pub width: f32,
     /// Height of the window
-    pub height: Option<f32>,
+    pub height: f32,
     /// Specifies whether the window should be fullscreen or windowed
-    pub fullscreen: Option<bool>,
+    pub fullscreen: bool,
     /// Specifies whether the window is maximized on startup
-    pub maximized: Option<bool>,
+    pub maximized: bool,
     /// Specifies whether the window should be resizable
-    pub resizable: Option<bool>,
+    pub resizable: bool,
     /// Specifies whether the logger must be initialized
-    pub init_logger: Option<bool>,
+    pub init_logger: bool,
 
     // === AUDIO SETTINGS ===
     /// Maximum count of audio listeners
-    pub listener_count: Option<usize>,
+    pub listener_count: usize,
     /// Maximum count of audio casts
-    pub cast_count: Option<usize>,
+    pub cast_count: usize,
 
     // === RENDERING SETTINGS ===
     /// Window clear background color:
-    pub clear_color: Option<nalgebra::Vector3<f32>>,
+    #[cfg(feature = "render")]
+    pub clear_color: nalgebra::Vector3<f32>,
     /// Icon of the winit window. Requires feature `render` enabled
     #[cfg(feature = "render")]
     pub icon: Option<Icon>,
     /// Type of renderer to use for rendering the window. Can be `Forward` or `Deferred` (WIP). Requires feature `render` enabled
     #[cfg(feature = "render")]
-    pub renderer: Option<RenderType>,
+    pub renderer: RenderType,
     /// Maximum numbers of textures pushed to Descriptor Sets. Default value is 4096. Requires feature `render` enabled
     #[cfg(feature = "render")]
-    pub textures_count: Option<u32>,
+    pub textures_count: u32,
+}
+
+impl Default for WindowBuilder {
+    fn default() -> Self {
+        WindowBuilder { 
+            title: "My Game", 
+            width: 800.0, 
+            height: 600.0, 
+            fullscreen: false, 
+            maximized: false, 
+            resizable: true, 
+            init_logger: true, 
+            listener_count: 8, 
+            cast_count: 128, 
+            clear_color: nalgebra::Vector3::new(0.0, 0.0, 0.0), 
+            icon: None, 
+            renderer: RenderType::Forward, 
+            textures_count: 4096, 
+        }
+    }
 }
 
 /// [`Sonja`] application extension trait for fast configuration without writing boileplate

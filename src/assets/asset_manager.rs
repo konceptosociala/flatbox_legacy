@@ -10,7 +10,7 @@ use ash::vk;
 
 use crate::{
     audio::AudioManager, 
-    render::pbr::skybox::SkyBox,
+    render::pbr::skybox::SkyBox, WindowBuilder,
 };
 
 #[cfg(feature = "render")]
@@ -46,8 +46,19 @@ impl Default for AssetManager {
 }
 
 impl AssetManager {
-    pub fn new() -> Self {
-        AssetManager::default()
+    pub fn new(window_builder: &WindowBuilder) -> Self {
+        AssetManager {
+            audio: AudioManager::new(window_builder.cast_count, window_builder.listener_count)
+                .expect("Cannot create audio manager"),
+            #[cfg(feature = "render")]
+            textures: vec![
+                Texture::new_solid(Color::<u8>::WHITE, TextureType::Plain, 16, 16),
+                Texture::new_solid(Color::<u8>::NORMAL, TextureType::Plain, 16, 16),
+            ],
+            skybox: None,
+            #[cfg(feature = "render")]
+            materials: vec![],
+        }
     }
 
     pub fn cleanup(

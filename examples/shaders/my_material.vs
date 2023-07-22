@@ -31,6 +31,7 @@ layout (location=6) out int out_blank;
 void main() {
     vec4 worldpos = pc.model_matrix * vec4(position, 1.0);
     gl_Position = ubo.projection_matrix * ubo.view_matrix * worldpos;
+    gl_PointSize = 20.0;
 
     uv = texcoord;
     out_normal = transpose(mat3(pc.inverse_model_matrix)) * normal;
