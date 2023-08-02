@@ -61,7 +61,7 @@ hecs-schedule = { package = "despero-hecs-schedule", version = "0.6.2" }
 rapier3d = { version = "0.16.1", features = ["debug-render", "serde-serialize"] }
 
 # Scripting
-mlua = { version = "0.8.6", features = ["lua51", "vendored"] }
+mlua = { version = "0.8.6", features = ["send", "lua51", "vendored"] }
 
 [features]
 default = ["render", "egui"]

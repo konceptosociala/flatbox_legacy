@@ -98,6 +98,7 @@ compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
 
 use std::any::TypeId;
 
+use crate::scripting::*;
 use crate::assets::*;
 use crate::ecs::*;
 use crate::physics::*;
@@ -138,6 +139,8 @@ pub use log::{error, warn, info, debug, trace, log};
 pub struct Sonja {
     /// Game world containing entities and components. Can be serialized and deserialized
     pub world: World,
+    /// Lua script manager
+    pub lua_manager: LuaManager,
     /// Builder for configuring and building the game system schedule
     pub systems: ScheduleBuilder,
     /// Builder for configuring and building the setup system schedule. Setup systems are executed only once at the beginning of the game
@@ -176,6 +179,7 @@ impl Sonja {
         
         Sonja {
             world: World::new(),
+            lua_manager: LuaManager::new(),
             setup_systems: Schedule::builder(),
             systems: Schedule::builder(),
             runner: Box::new(default_runner),

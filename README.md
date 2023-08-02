@@ -43,6 +43,7 @@ The crate is in a very early stage of development. Use it at your own risk
 - [x] Save-Load system
   - [x] ECS World
   - [x] Resources
+- [ ] Lua scripts
 
 ### Audio
 - [x] 2D

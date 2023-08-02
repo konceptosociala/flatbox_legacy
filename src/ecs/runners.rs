@@ -23,6 +23,7 @@ pub fn default_runner(sonja: &mut Sonja) {
     
     setup_systems.execute((
         &mut sonja.world,
+        &mut sonja.lua_manager,
         &mut sonja.renderer,
         &mut sonja.events,
         &mut sonja.time_handler,
@@ -61,6 +62,7 @@ pub fn default_runner(sonja: &mut Sonja) {
         WinitEvent::RedrawRequested(_) => {
             systems.execute((
                 &mut sonja.world,
+                &mut sonja.lua_manager,
                 &mut sonja.renderer,
                 &mut sonja.events,
                 &mut sonja.time_handler,
@@ -84,6 +86,7 @@ pub fn default_runner(sonja: &mut Sonja) {
 
     setup_systems.execute((
         &mut sonja.world,
+        &mut sonja.lua_manager,
         &mut sonja.events,
         &mut sonja.time_handler,
         &mut sonja.physics_handler,
@@ -93,6 +96,7 @@ pub fn default_runner(sonja: &mut Sonja) {
     loop {
         systems.execute((
             &mut sonja.world,
+            &mut sonja.lua_manager,
             &mut sonja.events,
             &mut sonja.time_handler,
             &mut sonja.physics_handler,

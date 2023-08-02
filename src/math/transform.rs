@@ -30,6 +30,10 @@ impl Transform {
             scale,
         }
     }
+
+    pub fn identity() -> Self {
+        Self::default()
+    }
     
     pub fn to_matrices(&self) -> (Matrix4<f32>, Matrix4<f32>) {
         let new_matrix = 
