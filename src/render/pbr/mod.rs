@@ -1,6 +1,8 @@
 pub mod model;
 pub mod camera;
 pub mod color;
+#[cfg(feature = "gltf")]
+pub mod gltf;
 pub mod light;
 pub mod texture;
 pub mod material;

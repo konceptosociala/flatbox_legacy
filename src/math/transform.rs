@@ -5,15 +5,15 @@ use nalgebra::*;
 pub struct Transform {
     pub translation: Vector3<f32>,
     pub rotation: UnitQuaternion<f32>,
-    pub scale: f32,
+    pub scale: Scale3<f32>,
 }
 
 impl Default for Transform {
-    fn default() -> Self{
+    fn default() -> Self {
         Transform {
-            translation: Vector3::new(0.0, 0.0, 0.0),
+            translation: Vector3::identity(),
             rotation: UnitQuaternion::identity(),
-            scale: 1.0,
+            scale: Scale3::identity(),
         }
     }
 }
@@ -22,7 +22,7 @@ impl Transform {
     pub fn new(
         translation: Vector3<f32>,
         rotation: UnitQuaternion<f32>,
-        scale: f32,
+        scale: Scale3<f32>,
     ) -> Self {
         Transform {
             translation,
@@ -43,17 +43,12 @@ impl Transform {
                 self.translation.z,
             ))
             * Matrix4::from(self.rotation)
-            * Matrix4::from([
-                [self.scale, 0.0, 0.0, 0.0],
-                [0.0, self.scale, 0.0, 0.0],
-                [0.0, 0.0, self.scale, 0.0],
-                [0.0, 0.0, 0.0, 1.0]
-            ]);
+            * Matrix4::from(self.scale);
         
         (new_matrix, new_matrix.try_inverse().unwrap())
     }
 
-    pub fn from_scale(scale: f32) -> Self {
+    pub fn from_scale(scale: Scale3<f32>) -> Self {
         Transform { 
             translation: Vector3::identity(), 
             rotation: UnitQuaternion::identity(), 
@@ -65,7 +60,7 @@ impl Transform {
         Transform {
             translation,
             rotation: UnitQuaternion::identity(),
-            scale: 1.0,
+            scale: Scale3::identity(),
         }
     }
 
@@ -73,7 +68,7 @@ impl Transform {
         Transform {
             translation: Vector3::new(0.0, 0.0, 0.0),
             rotation,
-            scale: 1.0,
+            scale: Scale3::identity(),
         }
     }
     

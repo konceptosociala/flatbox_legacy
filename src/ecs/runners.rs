@@ -14,8 +14,8 @@ pub fn empty_runner(_: &mut Sonja){}
 pub fn default_runner(sonja: &mut Sonja) {
     use crate::render::ui::GuiContext;
 
-    let mut setup_systems = sonja.setup_systems.build();
-    let mut systems = sonja.systems.build();
+    let mut setup_systems = sonja.schedules.get_mut("update").unwrap().build();
+    let mut systems = sonja.schedules.get_mut("update").unwrap().build();
     
     #[cfg(feature = "egui")]
     sonja.events.push_handler(EventHandler::<GuiContext>::new());
@@ -79,8 +79,8 @@ pub fn default_runner(sonja: &mut Sonja) {
 
 #[cfg(not(feature = "render"))]
 pub fn default_runner(sonja: &mut Sonja) {
-    let mut setup_systems = sonja.setup_systems.build();
-    let mut systems = sonja.systems.build();
+    let mut setup_systems = sonja.schedules.get_mut("setup").unwrap().build();
+    let mut systems = sonja.schedules.get_mut("update").unwrap().build();
 
     sonja.events.push_handler(EventHandler::<AppExit>::new());
 

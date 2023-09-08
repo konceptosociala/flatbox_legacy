@@ -42,3 +42,5 @@ pub use hecs::{
 pub use event::*;
 pub use systems::*;
 pub use runners::*;
+
+pub type Schedules = std::collections::HashMap<&'static str, ScheduleBuilder>;

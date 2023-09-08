@@ -22,7 +22,7 @@ use crate::render::{
 
 use crate::error::SonjaResult;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 pub enum Filter {
     #[default]
     Linear,
@@ -302,7 +302,7 @@ impl<'de> Deserialize<'de> for Texture {
 impl Texture {
     /// Create empty texture with given `filter` and `path`. Requires [`generate`](#method.generate) method applied to it to load the texture to memory
     pub fn new_from_path(
-        path: &'static str, 
+        path: &str, 
         filter: Filter,
         texture_type: TextureType,
     ) -> Self {

@@ -6,13 +6,17 @@ edition = "2021"
 
 license = "Unlicense"
 description = "Rusty game engine, using API Vulkan and implementing paradigm of ECS"
-homepage = "https://konceptosociala.eu.org/softvaro/sonja"
+homepage = "https://konceptosociala.eu.org/software/sonja/"
 documentation = "https://docs.rs/sonja"
 repository = "https://github.com/konceptosociala/sonja"
 readme = "README.md"
 
 keywords = ["gamedev", "graphics", "engine"]
 categories = ["game-development", "game-engines", "rendering"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Rendering
@@ -64,7 +68,7 @@ rapier3d = { version = "0.16.1", features = ["debug-render", "serde-serialize"] 
 mlua = { version = "0.8.6", features = ["send", "lua51", "vendored"] }
 
 [features]
-default = ["render", "egui"]
+default = ["render", "egui", "gltf"]
 
 egui = [
     "dep:egui", 
@@ -80,9 +84,12 @@ render = [
     "dep:vk-shader-macros",
     "dep:winit",
     "dep:tobj",
-    "dep:gltf",
     "dep:image",
     "dep:sonja-macros"
+]
+
+gltf = [
+    "dep:gltf"
 ]
 
 [profile.dev]

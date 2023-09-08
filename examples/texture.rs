@@ -38,7 +38,7 @@ fn texture(
     let third = add_texture(&mut assets, generic);
 
     cmd.spawn(ModelBundle {
-        model: Model::new("assets/models/model.obj")?,
+        model: Model::load_obj("assets/models/model.obj")?,
         material: assets.create_material(DefaultMat::builder().albedo(second.clone()).build()),
         transform: Transform::from_rotation(UnitQuaternion::from_axis_angle(
             &Unit::new_normalize(Vector3::new(1.0, 1.0, 1.0)),

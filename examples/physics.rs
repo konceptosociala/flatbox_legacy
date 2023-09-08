@@ -19,7 +19,11 @@ fn create_character(
 
     cmd.spawn((
         plane.clone(),
-        Transform::from_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(-90.0))),
+        Transform {
+            translation: Vector3::new(0.0, -1.0, -0.5),
+            rotation: UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(-90.0)),
+            scale: Scale3::new(1.0, 1.0, 1.0),
+        },
         material,
         physics.new_instance(RigidBodyBuilder::fixed().build(), ColliderBuilder::from(plane.mesh.unwrap()).build()),
     ));
@@ -32,8 +36,8 @@ fn create_character(
         transform: Transform::new(
             Vector3::new(-1.75, 2.5, 3.0),
             UnitQuaternion::from_axis_angle(&Vector3::x_axis(), to_radian(30.0)) *
-            UnitQuaternion::from_axis_angle(&Vector3::y_axis(), to_radian(30.0)), 
-            1.0,
+                UnitQuaternion::from_axis_angle(&Vector3::y_axis(), to_radian(30.0)), 
+            Scale3::new(1.0, 1.0, 1.0),
         ) 
     });
 
@@ -44,7 +48,7 @@ fn create_character(
         Transform::new(
             Vector3::new(0.0, 3.0, 0.5), 
             UnitQuaternion::identity(),
-            0.5,
+            Scale3::new(1.0, 1.0, 1.0),
         ),
         material,
         physics.new_instance(RigidBodyBuilder::dynamic().build(), ColliderBuilder::from(cube.mesh.unwrap()).build()),

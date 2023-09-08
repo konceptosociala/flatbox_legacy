@@ -162,7 +162,7 @@ impl Default for PhysicsHandler {
             ),
             physics_pipeline: PhysicsPipeline::new(),
             
-            gravity: vector![0.0, -9.81, 0.0],
+            gravity: vector![0.0, -2.0, 0.0],
             integration_parameters: IntegrationParameters::default(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),

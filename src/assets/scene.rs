@@ -9,6 +9,8 @@ use serde::{
     Deserialize
 };
 
+#[cfg(feature = "gltf")]
+use crate::render::pbr::gltf::GltfCache;
 use crate::ecs::*;
 use crate::error::*;
 use crate::assets::{
@@ -52,6 +54,8 @@ macro_rules! entity {
 pub struct Scene {
     pub assets: AssetManager,
     pub entities: Vec<SerializableEntity>,
+    #[cfg(feature = "gltf")]
+    pub gltf_cache: GltfCache,
 }
 
 impl Scene {    

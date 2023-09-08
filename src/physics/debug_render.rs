@@ -23,6 +23,7 @@ pub struct DebugRenderer {
     pub pipeline: Pipeline,
     pub vertexbuffer: Buffer,
     pub instancebuffer: Buffer,
+    pub primitives: Vec<Point<f32>>,
 }
 
 impl DebugRenderer { // TODO: Fix physics debug renderer
@@ -105,6 +106,7 @@ impl DebugRenderer { // TODO: Fix physics debug renderer
             pipeline,
             vertexbuffer,
             instancebuffer,
+            primitives: vec![],
         })
     }
     
@@ -136,76 +138,80 @@ impl DebugRenderBackend for Renderer {
         b: Point<f32>,
         color: [f32; 4]
     ){        
-        let transform_matrix = {
-            match object {
-                DebugRenderObject::Collider(_, col) => {
-                    na::Matrix4::new_translation(&na::Vector3::new(
-                        col.translation().x,
-                        -col.translation().y,
-                        col.translation().z,
-                    ))
-                    * na::Matrix4::from(*col.rotation())
-                },
-                _ => return (),
-            }
-        };
-
-        let inverse_transform_matrix = transform_matrix.clone().try_inverse().unwrap();
-
-        let vertexdata: [[f32; 3]; 2] = [a.into(), b.into()];
         
-        self.debug_renderer.vertexbuffer.fill(
-            &self.device,
-            &mut *self.allocator.lock().unwrap(),
-            &vertexdata,
-        ).expect("Cannot fill debug renderer vertex buffer");
-        
-        self.debug_renderer.instancebuffer.fill(
-            &self.device,
-            &mut *self.allocator.lock().unwrap(),
-            &color,
-        ).expect("Cannot fill debug renderer instance buffer");
-        
-        unsafe {
-            self.device.cmd_bind_pipeline(
-                self.commandbuffer_pools.current_commandbuffer.unwrap(),
-                vk::PipelineBindPoint::GRAPHICS,
-                self.debug_renderer.pipeline.pipeline,
-            );
-            
-            self.device.cmd_bind_vertex_buffers(
-                self.commandbuffer_pools.current_commandbuffer.unwrap(),
-                0,
-                &[self.debug_renderer.vertexbuffer.buffer],
-                &[0],
-            );
-            
-            self.device.cmd_bind_vertex_buffers(
-                self.commandbuffer_pools.current_commandbuffer.unwrap(),
-                1,
-                &[self.debug_renderer.instancebuffer.buffer],
-                &[0],
-            );
-
-            let transform_matrices = [transform_matrix, inverse_transform_matrix];
-            let transform_ptr = &transform_matrices as *const _ as *const u8;
-            let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
-            
-            self.device.cmd_push_constants(
-                self.commandbuffer_pools.current_commandbuffer.unwrap(),
-                self.descriptor_pool.pipeline_layout,
-                vk::ShaderStageFlags::VERTEX,
-                0,
-                transform_slice,
-            );
-            
-            self.device.cmd_draw(
-                self.commandbuffer_pools.current_commandbuffer.unwrap(),
-                2,
-                1,
-                0,
-                0,
-            );
-        }
     }
 }
+
+/*fn render() {
+    let transform_matrix = {
+        match object {
+            DebugRenderObject::Collider(_, col) => {
+                na::Matrix4::new_translation(&na::Vector3::new(
+                    col.translation().x,
+                    -col.translation().y,
+                    col.translation().z,
+                ))
+                * na::Matrix4::from(*col.rotation())
+            },
+            _ => return (),
+        }
+    };
+
+    let inverse_transform_matrix = transform_matrix.clone().try_inverse().unwrap();
+
+    let vertexdata: [[f32; 3]; 2] = [a.into(), b.into()];
+    
+    self.debug_renderer.vertexbuffer.fill(
+        &self.device,
+        &mut *self.allocator.lock().unwrap(),
+        &vertexdata,
+    ).expect("Cannot fill debug renderer vertex buffer");
+    
+    self.debug_renderer.instancebuffer.fill(
+        &self.device,
+        &mut *self.allocator.lock().unwrap(),
+        &color,
+    ).expect("Cannot fill debug renderer instance buffer");
+    
+    unsafe {
+        self.device.cmd_bind_pipeline(
+            self.commandbuffer_pools.current_commandbuffer.unwrap(),
+            vk::PipelineBindPoint::GRAPHICS,
+            self.debug_renderer.pipeline.pipeline,
+        );
+        
+        self.device.cmd_bind_vertex_buffers(
+            self.commandbuffer_pools.current_commandbuffer.unwrap(),
+            0,
+            &[self.debug_renderer.vertexbuffer.buffer],
+            &[0],
+        );
+        
+        self.device.cmd_bind_vertex_buffers(
+            self.commandbuffer_pools.current_commandbuffer.unwrap(),
+            1,
+            &[self.debug_renderer.instancebuffer.buffer],
+            &[0],
+        );
+
+        let transform_matrices = [transform_matrix, inverse_transform_matrix];
+        let transform_ptr = &transform_matrices as *const _ as *const u8;
+        let transform_slice = std::slice::from_raw_parts(transform_ptr, 128);
+        
+        self.device.cmd_push_constants(
+            self.commandbuffer_pools.current_commandbuffer.unwrap(),
+            self.descriptor_pool.pipeline_layout,
+            vk::ShaderStageFlags::VERTEX,
+            0,
+            transform_slice,
+        );
+        
+        self.device.cmd_draw(
+            self.commandbuffer_pools.current_commandbuffer.unwrap(),
+            2,
+            1,
+            0,
+            0,
+        );
+    }
+}*/

@@ -50,11 +50,11 @@ fn create_scene(
 ) -> SonjaResult<()> {    
     renderer.bind_material::<MyMaterial>();
 
+    create_skybox(&mut cmd, &mut asset_manager)?;
     create_plane(&mut cmd, &mut asset_manager);
     create_box(&mut cmd, &mut asset_manager);
     create_camera(&mut cmd);
     create_lights(&mut cmd);
-    create_skybox(&mut cmd, &mut asset_manager)?;
     enable_mouse(&mut cmd, true);
 
     Ok(())
@@ -203,9 +203,9 @@ fn create_skybox(
     )));
 
     cmd.spawn((
-        Model::new("assets/models/skybox.obj")?,
+        Model::load_obj("assets/models/skybox.obj")?,
         asset_manager.create_material(SkyBoxMat),
-        Transform::from_scale(2.0),
+        Transform::from_scale(Scale3::new(2.0, 2.0, 2.0)),
         SkyBoxComp,
     ));
 

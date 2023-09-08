@@ -90,11 +90,15 @@ fn create_camera(
 
 */
 
-//#![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+// #![warn(missing_docs)]
 // TODO: write full documentation for all components
 
 #[cfg(all(feature = "egui", not(feature = "render")))]
 compile_error!("Feature \"render\" must be enabled in order to use \"egui\"!");
+
+#[cfg(all(feature = "gltf", not(feature = "render")))]
+compile_error!("Feature \"render\" must be enabled in order to use \"gltf\"!");
 
 use std::any::TypeId;
 
@@ -141,10 +145,8 @@ pub struct Sonja {
     pub world: World,
     /// Lua script manager
     pub lua_manager: LuaManager,
-    /// Builder for configuring and building the game system schedule
-    pub systems: ScheduleBuilder,
-    /// Builder for configuring and building the setup system schedule. Setup systems are executed only once at the beginning of the game
-    pub setup_systems: ScheduleBuilder,
+    /// System schedule builders collection, which can be accessed by name
+    pub schedules: Schedules,
     /// Function that defines the game loop and handles game execution. It takes an instance of Sonja as an argument
     pub runner: Box<dyn Fn(&mut Sonja)>,
     /// Collection of event handlers for managing user input and system events
@@ -180,13 +182,15 @@ impl Sonja {
         Sonja {
             world: World::new(),
             lua_manager: LuaManager::new(),
-            setup_systems: Schedule::builder(),
-            systems: Schedule::builder(),
+            schedules: Schedules::from([
+                ("setup", Schedule::builder()),
+                ("update", Schedule::builder()),
+            ]),
             runner: Box::new(default_runner),
             events: Events::new(),
             physics_handler: PhysicsHandler::new(),
             time_handler: Time::new(),
-            asset_manager: AssetManager::new(&window_builder),
+            asset_manager: AssetManager::new(window_builder.cast_count, window_builder.listener_count),
             extensions: vec![],
             window_builder: window_builder.clone(),
             #[cfg(feature = "render")]
@@ -194,31 +198,31 @@ impl Sonja {
         }
     }
     
-    /// Add cyclical system to schedule
-    pub fn add_system<Args, Ret, S>(&mut self, system: S) -> &mut Self 
-    where
-        S: 'static + System<Args, Ret> + Send,
-    {
-        self.systems.add_system(system);
-        self
-    }
-    
     /// Add setup system to schedule
     pub fn add_setup_system<Args, Ret, S>(&mut self, system: S) -> &mut Self 
     where
         S: 'static + System<Args, Ret> + Send,
     {
-        self.setup_systems.add_system(system);
+        self.schedules.get_mut("setup").unwrap().add_system(system);
+        self
+    }
+
+    /// Add cyclical system to schedule
+    pub fn add_system<Args, Ret, S>(&mut self, system: S) -> &mut Self 
+    where
+        S: 'static + System<Args, Ret> + Send,
+    {
+        self.schedules.get_mut("update").unwrap().add_system(system);
         self
     }
 
     pub fn flush_setup_systems(&mut self) -> &mut Self {
-        self.setup_systems.flush();
+        self.schedules.get_mut("setup").unwrap().flush();
         self
     }
 
     pub fn flush_systems(&mut self) -> &mut Self {
-        self.systems.flush();
+        self.schedules.get_mut("update").unwrap().flush();
         self
     }
     
@@ -226,16 +230,16 @@ impl Sonja {
     /// To process rendering `render` feature must be enabled. You can manually add necessary
     /// ones using [`systems`] module
     pub fn default_systems(&mut self) -> &mut Self {
-        self.setup_systems
+        self.schedules.get_mut("setup").unwrap()
             .add_system(main_setup);
         
-        self.systems
+        self.schedules.get_mut("update").unwrap()
             .add_system(time_system)
             .add_system(update_physics)
             .add_system(processing_audio);
             
         #[cfg(feature = "render")]
-        self.systems
+        self.schedules.get_mut("update").unwrap()
             .add_system(update_models_system)
             .add_system(rendering_system)
             .add_system(update_lights)
@@ -358,9 +362,13 @@ impl Default for WindowBuilder {
             init_logger: true, 
             listener_count: 8, 
             cast_count: 128, 
+            #[cfg(feature = "render")]
             clear_color: nalgebra::Vector3::new(0.0, 0.0, 0.0), 
+            #[cfg(feature = "render")]
             icon: None, 
+            #[cfg(feature = "render")]
             renderer: RenderType::Forward, 
+            #[cfg(feature = "render")]
             textures_count: 4096, 
         }
     }

@@ -1,6 +1,8 @@
 use thiserror::Error;
 use crate::physics::error::PhysicsError;
 use crate::audio::error::AudioError;
+#[cfg(feature = "gltf")]
+use crate::render::pbr::gltf::GltfError;
 
 /// Main universal error handler. Use [`Result::CustomError`] variant, if it doesn't fit your needs
 #[non_exhaustive]
@@ -11,7 +13,7 @@ pub enum Result {
     #[error("Allocation error")]
     AllocationError(#[from] gpu_allocator::AllocationError),
 
-    /// Error while loading, decoding or encoding image data
+    /// Error during loading, decoding or encoding image data
     #[cfg(feature = "render")]
     #[error("Error processing image")]
     ImageError(#[from] image::ImageError),
@@ -21,8 +23,13 @@ pub enum Result {
     #[error("Rendering error")]
     RenderError(#[from] ash::vk::Result),
 
+    /// Error during loading or processing glTF scenes
+    #[cfg(feature = "gltf")]
+    #[error("Error processing glTF asset")]
+    GltfError(#[from] GltfError),
+
     /// Error during audio playback/instantiating/handling
-    #[error("Error while processing audio")]
+    #[error("Error during processing audio")]
     AudioError(#[from] AudioError),
 
     /// Deserialization RON-object error
@@ -43,18 +50,12 @@ pub enum Result {
     
     /// Custom error type. Use when other error types don't fit
     #[error("Error happened: {0}")]
-    CustomError(String),
+    Custom(String),
 }
 
-impl From<&str> for Result {
-    fn from(msg: &str) -> Self {
-        Result::CustomError(String::from(msg))
-    }
-}
-
-impl From<String> for Result {
-    fn from(msg: String) -> Self {
-        Result::CustomError(msg)
+impl Result {
+    pub fn yell<T: Into<String>>(msg: T) -> Self {
+        Result::Custom(msg.into())
     }
 }
 

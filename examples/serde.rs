@@ -40,7 +40,7 @@ fn setup(
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
     
     cmd.spawn(ModelBundle {
-        model: Model::new("assets/models/model.obj")?,
+        model: Model::load_obj("assets/models/model.obj")?,
         material: asset_manager.create_material(
             DefaultMat::builder()
                 .albedo(texture_id)

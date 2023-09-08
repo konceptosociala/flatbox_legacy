@@ -17,7 +17,7 @@ fn create_audio(
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Linear);    
     
     cmd.spawn((
-        Model::new("assets/models/model.obj")?,
+        Model::load_obj("assets/models/model.obj")?,
         asset_manager.create_material(
             DefaultMat::builder()
                 .albedo(texture_id)

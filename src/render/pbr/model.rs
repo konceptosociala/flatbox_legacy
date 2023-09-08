@@ -92,6 +92,18 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    pub fn new(
+        vertexdata: &[Vertex], 
+        indexdata: &[u32],
+    ) -> Self {
+        Mesh {
+            vertexdata: vertexdata.to_vec(),
+            indexdata: indexdata.to_vec(),
+            vertexbuffer: None,
+            instancebuffer: None,
+            indexbuffer: None,
+        }
+    }
     /// Create a textured plane mesh
     pub fn plane() -> Self {
         let p1 = na::Point3::new(-1.0, 1.0, 0.0);
@@ -441,6 +453,12 @@ impl Mesh {
     }
 }
 
+impl Default for Mesh {
+    fn default() -> Self {
+        Mesh::cube()
+    }
+}
+
 impl Clone for Mesh {
     fn clone(&self) -> Self {
         Mesh {
@@ -565,7 +583,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new<P>(path: P) -> SonjaResult<Self> 
+    pub fn load_obj<P>(path: P) -> SonjaResult<Self> 
     where 
         P: AsRef<Path> + Debug
     {
@@ -576,14 +594,12 @@ impl Model {
 
         let extension = path.as_ref()
             .extension()
-            .ok_or(crate::Result::from(error.clone()))?
+            .ok_or(crate::Result::yell(&error))?
             .to_str().unwrap();
 
-        // TODO: Load COLLADA
         let mesh = match extension {
             "obj" => Mesh::load_obj(path.as_ref()).swap_remove(0),
-            "dae" => panic!("Loading COLLADA models is not supported yet"),
-            _ => return Err(crate::Result::from(error.clone())),
+            _ => return Err(crate::Result::yell(&error)),
         };
 
         Ok(Model {
@@ -675,7 +691,7 @@ impl<'de> Deserialize<'de> for Model {
                     MeshType::Sphere => { Some(Mesh::sphere()) },
                     MeshType::Plane => { Some(Mesh::plane()) },
                     MeshType::Loaded(path) => {
-                        return Ok(Model::new(path)
+                        return Ok(Model::load_obj(path)
                             .expect("Cannot load deserialized model from path"));
                     },
                     MeshType::Generic => { 
@@ -721,7 +737,7 @@ impl<'de> Deserialize<'de> for Model {
                     MeshType::Sphere => { Some(Mesh::sphere()) },
                     MeshType::Plane => { Some(Mesh::plane()) },
                     MeshType::Loaded(path) => {
-                        return Ok(Model::new(path)
+                        return Ok(Model::load_obj(path)
                             .expect("Cannot load deserialized model from path"));
                     },
                     MeshType::Generic => { 

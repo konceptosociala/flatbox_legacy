@@ -19,4 +19,8 @@ pub use nalgebra::{
     Unit,
     UnitQuaternion,
     Quaternion,
+
+    Scale2,
+    Scale3,
+    Scale4,
 };

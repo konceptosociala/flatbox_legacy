@@ -25,7 +25,7 @@ pub trait SerializableComponent: Component {
 /// 
 #[macro_export]
 macro_rules! impl_ser_component {
-    ($($comp:ty),*) => {
+    ($($comp:ty),+) => {
         $(
             #[typetag::serde]
             impl SerializableComponent for $comp {
@@ -33,7 +33,7 @@ macro_rules! impl_ser_component {
                     entity_builder.add(self.clone());
                 }
             }
-        )*
+        )+
     }
 }
 

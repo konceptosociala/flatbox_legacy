@@ -1,30 +1,31 @@
-use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 use serde::{Serialize, Deserialize};
 
 #[cfg(feature = "render")]
 use std::sync::Arc;
 #[cfg(feature = "render")]
-use parking_lot::{RwLock, MappedRwLockReadGuard, MappedRwLockWriteGuard};
+use parking_lot::{RwLock, MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLockReadGuard, RwLockWriteGuard};
 #[cfg(feature = "render")]
 use ash::vk;
 
-use crate::{
-    audio::AudioManager, 
-    render::pbr::skybox::SkyBox, WindowBuilder,
-};
+use crate::audio::AudioManager;
 
 #[cfg(feature = "render")]
 use super::AssetHandle;
 #[cfg(feature = "render")]
 use crate::render::*;
 
+/// Manager of game assets (e.g. textures, materials, sounds etc.), the part of [`Sonja`]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AssetManager {
+    /// Audio loading and processing manager
     pub audio: AudioManager,
+    /// Collection of textures, which can be loaded with `create_texture` functions or pushed manually
     #[cfg(feature = "render")]
     pub textures: Vec<Texture>,
+    /// Rendered game skybox texture
     #[cfg(feature = "render")]
     pub skybox: Option<SkyBox>,
+    /// Game materials collection
     #[cfg(feature = "render")]
     pub materials: Vec<Arc<RwLock<Box<dyn Material>>>>,
 }
@@ -38,6 +39,7 @@ impl Default for AssetManager {
                 Texture::new_solid(Color::<u8>::WHITE, TextureType::Plain, 16, 16),
                 Texture::new_solid(Color::<u8>::NORMAL, TextureType::Plain, 16, 16),
             ],
+            #[cfg(feature = "render")]
             skybox: None,
             #[cfg(feature = "render")]
             materials: vec![],
@@ -46,21 +48,27 @@ impl Default for AssetManager {
 }
 
 impl AssetManager {
-    pub fn new(window_builder: &WindowBuilder) -> Self {
+    /// Create new asset manager with audio settings (audio casts and listeners count) specified.
+    pub fn new(
+        cast_count: usize, 
+        listener_count: usize,
+    ) -> Self {
         AssetManager {
-            audio: AudioManager::new(window_builder.cast_count, window_builder.listener_count)
+            audio: AudioManager::new(cast_count, listener_count)
                 .expect("Cannot create audio manager"),
             #[cfg(feature = "render")]
             textures: vec![
                 Texture::new_solid(Color::<u8>::WHITE, TextureType::Plain, 16, 16),
                 Texture::new_solid(Color::<u8>::NORMAL, TextureType::Plain, 16, 16),
             ],
+            #[cfg(feature = "render")]
             skybox: None,
             #[cfg(feature = "render")]
             materials: vec![],
         }
     }
 
+    /// Method to destroy all assets and destroy theirs vulkan components. It is automatically called during [`Sonja::drop`]
     pub fn cleanup(
         &mut self,
         #[cfg(feature = "render")]
@@ -87,11 +95,11 @@ impl AssetManager {
 impl AssetManager {
     pub fn create_texture(
         &mut self,
-        path: &'static str,
+        path: impl Into<String>,
         filter: Filter,
     ) -> AssetHandle<'T'> {
         let new_texture = Texture::new_from_path(
-            path,
+            &path.into(),
             filter,
             TextureType::Plain,
         );
