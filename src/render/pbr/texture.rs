@@ -20,7 +20,7 @@ use crate::render::{
     pbr::color::Color,
 };
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 pub enum Filter {
@@ -365,7 +365,7 @@ impl Texture {
         filter: Filter,
         texture_type: TextureType,
         renderer: &mut Renderer
-    ) -> SonjaResult<Self> {
+    ) -> FlatboxResult<Self> {
         let mut texture = Texture::new_from_path(path, filter, texture_type);
         texture.generate(renderer)?;
         
@@ -403,7 +403,7 @@ impl Texture {
     }
 
     /// Generate texture rendering data for blank texture
-    pub fn generate(&mut self, renderer: &mut Renderer) -> SonjaResult<()> {
+    pub fn generate(&mut self, renderer: &mut Renderer) -> FlatboxResult<()> {
         let image = {
             if let Some(ref image) = self.image {
                 image.clone()
@@ -440,7 +440,7 @@ impl Texture {
         &mut self, 
         renderer: &mut Renderer,
         image: RgbaImage,
-    ) -> SonjaResult<()>{
+    ) -> FlatboxResult<()>{
         let is_cubemap = self.texture_type == TextureType::Cubemap;
         let raw_filter: vk::Filter = self.filter.clone().into();
             

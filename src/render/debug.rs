@@ -7,13 +7,13 @@ pub struct Debug {
     messenger: Arc<vk::DebugUtilsMessengerEXT>,
 }
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 
 impl Debug {
     pub fn init(
         entry: &ash::Entry,
         instance: &ash::Instance,
-    ) -> SonjaResult<Debug> {     
+    ) -> FlatboxResult<Debug> {     
         let loader = ash::extensions::ext::DebugUtils::new(&entry, &instance);
         let messenger = unsafe { loader.create_debug_utils_messenger(&Debug::init_debug_info(), None)? };
         

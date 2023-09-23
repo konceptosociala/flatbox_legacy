@@ -60,4 +60,4 @@ impl Result {
 }
 
 /// Alias for easy error handling
-pub type SonjaResult<T> = std::result::Result<T, Result>;
+pub type FlatboxResult<T> = std::result::Result<T, Result>;

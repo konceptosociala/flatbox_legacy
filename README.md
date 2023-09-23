@@ -1,12 +1,12 @@
 <p align="center">
-    <a href="https://konceptosociala.eu.org/software/sonja"><img src="sonja.svg" height="156" width="156" alt="sonja"></a>
+    <a href="https://konceptosociala.eu.org/software/flatbox"><img src="flatbox.svg" height="156" width="156" alt="flatbox"></a>
 </p>    
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Alpha-blue?style=flat-square" alt="status">
-  <a href="crates.io/crates/sonja"><img src="https://img.shields.io/crates/v/sonja.svg?style=flat-square" alt="crates"></a>
-  <img src="https://img.shields.io/github/stars/konceptosociala/sonja?style=flat-square&color=orange">
-  <a href="https://github.com/konceptosociala/sonja/issues"><img src="https://img.shields.io/github/issues/konceptosociala/sonja?color=green&style=flat-square"></a>
+  <a href="crates.io/crates/flatbox"><img src="https://img.shields.io/crates/v/flatbox.svg?style=flat-square" alt="crates"></a>
+  <img src="https://img.shields.io/github/stars/konceptosociala/flatbox?style=flat-square&color=orange">
+  <a href="https://github.com/konceptosociala/flatbox/issues"><img src="https://img.shields.io/github/issues/konceptosociala/flatbox?color=green&style=flat-square"></a>
 </p>
 
 <p align="center">

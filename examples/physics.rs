@@ -1,7 +1,7 @@
-use sonja::prelude::*;
+use flatbox::prelude::*;
 
 fn main() {
-    Sonja::init(WindowBuilder::default())
+    Flatbox::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(create_character)
         .add_system(move_character)

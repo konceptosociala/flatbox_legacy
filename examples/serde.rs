@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
-use sonja::prelude::*;
-use sonja::impl_save_load;
+use flatbox::prelude::*;
+use flatbox::impl_save_load;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct WorldSaver {
@@ -24,7 +24,7 @@ impl_save_load! {
 }
 
 fn main() {
-    Sonja::init(WindowBuilder::default())
+    Flatbox::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(setup)
         .add_system(gui_system)
@@ -36,7 +36,7 @@ fn main() {
 fn setup(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Nearest);    
     
     cmd.spawn(ModelBundle {
@@ -74,7 +74,7 @@ fn gui_system(
     mut renderer: Write<Renderer>,
     world: Read<World>,
     events: Read<Events>,
-) -> SonjaResult<()> {    
+) -> FlatboxResult<()> {    
     let gui_events = events.get_handler::<GuiContext>().unwrap();
     if let Some(ctx) = gui_events.read() {
         

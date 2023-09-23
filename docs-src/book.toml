@@ -1,7 +1,7 @@
 [book]
-title = "Sonja Manual"
+title = "Flatbox Manual"
 authors = ["Koncepto Sociala"]
-description = "An official manual book for Sonja engine"
+description = "An official manual book for Flatbox engine"
 multilingual = true
 language = "en"
 

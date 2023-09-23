@@ -958,6 +958,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "flatbox"
+version = "0.2.0"
+dependencies = [
+ "as-any",
+ "ash",
+ "ash-window",
+ "despero-hecs",
+ "despero-hecs-schedule",
+ "egui",
+ "egui-winit",
+ "egui-winit-ash-integration",
+ "env_logger",
+ "flatbox-macros",
+ "gltf",
+ "gpu-allocator",
+ "image",
+ "kira",
+ "log",
+ "lz4",
+ "mlua",
+ "nalgebra",
+ "parking_lot",
+ "pretty_env_logger",
+ "rapier3d",
+ "raw-window-handle 0.4.3",
+ "readonly",
+ "ron",
+ "serde",
+ "tar",
+ "thiserror",
+ "tobj",
+ "typetag",
+ "vk-shader-macros",
+ "winit",
+]
+
+[[package]]
+name = "flatbox-macros"
+version = "0.2.0"
+dependencies = [
+ "darling 0.20.3",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.26",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2501,53 +2548,6 @@ checksum = "0a345c870a1fae0b1b779085e81b51e614767c239e93503588e54c5b17f4b0e8"
 dependencies = [
  "smithay-client-toolkit",
  "wayland-client",
-]
-
-[[package]]
-name = "sonja"
-version = "0.2.0"
-dependencies = [
- "as-any",
- "ash",
- "ash-window",
- "despero-hecs",
- "despero-hecs-schedule",
- "egui",
- "egui-winit",
- "egui-winit-ash-integration",
- "env_logger",
- "gltf",
- "gpu-allocator",
- "image",
- "kira",
- "log",
- "lz4",
- "mlua",
- "nalgebra",
- "parking_lot",
- "pretty_env_logger",
- "rapier3d",
- "raw-window-handle 0.4.3",
- "readonly",
- "ron",
- "serde",
- "sonja-macros",
- "tar",
- "thiserror",
- "tobj",
- "typetag",
- "vk-shader-macros",
- "winit",
-]
-
-[[package]]
-name = "sonja-macros"
-version = "0.2.0"
-dependencies = [
- "darling 0.20.3",
- "proc-macro2",
- "quote",
- "syn 2.0.26",
 ]
 
 [[package]]

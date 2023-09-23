@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sonja::prelude::*;
+use flatbox::prelude::*;
 
 #[derive(Clone, Default, Debug)]
 struct CameraConfiguration {
@@ -28,7 +28,7 @@ struct SkyBoxComp;
 struct EnableMouse(bool);
 
 fn main() {
-    Sonja::init(WindowBuilder {
+    Flatbox::init(WindowBuilder {
         title: "PBR Test",
         fullscreen: true,
         renderer: RenderType::Forward,
@@ -47,7 +47,7 @@ fn create_scene(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
-) -> SonjaResult<()> {    
+) -> FlatboxResult<()> {    
     renderer.bind_material::<MyMaterial>();
 
     create_skybox(&mut cmd, &mut asset_manager)?;
@@ -195,7 +195,7 @@ fn create_box(
 fn create_skybox(
     cmd: &mut CommandBuffer,
     asset_manager: &mut AssetManager,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     asset_manager.skybox = Some(SkyBox(Texture::new_from_path(
         "assets/textures/cubemap2.jpg", 
         Filter::Nearest, 

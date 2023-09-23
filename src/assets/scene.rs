@@ -63,13 +63,13 @@ impl Scene {
         Scene::default()
     }
     
-    pub fn load<P: AsRef<Path>>(path: P) -> SonjaResult<Self> {     
+    pub fn load<P: AsRef<Path>>(path: P) -> FlatboxResult<Self> {     
         Ok(ron::from_str::<Scene>(
             &read_to_string(path)?
         )?)
     }
     
-    pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> SonjaResult<()> {     
+    pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> FlatboxResult<()> {     
         let buf = File::create(path)?;                    
         let mut ser = Serializer::new(buf, Some(
             PrettyConfig::new()

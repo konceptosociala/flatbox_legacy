@@ -5,7 +5,7 @@ use std::ffi::CString;
 use ash::vk;
 use crate::{
     render::debug::Debug,
-    error::SonjaResult
+    error::FlatboxResult
 };
 
 /// Structure controlling Vulkan instance and physical device
@@ -20,7 +20,7 @@ pub struct Instance {
 
 impl Instance {
     /// Initialize main [`Instance`]
-    pub fn init() -> SonjaResult<Instance> {
+    pub fn init() -> FlatboxResult<Instance> {
         let entry = unsafe { ash::Entry::load().expect("Cannot create entry") };        
         
         let layer_names_c: Vec<std::ffi::CString> = vec!["VK_LAYER_KHRONOS_validation"]
@@ -70,8 +70,8 @@ impl Instance {
     /// Create [`Instance`] application info
     fn init_app_info() -> vk::ApplicationInfo {
         vk::ApplicationInfo::builder()
-            .application_name(&CString::new("Sonja Game").unwrap())
-            .engine_name(&CString::new("Sonja").unwrap())
+            .application_name(&CString::new("Flatbox Game").unwrap())
+            .engine_name(&CString::new("Flatbox").unwrap())
             .engine_version(vk::make_api_version(0, 0, 0, 0))
             .api_version(vk::make_api_version(0, 1, 0, 106))
             .build()

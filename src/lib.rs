@@ -1,33 +1,16 @@
-// 
-// .d88888b                    oo                           oo     
-// 88.    "'                                                      
-// `Y88888b. .d8888b. 88d888b. dP .d8888b.       88d8b.d8b. dP    
-//       `8b 88'  `88 88'  `88 88 88'  `88       88'`88'`88 88    
-// d8'   .8P 88.  .88 88    88 88 88.  .88 dP    88  88  88 88    
-//  Y88888P  `88888P' dP    dP 88 `88888P8 88    dP  dP  dP dP
-//                             88          .P                                                                                   
-//                           d8dP                                                                                               
-//                                                   oo          dP
-//                                                               88
-// .d8888b. 88d8b.d8b. .d8888b. .d8888b.    dP   .dP dP 88d888b. 88  
-// 88'  `88 88'`88'`88 88'  `88 Y8ooooo.    88   d8' 88 88'  `88 dP 
-// 88.  .88 88  88  88 88.  .88       88    88 .88'  88 88    88 
-// `88888P8 dP  dP  dP `88888P8 `88888P'    8888P'   dP dP    dP oo
-//
-
 /*!
 
-**Sonja** is rusty data-driven 3D game engine, 
+**Flatbox** is rusty data-driven 3D game engine, 
 which implements paradigm of ECS and provides developers with
 appropriate toolkit to develop PBR games with advanced technologies
 
 # Simple example
 
 ```rust
-use sonja::prelude::*;
+use flatbox::prelude::*;
 
 fn main(){
-    Sonja::init(WindowBuilder {
+    Flatbox::init(WindowBuilder {
         title: Some("My Game"),
         ..Default::default()
     })
@@ -43,7 +26,7 @@ fn main(){
 fn create_model(
     mut cmd: Write<CommandBuffer>,
     mut asset_manager: Write<AssetManager>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let texture = asset_manager.create_texture("assets/texture.jpg", Filter::Linear);
        
     cmd.spawn(ModelBundle {
@@ -140,15 +123,15 @@ pub use crate::error::Result;
 pub use log::{error, warn, info, debug, trace, log};
 
 /// Main struct representing a game engine instance with various fields and functionality
-pub struct Sonja {
+pub struct Flatbox {
     /// Game world containing entities and components. Can be serialized and deserialized
     pub world: World,
     /// Lua script manager
     pub lua_manager: LuaManager,
     /// System schedule builders collection, which can be accessed by name
     pub schedules: Schedules,
-    /// Function that defines the game loop and handles game execution. It takes an instance of Sonja as an argument
-    pub runner: Box<dyn Fn(&mut Sonja)>,
+    /// Function that defines the game loop and handles game execution. It takes an instance of Flatbox as an argument
+    pub runner: Box<dyn Fn(&mut Flatbox)>,
     /// Collection of event handlers for managing user input and system events
     pub events: Events,
     /// Handler for managing the physics simulation within the game
@@ -166,20 +149,20 @@ pub struct Sonja {
     pub renderer: Renderer,
 }
 
-impl Default for Sonja {
+impl Default for Flatbox {
     fn default() -> Self {
-        Sonja::init(WindowBuilder::default())
+        Flatbox::init(WindowBuilder::default())
     }
 }
 
-impl Sonja {
-    /// Initialize Sonja application
-    pub fn init(window_builder: WindowBuilder) -> Sonja {
+impl Flatbox {
+    /// Initialize Flatbox application
+    pub fn init(window_builder: WindowBuilder) -> Flatbox {
         if window_builder.init_logger {
             init_logger();
         }
         
-        Sonja {
+        Flatbox {
             world: World::new(),
             lua_manager: LuaManager::new(),
             schedules: Schedules::from([
@@ -254,7 +237,7 @@ impl Sonja {
     }
 
     /// Set custom game runner. Default is [`default_runner`]
-    pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Sonja)>) -> &mut Self {
+    pub fn set_runner(&mut self, runner: Box<dyn Fn(&mut Flatbox)>) -> &mut Self {
         self.runner = runner;
         self
     }
@@ -279,7 +262,7 @@ impl Sonja {
     }
 }
 
-impl Drop for Sonja {
+impl Drop for Flatbox {
     fn drop(&mut self) {
         #[cfg(feature = "render")]
         self.asset_manager.cleanup(&mut self.renderer);
@@ -293,7 +276,7 @@ fn init_logger() {
     pretty_env_logger::formatted_builder()
         .filter_level(
             env_logger::filter::Builder::new()
-                .parse(&std::env::var("SONJA_LOG").unwrap_or(String::from("SONJA_LOG=debug")))
+                .parse(&std::env::var("FLATBOX_LOG").unwrap_or(String::from("FLATBOX_LOG=debug")))
                 .build()
                 .filter()
         )
@@ -303,14 +286,14 @@ fn init_logger() {
     pretty_env_logger::formatted_builder()
         .filter_level(
             env_logger::filter::Builder::new()
-                .parse(&std::env::var("SONJA_LOG").unwrap_or(String::from("SONJA_LOG=info")))
+                .parse(&std::env::var("FLATBOX_LOG").unwrap_or(String::from("FLATBOX_LOG=info")))
                 .build()
                 .filter()
         )
         .init();
 }
 
-/// Builder struct for creating window configurations. It's taken as an argument during [`Sonja`] initializing
+/// Builder struct for creating window configurations. It's taken as an argument during [`Flatbox`] initializing
 #[derive(Debug, Clone)]
 pub struct WindowBuilder {
     // === WINDOW SETTINGS ===
@@ -374,7 +357,7 @@ impl Default for WindowBuilder {
     }
 }
 
-/// [`Sonja`] application extension trait for fast configuration without writing boileplate
+/// [`Flatbox`] application extension trait for fast configuration without writing boileplate
 pub trait Extension {
-    fn apply(&self, app: &mut Sonja);
+    fn apply(&self, app: &mut Flatbox);
 }

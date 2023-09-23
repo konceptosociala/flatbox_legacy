@@ -27,7 +27,7 @@ use crate::assets::{
     AssetHandle,
     asset_manager::AssetManager,
 };
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 
 pub mod cast;
 pub mod error;
@@ -60,7 +60,7 @@ impl AudioManager {
     pub fn new(
         cast_count: usize,
         listener_count: usize,
-    ) -> SonjaResult<Self> {
+    ) -> FlatboxResult<Self> {
         let settings = SpatialSceneSettings::new()
             .emitter_capacity(cast_count)
             .listener_capacity(listener_count);
@@ -100,7 +100,7 @@ impl AudioManager {
         AudioListener { handle }
     }
 
-    pub fn play(&self, handle: AssetHandle<'S'>) -> SonjaResult<()>{
+    pub fn play(&self, handle: AssetHandle<'S'>) -> FlatboxResult<()>{
         match self.get_sound(handle) {
             Some(sound) => {
                 self.inner()
@@ -118,7 +118,7 @@ impl AudioManager {
     pub fn create_sound(
         &mut self,
         path: &'static str,
-    ) -> SonjaResult<AssetHandle<'S'>> {
+    ) -> FlatboxResult<AssetHandle<'S'>> {
         let index = self.sounds.len();
         self.sounds.push(Sound::new_from_file(path)?);
 

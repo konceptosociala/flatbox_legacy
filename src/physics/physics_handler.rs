@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::Sonja;
+use crate::Flatbox;
 
 use serde::{Serialize, Deserialize};
 use nalgebra::Vector3;
@@ -7,7 +7,7 @@ use rapier3d::prelude::*;
 
 #[cfg(feature = "render")]
 use crate::render::renderer::Renderer;
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use super::{
     error::PhysicsError,
     components::BodyHandle,
@@ -41,7 +41,7 @@ pub struct PhysicsHandler {
 impl PhysicsHandler {
     /// Create new [`PhysicsHandler`] instance
     ///
-    /// It's usually not necessary, as it's part of the [`Sonja`] application
+    /// It's usually not necessary, as it's part of the [`Flatbox`] application
     pub fn new() -> Self {
         PhysicsHandler::default()
     }
@@ -55,7 +55,7 @@ impl PhysicsHandler {
     }
     
     /// Get RigidBody from set
-    pub fn rigidbody(&self, handle: BodyHandle) -> SonjaResult<&RigidBody> {
+    pub fn rigidbody(&self, handle: BodyHandle) -> FlatboxResult<&RigidBody> {
         match self.rigidbody_set.get(handle.0){
             Some(rb) => Ok(rb),
             None => Err(PhysicsError::InvalidRigidBody.into()),
@@ -63,7 +63,7 @@ impl PhysicsHandler {
     }
     
     /// Get Collider from set
-    pub fn collider(&self, handle: BodyHandle) -> SonjaResult<&Collider> {
+    pub fn collider(&self, handle: BodyHandle) -> FlatboxResult<&Collider> {
         match self.collider_set.get(handle.1){
             Some(col) => Ok(col),
             None => Err(PhysicsError::InvalidCollider.into()),
@@ -71,7 +71,7 @@ impl PhysicsHandler {
     }
     
     /// Mutably get RigidBody from set
-    pub fn rigidbody_mut(&mut self, handle: BodyHandle) -> SonjaResult<&mut RigidBody> {
+    pub fn rigidbody_mut(&mut self, handle: BodyHandle) -> FlatboxResult<&mut RigidBody> {
         match self.rigidbody_set.get_mut(handle.0){
             Some(rb) => Ok(rb),
             None => Err(PhysicsError::InvalidRigidBody.into()),
@@ -79,7 +79,7 @@ impl PhysicsHandler {
     }
     
     /// Mutably get Collider from set
-    pub fn collider_mut(&mut self, handle: BodyHandle) -> SonjaResult<&mut Collider> {
+    pub fn collider_mut(&mut self, handle: BodyHandle) -> FlatboxResult<&mut Collider> {
         match self.collider_set.get_mut(handle.1){
             Some(col) => Ok(col),
             None => Err(PhysicsError::InvalidCollider.into()),
@@ -92,7 +92,7 @@ impl PhysicsHandler {
     /// let (rigidbody, collider) = physics_handler.remove_instance(handle).unwrap();
     /// ```
     ///
-    pub fn remove_instance(&mut self, handle: BodyHandle) -> SonjaResult<(RigidBody, Collider)> {
+    pub fn remove_instance(&mut self, handle: BodyHandle) -> FlatboxResult<(RigidBody, Collider)> {
         let rigidbody = self.rigidbody_set.remove(
             handle.0,
             &mut self.island_manager,

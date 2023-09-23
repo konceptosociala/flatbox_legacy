@@ -1,7 +1,7 @@
 #![allow(ambiguous_glob_reexports)]
 
-pub use crate::{Sonja, WindowBuilder, Extension};
-pub use crate::error::SonjaResult;
+pub use crate::{Flatbox, WindowBuilder, Extension};
+pub use crate::error::FlatboxResult;
 pub use log::{error, warn, info, debug, trace, log};
 
 pub use crate::assets::*;

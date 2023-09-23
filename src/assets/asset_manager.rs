@@ -14,7 +14,7 @@ use super::AssetHandle;
 #[cfg(feature = "render")]
 use crate::render::*;
 
-/// Manager of game assets (e.g. textures, materials, sounds etc.), the part of [`Sonja`]
+/// Manager of game assets (e.g. textures, materials, sounds etc.), the part of [`Flatbox`]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AssetManager {
     /// Audio loading and processing manager
@@ -68,7 +68,7 @@ impl AssetManager {
         }
     }
 
-    /// Method to destroy all assets and destroy theirs vulkan components. It is automatically called during [`Sonja::drop`]
+    /// Method to destroy all assets and destroy theirs vulkan components. It is automatically called during [`Flatbox::drop`]
     pub fn cleanup(
         &mut self,
         #[cfg(feature = "render")]

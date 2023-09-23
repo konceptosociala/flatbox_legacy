@@ -1,7 +1,7 @@
 use kira::spatial::emitter::EmitterHandle;
 use kira::tween::Tween;
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use crate::audio::{
     error::AudioError,
     AudioManager,
@@ -19,7 +19,7 @@ impl AudioCast {
         audio_manager.new_cast()
     }
 
-    pub(crate) fn set_transform(&mut self, t: &Transform) -> SonjaResult<()> {
+    pub(crate) fn set_transform(&mut self, t: &Transform) -> FlatboxResult<()> {
         self.handle.set_position(t.translation, Tween::default()).map_err(|e| AudioError::from(e))?;
 
         Ok(())

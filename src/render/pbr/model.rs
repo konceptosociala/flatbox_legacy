@@ -14,7 +14,7 @@ use nalgebra as na;
 
 use crate::{
     render::backend::buffer::Buffer,
-    error::SonjaResult,
+    error::FlatboxResult,
 };
 
 use crate::assets::AssetHandle;
@@ -583,7 +583,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn load_obj<P>(path: P) -> SonjaResult<Self> 
+    pub fn load_obj<P>(path: P) -> FlatboxResult<Self> 
     where 
         P: AsRef<Path> + Debug
     {

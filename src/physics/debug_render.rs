@@ -5,7 +5,7 @@ use rapier3d::prelude::*;
 use gpu_allocator::*;
 use gpu_allocator::vulkan::*;
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use crate::render::{
     backend::{
         pipeline::*,
@@ -33,7 +33,7 @@ impl DebugRenderer { // TODO: Fix physics debug renderer
         descriptor_pool: &DescriptorPool,
         renderpass: &vk::RenderPass,
         allocator: &mut gpu_allocator::vulkan::Allocator,
-    ) -> SonjaResult<Self> {
+    ) -> FlatboxResult<Self> {
         let vertex_shader = vk::ShaderModuleCreateInfo::builder()
             .code(vk_shader_macros::include_glsl!(
                 "./src/shaders/debug.vs", 

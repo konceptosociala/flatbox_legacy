@@ -32,7 +32,7 @@ impl Pipeline {
         instance_attributes: &[ShaderInputAttribute],
         instance_bytes: usize,
         topology: vk::PrimitiveTopology,
-    ) -> SonjaResult<Pipeline> {
+    ) -> FlatboxResult<Pipeline> {
         let mut vertex_attributes = vec![
             // Position
             ShaderInputAttribute {
@@ -89,7 +89,7 @@ impl Pipeline {
         swapchain: &Swapchain,
         descriptor_pool: &DescriptorPool,
         renderpass: vk::RenderPass,
-    ) -> SonjaResult<()> {        
+    ) -> FlatboxResult<()> {        
         let new_pipeline = Pipeline::init_internal(
             &logical_device,
             &swapchain,
@@ -118,7 +118,7 @@ impl Pipeline {
         logical_device: &ash::Device,
         physical_device: vk::PhysicalDevice,
         surfaces: &Surface
-    ) -> SonjaResult<vk::RenderPass> {
+    ) -> FlatboxResult<vk::RenderPass> {
         let attachments = [
             vk::AttachmentDescription::builder()
                 .format(
@@ -199,7 +199,7 @@ impl Pipeline {
         vertex_bytes: usize,
         instance_bytes: usize,
         topology: vk::PrimitiveTopology,
-    ) -> SonjaResult<vk::Pipeline> {        
+    ) -> FlatboxResult<vk::Pipeline> {        
         let vertex_bindings = vec![
             vk::VertexInputBindingDescription {
                 binding: 0,
@@ -336,7 +336,7 @@ impl Pipeline {
     unsafe fn create_graphics_pipeline(
         logical_device: &ash::Device,
         pipeline_info: vk::GraphicsPipelineCreateInfo,
-    ) -> SonjaResult<vk::Pipeline> {
+    ) -> FlatboxResult<vk::Pipeline> {
         Ok(logical_device.create_graphics_pipelines(
             vk::PipelineCache::null(),
             &[pipeline_info],

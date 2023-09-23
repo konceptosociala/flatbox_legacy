@@ -14,7 +14,7 @@ use serde::{
     },
 };
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 
 use super::{
     AudioError, 
@@ -32,7 +32,7 @@ pub struct Sound {
 }
 
 impl Sound {
-    pub fn new_from_file(path: &'static str) -> SonjaResult<Self> {
+    pub fn new_from_file(path: &'static str) -> FlatboxResult<Self> {
         let static_data = StaticSoundData::from_file(
             path, 
             StaticSoundSettings::default()

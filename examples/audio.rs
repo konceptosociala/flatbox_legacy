@@ -1,8 +1,8 @@
-use sonja::prelude::*;
-use sonja::audio_storage;
+use flatbox::prelude::*;
+use flatbox::audio_storage;
 
 fn main() {    
-    Sonja::init(WindowBuilder::default())
+    Flatbox::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(create_audio)
         .add_system(rotate)
@@ -12,7 +12,7 @@ fn main() {
 fn create_audio(
     mut asset_manager: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let handle = asset_manager.audio.create_sound("assets/audio/birds.mp3")?;
     let texture_id = asset_manager.create_texture("assets/textures/uv.jpg", Filter::Linear);    
     

@@ -7,7 +7,7 @@ use vk_shader_macros::include_glsl;
 use crate::assets::AssetHandle;
 use crate::render::backend::shader::*;
 
-pub use sonja_macros::Material;
+pub use flatbox_macros::Material;
 
 /// Trait for materials to be used in [`Renderer`]
 #[typetag::serde(tag = "material")]

@@ -37,8 +37,8 @@ pub(crate) fn derive_material_internal(input: DeriveInput) -> proc_macro2::Token
     let build_function = data.fields.iter().map(get_builder_impl_build);
 
     quote! {
-        #[::sonja::assets::typetag::serde]
-        impl ::sonja::render::Material for #ident {
+        #[::flatbox::assets::typetag::serde]
+        impl ::flatbox::render::Material for #ident {
             #vertex
             #fragment
             #input
@@ -75,7 +75,7 @@ fn get_vertex_path(opts: &Opts) -> proc_macro2::TokenStream {
     match &opts.vertex {
         Some(path) => quote! {
             fn vertex() -> &'static [u32] {
-                ::sonja::render::include_glsl!(
+                ::flatbox::render::include_glsl!(
                     #path, 
                     kind: vert,
                 )
@@ -89,7 +89,7 @@ fn get_fragment_path(opts: &Opts) -> proc_macro2::TokenStream {
     match &opts.fragment {
         Some(path) => quote! {
             fn fragment() -> &'static [u32] {
-                ::sonja::render::include_glsl!(
+                ::flatbox::render::include_glsl!(
                     #path, 
                     kind: frag,
                 )
@@ -131,13 +131,13 @@ fn get_builder_impl_function(f: &Field) -> proc_macro2::TokenStream {
 
     match attr {
         FieldAttribute::Color => quote! {
-            pub fn #name(mut self, value: ::sonja::render::Color<f32>) -> Self { 
+            pub fn #name(mut self, value: ::flatbox::render::Color<f32>) -> Self { 
                 self.#name = value.into();
                 self
             }
         },
         FieldAttribute::Texture => quote! {
-            pub fn #name(mut self, value: ::sonja::assets::AssetHandle<'T'>) -> Self { 
+            pub fn #name(mut self, value: ::flatbox::assets::AssetHandle<'T'>) -> Self { 
                 self.#name = value.into();
                 self
             }
@@ -164,19 +164,19 @@ fn get_shader_input(
 ) -> proc_macro2::TokenStream {
     let topology = match &opts.topology {
         Some(topology) => match topology.as_str() {
-            "point_list" => quote! { ::sonja::render::ShaderTopology::POINT_LIST },
-            "line_list" => quote! { ::sonja::render::ShaderTopology::LINE_LIST },
-            "line_strip" => quote! { ::sonja::render::ShaderTopology::LINE_STRIP },
-            "triangle_list" => quote! { ::sonja::render::ShaderTopology::TRIANGLE_LIST },
-            "triangle_strip" => quote! { ::sonja::render::ShaderTopology::TRIANGLE_STRIP },
-            "triangle_fan" => quote! { ::sonja::render::ShaderTopology::TRIANGLE_FAN },
-            "line_list_with_adjacency" => quote! { ::sonja::render::ShaderTopology::LINE_LIST_WITH_ADJACENCY },
-            "line_strip_with_adjacency" => quote! { ::sonja::render::ShaderTopology::LINE_STRIP_WITH_ADJACENCY },
-            "triangle_list_with_adjacency" => quote! { ::sonja::render::ShaderTopology::TRIANGLE_LIST_WITH_ADJACENCY },
-            "triangle_strip_with_adjacency" => quote! { ::sonja::render::ShaderTopology::TRIANGLE_STRIP_WITH_ADJACENCY },
+            "point_list" => quote! { ::flatbox::render::ShaderTopology::POINT_LIST },
+            "line_list" => quote! { ::flatbox::render::ShaderTopology::LINE_LIST },
+            "line_strip" => quote! { ::flatbox::render::ShaderTopology::LINE_STRIP },
+            "triangle_list" => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_LIST },
+            "triangle_strip" => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_STRIP },
+            "triangle_fan" => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_FAN },
+            "line_list_with_adjacency" => quote! { ::flatbox::render::ShaderTopology::LINE_LIST_WITH_ADJACENCY },
+            "line_strip_with_adjacency" => quote! { ::flatbox::render::ShaderTopology::LINE_STRIP_WITH_ADJACENCY },
+            "triangle_list_with_adjacency" => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_LIST_WITH_ADJACENCY },
+            "triangle_strip_with_adjacency" => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_STRIP_WITH_ADJACENCY },
             _ => panic!("Unsupported topology \"{}\"", topology),
         },
-        None => quote! { ::sonja::render::ShaderTopology::TRIANGLE_LIST },
+        None => quote! { ::flatbox::render::ShaderTopology::TRIANGLE_LIST },
     };
 
     let format = data.fields.iter().map(|f| {
@@ -184,18 +184,18 @@ fn get_shader_input(
         match ty {
             Type::Array(array) => {
                 match array.into_token_stream().to_string().as_str() {
-                    "[f32 ; 1]" => quote! { ::sonja::render::ShaderInputFormat::R32_SFLOAT },
-                    "[f32 ; 2]" => quote! { ::sonja::render::ShaderInputFormat::R32G32_SFLOAT },
-                    "[f32 ; 3]" => quote! { ::sonja::render::ShaderInputFormat::R32G32B32_SFLOAT },
-                    "[f32 ; 4]" => quote! { ::sonja::render::ShaderInputFormat::R32G32B32A32_SFLOAT },
+                    "[f32 ; 1]" => quote! { ::flatbox::render::ShaderInputFormat::R32_SFLOAT },
+                    "[f32 ; 2]" => quote! { ::flatbox::render::ShaderInputFormat::R32G32_SFLOAT },
+                    "[f32 ; 3]" => quote! { ::flatbox::render::ShaderInputFormat::R32G32B32_SFLOAT },
+                    "[f32 ; 4]" => quote! { ::flatbox::render::ShaderInputFormat::R32G32B32A32_SFLOAT },
                     _ => panic!("Unsupported input format: \"{}\"", array.into_token_stream().to_string().as_str())
                 }
             },
             Type::Path(path) => {
                 match path.into_token_stream().to_string().as_str() {
-                    "f32" => quote! { ::sonja::render::ShaderInputFormat::R32_SFLOAT },
-                    "u32" => quote! { ::sonja::render::ShaderInputFormat::R8G8B8A8_UINT },
-                    "i32" => quote! { ::sonja::render::ShaderInputFormat::R8G8B8A8_SINT },
+                    "f32" => quote! { ::flatbox::render::ShaderInputFormat::R32_SFLOAT },
+                    "u32" => quote! { ::flatbox::render::ShaderInputFormat::R8G8B8A8_UINT },
+                    "i32" => quote! { ::flatbox::render::ShaderInputFormat::R8G8B8A8_SINT },
                     _ => panic!("Unsupported input format: \"{}\"", path.into_token_stream().to_string().as_str())
                 }
             },
@@ -204,13 +204,13 @@ fn get_shader_input(
     });
 
     quote! {
-        fn input() -> ::sonja::render::ShaderInput {
+        fn input() -> ::flatbox::render::ShaderInput {
             let mut location = 3;
             let mut offset = 0;
             let mut attributes = vec![];
             #(
                 attributes.push(
-                    ::sonja::render::ShaderInputAttribute{
+                    ::flatbox::render::ShaderInputAttribute{
                         binding: 1,
                         location: location,
                         offset: offset,
@@ -219,12 +219,12 @@ fn get_shader_input(
                 );
 
                 offset += match #format {
-                    ::sonja::render::ShaderInputFormat::R8G8B8A8_UINT
-                        | ::sonja::render::ShaderInputFormat::R8G8B8A8_SINT 
-                        | ::sonja::render::ShaderInputFormat::R32_SFLOAT => 4,
-                    ::sonja::render::ShaderInputFormat::R32G32_SFLOAT => 8,
-                    ::sonja::render::ShaderInputFormat::R32G32B32_SFLOAT => 12,
-                    ::sonja::render::ShaderInputFormat::R32G32B32A32_SFLOAT => 16,
+                    ::flatbox::render::ShaderInputFormat::R8G8B8A8_UINT
+                        | ::flatbox::render::ShaderInputFormat::R8G8B8A8_SINT 
+                        | ::flatbox::render::ShaderInputFormat::R32_SFLOAT => 4,
+                    ::flatbox::render::ShaderInputFormat::R32G32_SFLOAT => 8,
+                    ::flatbox::render::ShaderInputFormat::R32G32B32_SFLOAT => 12,
+                    ::flatbox::render::ShaderInputFormat::R32G32B32A32_SFLOAT => 16,
                     _ => 0,
                 };
 
@@ -232,7 +232,7 @@ fn get_shader_input(
             )*
             let instance_size = offset as usize;
 
-            ::sonja::render::ShaderInput {
+            ::flatbox::render::ShaderInput {
                 attributes,
                 instance_size,
                 topology: #topology,

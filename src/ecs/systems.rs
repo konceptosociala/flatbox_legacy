@@ -4,22 +4,22 @@
 //! Here are systems that the engine uses to process the main 
 //! components of the game: rendering, audio, physics, etc.
 //!
-//! You can enable their use with [`Sonja::default_systems`] 
+//! You can enable their use with [`Flatbox::default_systems`] 
 //!
 //! ```rust
-//! use sonja::prelude::*;
+//! use flatbox::prelude::*;
 //!
-//! Sonja::init(WindowBuilder::default())
+//! Flatbox::init(WindowBuilder::default())
 //!     .default_systems()
 //!     .run();
 //! ```
 //! 
-//! or add necessary ones manually with [`Sonja::add_system`]
+//! or add necessary ones manually with [`Flatbox::add_system`]
 //! 
 //! ```rust
-//! use sonja::prelude::*;
+//! use flatbox::prelude::*;
 //! 
-//! Sonja::init(WindowBuilder::default())
+//! Flatbox::init(WindowBuilder::default())
 //!     .add_system(time_system)
 //!     .add_system(update_physics)
 //!     .run();
@@ -27,7 +27,7 @@
 //! 
 
 #[allow(unused_imports)]
-use crate::Sonja;
+use crate::Flatbox;
 
 #[cfg(feature = "render")]
 use {
@@ -55,7 +55,7 @@ use crate::audio::*;
 use crate::time::*;
 use crate::ecs::*;
 use crate::physics::*;
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use crate::math::transform::Transform;
 
 #[cfg(feature = "egui")]
@@ -74,7 +74,7 @@ pub fn processing_audio(
     cast_world: SubWorld<(&Transform, &mut AudioCast)>,
     listener_world: SubWorld<(&Transform, &mut AudioListener)>,
     mut asset_manager: Write<AssetManager>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     for (_, (storage, cast)) in &mut storage_world.query::<(&AudioStorage, &AudioCast)>(){
         for handle in &storage.sounds {
             if let Some(sound) = asset_manager.audio.get_sound_mut(handle.clone()){
@@ -98,7 +98,7 @@ pub fn update_physics(
     mut physics_handler: Write<PhysicsHandler>,
     physics_world: SubWorld<(&mut Transform, &BodyHandle)>,
     added_world: SubWorld<(&Transform, &BodyHandle, Added<BodyHandle>)>,
-) -> SonjaResult<()> {    
+) -> FlatboxResult<()> {    
     for (_, (transform, handle, added)) in &mut added_world.query::<(
         &Transform, &BodyHandle, Added<BodyHandle>
     )>(){
@@ -126,7 +126,7 @@ pub fn update_physics(
 pub fn generate_textures(
     mut asset_manager: Write<AssetManager>,
     mut renderer: Write<Renderer>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     for texture in &mut asset_manager.textures {
         if texture.vk_image.is_none() {
             texture.generate(&mut renderer)?;
@@ -151,7 +151,7 @@ pub fn rendering_system(
     asset_manager: Read<AssetManager>,
     mut model_world: SubWorld<(&mut Model, &mut AssetHandle<'M'>, &mut Transform)>,
     camera_world: SubWorld<(&mut Camera, &Transform)>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let image_index = get_image_index(&renderer.swapchain)?;
     
     check_fences(&renderer.device, &renderer.swapchain)?;
@@ -235,7 +235,7 @@ pub fn update_models_system(
     mut renderer: Write<Renderer>,
     asset_manager: Read<AssetManager>,
     world: SubWorld<(&mut Model, &AssetHandle<'M'>, &Transform)>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     for (_, (mut model, handle, _)) in &mut world.query::<(
         &mut Model, &AssetHandle<'M'>, &Transform
     )>(){
@@ -340,7 +340,7 @@ pub fn update_lights(
     plight_world: SubWorld<(&PointLight, Changed<PointLight>)>,
     dlight_world: SubWorld<(&DirectionalLight, Changed<DirectionalLight>)>,
     mut renderer: Write<Renderer>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let directional_lights = dlight_world.query::<(&DirectionalLight, Changed<DirectionalLight>)>()
         .into_iter()// FIXME: Light change tracking
         .filter_map(|(_, (light, is_changed))| if is_changed { Some(light.clone()) } else { Some(light.clone()) })
@@ -412,7 +412,7 @@ pub fn update_lights(
 }
 
 #[cfg(feature = "render")]
-fn get_image_index(swapchain: &Swapchain) -> SonjaResult<u32> {
+fn get_image_index(swapchain: &Swapchain) -> FlatboxResult<u32> {
     let (image_index, _) = unsafe {
         swapchain
             .swapchain_loader
@@ -430,7 +430,7 @@ fn get_image_index(swapchain: &Swapchain) -> SonjaResult<u32> {
 fn check_fences(
     logical_device: &ash::Device,
     swapchain: &Swapchain
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     unsafe {
         logical_device
             .wait_for_fences(

@@ -1,5 +1,5 @@
 use ron::ser::PrettyConfig;
-use sonja::prelude::*;
+use flatbox::prelude::*;
 
 struct TextureSwitcher {
     first: AssetHandle<'T'>,
@@ -8,7 +8,7 @@ struct TextureSwitcher {
 }
 
 fn main() {
-    Sonja::init(WindowBuilder::default())
+    Flatbox::init(WindowBuilder::default())
         .default_systems()
         .add_setup_system(texture)    
         .add_system(ui_system) 
@@ -18,7 +18,7 @@ fn main() {
 fn texture(
     mut assets: Write<AssetManager>,
     mut cmd: Write<CommandBuffer>,
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let loaded = Texture::new_from_path("assets/textures/uv.jpg", Filter::Nearest, TextureType::Plain);
     let solid = Texture::new_solid(Color::new(172, 0, 255), TextureType::Plain, 16, 16);
     let generic = Texture::new_from_raw(&[

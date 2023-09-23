@@ -1,6 +1,5 @@
 # Blender v3.0.1 OBJ File: ''
 # www.blender.org
-mtllib skybox.mtl
 o Cube_Cube.001
 v -4.500000 -4.500000 -4.500000
 v -4.500000 4.500000 -4.500000

@@ -39,7 +39,7 @@ use crate::physics::{
 };
 use crate::math::transform::Transform;
 use crate::ecs::event::EventHandler;
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use crate::WindowBuilder;
 
 use super::pbr::skybox::SkyBoxMat;
@@ -77,7 +77,7 @@ pub struct Renderer {
 }
 
 impl Renderer {    
-    pub(crate) fn init(window_builder: WindowBuilder) -> SonjaResult<Renderer> {
+    pub(crate) fn init(window_builder: WindowBuilder) -> FlatboxResult<Renderer> {
         let instance = Instance::init()?;
         let window = Window::init(&instance, window_builder.clone().into())?;
         let (device, queue_families) = QueueFamilies::init(&instance, &window)?;
@@ -222,7 +222,7 @@ impl Renderer {
         physics_handler: &mut PhysicsHandler,
         asset_manager: &AssetManager,
         index: usize,
-    ) -> SonjaResult<()> {     
+    ) -> FlatboxResult<()> {     
         let commandbuffer = *self.commandbuffer_pools.get_commandbuffer(index).unwrap();
         
         begin_commandbuffer(&commandbuffer, &mut self.commandbuffer_pools, &self.device)?;
@@ -279,7 +279,7 @@ impl Renderer {
         Ok(())
     }
     
-    pub unsafe fn recreate_swapchain(&mut self) -> SonjaResult<()> {
+    pub unsafe fn recreate_swapchain(&mut self) -> FlatboxResult<()> {
         self.device.device_wait_idle()?;
 
         let clear_color = self.swapchain.clear_color.clone();
@@ -316,7 +316,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn idle(&self) -> SonjaResult<()> {
+    pub fn idle(&self) -> FlatboxResult<()> {
         unsafe { self.device.device_wait_idle()? };
         Ok(())
     }
@@ -324,12 +324,12 @@ impl Renderer {
     pub(crate) fn fill_lightbuffer<T: Sized>(
         &mut self,
         data: &[T],
-    ) -> SonjaResult<()>{
+    ) -> FlatboxResult<()>{
         self.buffers.light_buffer.fill(&self.device, &mut *self.allocator.lock().unwrap(), data)?;
         Ok(())
     }
     
-    /// Function to destroy renderer. Used in [`Sonja`]'s ['Drop'] function
+    /// Function to destroy renderer. Used in [`Flatbox`]'s ['Drop'] function
     pub(crate) fn cleanup(&mut self, world: &mut World){
         unsafe {
             self.device.device_wait_idle().expect("Error halting device");  
@@ -384,7 +384,7 @@ fn begin_commandbuffer(
     commandbuffer: &vk::CommandBuffer, 
     commandbuffer_pools: &mut CommandBufferPools, 
     device: &ash::Device
-) -> SonjaResult<()> {
+) -> FlatboxResult<()> {
     let commandbuffer_begininfo = vk::CommandBufferBeginInfo::builder();
     commandbuffer_pools.current_commandbuffer = Some(*commandbuffer);
     unsafe { device.begin_command_buffer(*commandbuffer, &commandbuffer_begininfo)? };

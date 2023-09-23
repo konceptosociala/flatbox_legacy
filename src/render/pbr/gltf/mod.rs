@@ -1,4 +1,4 @@
-//! # Sonja glTF format loading support
+//! # Flatbox glTF format loading support
 //! 
 //! **Limitations:**
 //! 
@@ -20,7 +20,7 @@ use gltf::{
     scene::Transform as GltfTransform,
 };
 
-use crate::error::SonjaResult;
+use crate::error::FlatboxResult;
 use crate::assets::asset_manager::AssetManager;
 use crate::{
     render::pbr::{
@@ -48,7 +48,7 @@ pub struct GltfCache {
 pub fn load_gltf<P: AsRef<Path>>(
     path: P,
     assets: &mut AssetManager,
-) -> SonjaResult<Vec<ModelBundle>> {
+) -> FlatboxResult<Vec<ModelBundle>> {
     let scene = Gltf::open(path).map_err(|e| GltfError::from(e))?.document;
 
     let mut materials = vec![];
@@ -60,7 +60,7 @@ pub fn load_gltf<P: AsRef<Path>>(
     Ok(vec![])
 }
 
-fn load_texture_path(gltf_texture: GltfTexture) -> SonjaResult<String> {
+fn load_texture_path(gltf_texture: GltfTexture) -> FlatboxResult<String> {
     let source = gltf_texture.source().source();
     let Source::Uri { uri: path, mime_type: _ } = source else { 
         return Err(crate::Result::from(GltfError::BinaryAsset)) 
@@ -75,7 +75,7 @@ impl DefaultMat {
         gltf_mat: GltfMat, 
         filter: Filter,
         assets: &mut AssetManager,
-    ) -> SonjaResult<Self> {
+    ) -> FlatboxResult<Self> {
         let pbr = gltf_mat.pbr_metallic_roughness();
 
         // Color
@@ -142,11 +142,7 @@ impl Mesh {
         let mut mesh = Mesh::new(&[], &[]);
 
         for prim in gltf_mesh.primitives() {
-            // let offset = 
-
-            // for pos in prim.reader(|_| None).read_positions().unwrap() {
-            //     vertex.position = pos;
-            // }
+            
         }
 
         todo!();
