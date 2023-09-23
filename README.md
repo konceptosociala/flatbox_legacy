@@ -1,5 +1,7 @@
 <p align="center">
-    <a href="https://konceptosociala.eu.org/software/flatbox"><img src="flatbox.svg" height="156" width="156" alt="flatbox"></a>
+  <a href="https://konceptosociala.eu.org/software/flatbox">
+    <img src="https://konceptosociala.eu.org/img/projects/flatbox.jpg"width="1200" alt="Flatbox banner">
+  </a>
 </p>    
 
 <p align="center">
@@ -18,16 +20,19 @@ The crate is in a very early stage of development. Use it at your own risk
 
 ## Features
 
+### Platforms
+- [x] Linux
+- [ ] Windows
+- [ ] MacOS
+
 ### Rendering
 - [x] Screenshots
 - [x] Egui
 - [x] Custom materials
 - [x] PBR Material
-- [ ] Shadows `(WIP)`
-- [ ] Animation `(WIP)`
-- [ ] Model loading `(WIP)`
-  - [x] Wavefront (`.obj`)
-  - [ ] glTF (`.gltf/.glb`)
+- [ ] Shadows
+- [ ] Animations (bvh)
+- [x] Models (obj)
 
 ### Physics
 - [x] Rigid bodies, colliders
@@ -48,3 +53,4 @@ The crate is in a very early stage of development. Use it at your own risk
 ### Audio
 - [x] 2D
 - [x] 3D
+
